@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Создание диапазона</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='create_range.css') }}">
+</head>
+<body>
+    <h1>📝 Создание нового диапазона</h1>
+
+    <div class="create-container">
+        <div class="form-group">
+            <label for="position">Название позиции (например, RFI_UTG):</label>
+            <input type="text" id="position" placeholder="RFI_UTG" value="RFI_UTG">
+        </div>
+
+        <div class="subrange-list">
+            <h3>Добавленные поддиапазоны:</h3>
+            <ul id="subrange-list-ul">
+                <!-- сюда будут добавляться элементы -->
+            </ul>
+            <p id="empty-message" style="color: #888;">Пока нет поддиапазонов</p>
+        </div>
+
+        <div class="actions">
+            <button id="add-subrange-btn" class="btn-primary">➕ Добавить поддиапазон</button>
+            <button id="save-range-btn" class="btn-success">💾 Сохранить диапазон</button>
+            <button id="clear-all-btn" class="btn-danger">🗑 Очистить все</button>
+        </div>
+
+        <p><a href="{{ url_for('index') }}">🏠 На главную</a></p>
+    </div>
+
+    <!-- Модальное окно для создания поддиапазона -->
+    <div id="subrange-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Создание поддиапазона</h2>
+            <div class="form-group">
+                <label for="subname">Название поддиапазона:</label>
+                <input type="text" id="subname" placeholder="100% RFI">
+            </div>
+            <div class="form-group">
+                <label for="color-picker">Цвет:</label>
+                <input type="color" id="color-picker" value="#3498db">
+            </div>
+            <div class="matrix-container">
+                <h3>Матрица рук (кликните по ячейкам для выбора)</h3>
+                <p>Выбрано рук для текущего поддиапазона: <span id="selected-count">0</span></p>
+                <div id="hand-matrix"></div>
+            </div>
+            <div class="modal-actions">
+                <button id="save-subrange-btn" class="btn-success">Сохранить поддиапазон</button>
+                <button id="cancel-subrange-btn" class="btn-secondary">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='create_range.js') }}"></script>
+</body>
+</html>

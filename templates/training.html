@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Тренировка – {{ mode }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Режим: {{ mode }}</h1>
+
+    {% if show_result and result %}
+        {# Блок результата #}
+        <div class="result-box">
+            <h2>
+                Результат:
+                <span class="result-status {% if result.was_correct %}correct{% else %}incorrect{% endif %}">
+                    {% if result.was_correct %}
+                        ✅ Верно!
+                    {% else %}
+                        ❌ Неверно!
+                    {% endif %}
+                </span>
+            </h2>
+            <p><strong>Позиция:</strong> {{ result.pos }}</p>
+            <p><strong>Рука:</strong> <span class="hand">{{ result.hand }}</span></p>
+            <p><strong>Ваш ответ:</strong> {{ result.user_answer }}</p>
+            <p><strong>Правильный ответ:</strong> <span class="correct-answer">{{ result.correct_answer }}</span></p>
+            <form action="{{ next_url }}" method="get">
+                <button type="submit" class="next-btn">➡️ Следующий вопрос</button>
+            </form>
+        </div>
+    {% else %}
+        {# Блок вопроса #}
+        <div class="question">
+            <p><strong>Позиция:</strong> {{ pos }}</p>
+            <p><strong>Рука:</strong> <span class="hand">{{ hand }}</span></p>
+        </div>
+
+        <form method="post" class="answer-form">
+            <p>Выберите ответ:</p>
+            <div class="button-group">
+                {% for ans in possible_answers %}
+                    <button type="submit" name="answer" value="{{ ans }}" class="answer-btn">
+                        {{ ans }}
+                    </button>
+                {% endfor %}
+            </div>
+        </form>
+    {% endif %}
+
+    {# Статистика #}
+    <div class="stats">
+        <h2>📈 Статистика</h2>
+        <p>Всего ответов: <strong>{{ stats.total }}</strong></p>
+        <p>✅ Верных: <strong>{{ stats.correct }}</strong> 
+            ({{ "%.1f"|format(stats.correct / stats.total * 100 if stats.total > 0 else 0) }}%)
+        </p>
+        <p>❌ Ошибок: <strong>{{ stats.wrong }}</strong> 
+            ({{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}%)
+        </p>
+    </div>
+
+    <p>
+        <a href="{{ url_for('index') }}">🏠 На главную</a> |
+        <a href="{{ url_for('reset_stats') }}">🔄 Сбросить статистику</a>
+    </p>
+</body>
+</html>

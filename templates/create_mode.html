@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Создание режима</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='create_mode.css') }}">
+</head>
+<body>
+    <h1>📋 Создание нового режима тренировки</h1>
+    <div class="create-mode-container">
+        <div class="form-group">
+            <label for="mode-name">Название режима:</label>
+            <input type="text" id="mode-name" placeholder="например, RFI">
+        </div>
+        <div class="positions-list">
+            <h3>Выберите позиции для включения в режим:</h3>
+            {% if positions %}
+                <ul id="positions-ul">
+                    {% for pos in positions %}
+                        <li>
+                            <label>
+                                <input type="checkbox" class="position-checkbox" value="{{ pos }}">
+                                {{ pos }}
+                            </label>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="warning">Нет доступных позиций. Сначала создайте диапазоны.</p>
+            {% endif %}
+        </div>
+        <div class="actions">
+            <button id="save-mode-btn" class="btn-success" {% if not positions %}disabled{% endif %}>💾 Сохранить режим</button>
+            <button id="clear-mode-btn" class="btn-secondary">Снять все</button>
+        </div>
+        <p><a href="{{ url_for('index') }}">🏠 На главную</a></p>
+    </div>
+    <script src="{{ url_for('static', filename='create_mode.js') }}"></script>
+</body>
+</html>

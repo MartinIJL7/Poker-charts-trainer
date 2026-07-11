@@ -1,0 +1,127 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 0 20px;
+    background: #f7f9fc;
+    color: #1e2a3a;
+}
+h1, h2 {
+    color: #2c3e50;
+}
+.warning {
+    color: #c0392b;
+    background: #fce4e4;
+    padding: 10px;
+    border-radius: 5px;
+}
+ul.mode-list {
+    list-style: none;
+    padding: 0;
+}
+ul.mode-list li {
+    margin: 8px 0;
+}
+ul.mode-list li a {
+    display: inline-block;
+    background: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+ul.mode-list li a:hover {
+    background: #2980b9;
+}
+.question {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin: 20px 0;
+}
+.hand {
+    font-weight: bold;
+    font-size: 1.4em;
+    color: #e67e22;
+}
+.answer-form {
+    margin: 20px 0;
+}
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+.answer-btn {
+    font-size: 1.1em;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    background: #ecf0f1;
+    color: #2c3e50;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.answer-btn:hover {
+    background: #d5dbdb;
+    transform: scale(1.02);
+}
+.answer-btn:active {
+    background: #bdc3c7;
+    transform: scale(0.98);
+}
+.result-box {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin: 20px 0;
+}
+.correct-answer {
+    font-weight: bold;
+    color: #27ae60;
+}
+.result-status {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+.result-status.correct {
+    color: #27ae60;
+}
+.result-status.incorrect {
+    color: #c0392b;
+}
+.next-btn {
+    font-size: 1.1em;
+    padding: 10px 30px;
+    background: #2980b9;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.next-btn:hover {
+    background: #1f618d;
+}
+.stats {
+    background: #ecf0f1;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+.stats p {
+    margin: 6px 0;
+}
+a {
+    color: #2980b9;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}

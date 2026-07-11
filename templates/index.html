@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Покерные чарты – тренировка</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>📊 Тренировка по покерным спектрам</h1>
+
+    {% if no_modes %}
+        <p class="warning">⚠️ Нет доступных режимов. Заполните словарь <code>modes</code> в файле <code>config.py</code>.</p>
+    {% else %}
+        <h2>Выберите режим:</h2>
+        <ul class="mode-list">
+        {% for mode_name in modes %}
+            <li><a href="{{ url_for('training', mode=mode_name) }}">{{ mode_name }}</a></li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+    <p>
+    <a href="{{ url_for('reset_stats') }}">🔄 Сбросить статистику</a> |
+    <a href="{{ url_for('create_range') }}">📝 Создать диапазон</a> |
+    <a href="{{ url_for('create_mode') }}">📋 Создать режим</a>
+    </p>
+</body>
+</html>
