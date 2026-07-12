@@ -6,54 +6,60 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='create_range.css') }}">
 </head>
-<body>
-    <h1>📝 Создание нового диапазона</h1>
-
-    <div class="create-container">
-        <div class="form-group">
-            <label for="position">Название позиции:</label>
-            <input type="text" id="position" placeholder="RFI_UTG" value="">
-            <small style="color: #666; display: block; margin-top: 4px;">Используйте символ "_" вместо пробела (например: RFI_UTG)</small>
-        </div>
-
-        <div class="subrange-list">
-            <h3>Добавленные поддиапазоны:</h3>
-            <ul id="subrange-list-ul">
-                <!-- сюда будут добавляться элементы -->
-            </ul>
-            <p id="empty-message" style="color: #888;">Пока нет поддиапазонов</p>
-        </div>
-
-        <div class="actions">
-            <button id="add-subrange-btn" class="btn-primary">➕ Добавить поддиапазон</button>
-            <button id="save-range-btn" class="btn-success">💾 Сохранить диапазон</button>
-            <button id="clear-all-btn" class="btn-danger">🗑 Очистить все</button>
-        </div>
-
-        <p><a href="{{ url_for('index') }}">🏠 На главную</a></p>
+<body class="create-page">
+    <!-- Заголовок с кнопкой "На главную" -->
+    <div class="header-row">
+        <h1>📝 Создание нового диапазона</h1>
+        <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
     </div>
 
-    <!-- Модальное окно для создания поддиапазона -->
-    <div id="subrange-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Создание поддиапазона</h2>
+    <div class="create-container">
+        <!-- Верхняя строка: поле "Название диапазона" + кнопка "Сохранить диапазон" -->
+        <div class="top-row">
             <div class="form-group">
-                <label for="subname">Название поддиапазона:</label>
-                <input type="text" id="subname" placeholder="100% RFI">
+                <label for="position">Название диапазона:</label>
+                <div class="position-input-wrapper">
+                    <input type="text" id="position" placeholder="RFI_UTG" value="">
+                    <button id="save-range-btn" class="btn-success">💾 Сохранить диапазон</button>
+                </div>
+                <small>Используйте символ "_" вместо пробела</small>
             </div>
-            <div class="form-group">
-                <label for="color-picker">Цвет:</label>
-                <input type="color" id="color-picker" value="#3498db">
-            </div>
-            <div class="matrix-container">
-                <h3>Матрица рук (кликните по ячейкам для выбора)</h3>
-                <p>Выбрано рук для текущего поддиапазона: <span id="selected-count">0</span></p>
+        </div>
+
+        <!-- Двухколоночный блок -->
+        <div class="two-columns">
+            <!-- Левая колонка: матрица -->
+            <div class="left-column">
+                <h3>Матрица рук</h3>
                 <div id="hand-matrix"></div>
+                <div style="margin-top: 10px;">
+                    <label for="color-picker">Цвет для выделения:</label>
+                    <input type="color" id="color-picker" value="#3498db">
+                </div>
             </div>
-            <div class="modal-actions">
-                <button id="save-subrange-btn" class="btn-success">Сохранить поддиапазон</button>
-                <button id="cancel-subrange-btn" class="btn-secondary">Закрыть</button>
+
+            <!-- Правая колонка: список поддиапазонов и форма добавления -->
+            <div class="right-column">
+                <h3>Добавленные поддиапазоны</h3>
+                <ul id="subrange-list-ul">
+                    <!-- динамически -->
+                </ul>
+                <p id="empty-message" style="color: #888; font-style: italic;">Пока нет поддиапозонов</p>
+
+                <!-- Поле для имени поддиапазона и кнопки -->
+                <div class="subrange-add-area">
+                    <input type="hidden" id="edit-id" value="">
+                    <input type="text" id="subname" placeholder="Название поддиапазона (например, 100% RFI)" style="width: 100%; padding: 6px; box-sizing: border-box; margin-bottom: 6px;">
+                    <div class="subrange-actions">
+                        <button id="save-subrange-btn" class="btn-success">✅ Добавить поддиапазон</button>
+                        <button id="cancel-edit-btn" class="btn-secondary" style="display: none;">Отменить</button>
+                    </div>
+                </div>
+
+                <!-- Кнопка очистки всех -->
+                <div style="margin-top: 10px;">
+                    <button id="clear-all-btn" class="btn-danger" style="width: 100%;">🗑 Очистить все</button>
+                </div>
             </div>
         </div>
     </div>

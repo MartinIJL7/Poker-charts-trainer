@@ -1,354 +1,385 @@
 // create_range.js
 
-// Глобальные переменные
 let currentColor = '#3498db';
-let currentHands = [];          // список рук, выбранных для текущего поддиапазона
-let tempSubranges = [];         // массив объектов { name, color, hands: [] }
+let currentHands = [];
+let tempSubranges = [];
+let editingId = null;
+let editingHands = [];
 
-// Список рангов (порядок важен)
 const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 
-// Генерация всех рук для матрицы
 function generateHandMatrix() {
     const container = document.getElementById('hand-matrix');
     container.innerHTML = '';
-    // Добавляем пустую ячейку в левом верхнем углу
-    const emptyHeader = document.createElement('div');
-    emptyHeader.className = 'matrix-cell matrix-header';
-    emptyHeader.textContent = '';
-    container.appendChild(emptyHeader);
-
-    // Заголовки столбцов (ранги)
-    ranks.forEach(r => {
-        const header = document.createElement('div');
-        header.className = 'matrix-cell matrix-header';
-        header.textContent = r;
-        container.appendChild(header);
-    });
-
-    // Строки
     ranks.forEach((rowRank, i) => {
-        // Заголовок строки
-        const rowHeader = document.createElement('div');
-        rowHeader.className = 'matrix-cell matrix-header';
-        rowHeader.textContent = rowRank;
-        container.appendChild(rowHeader);
-
-        // Ячейки
         ranks.forEach((colRank, j) => {
             const cell = document.createElement('div');
             cell.className = 'matrix-cell';
             let hand = '';
-            let isPair = false;
             if (i === j) {
-                hand = rowRank + colRank;  // пара
-                isPair = true;
-                cell.classList.add('pair');
+                hand = rowRank + colRank;
             } else if (i < j) {
-                hand = rowRank + colRank + 's';  // одномастные (выше диагонали)
-                cell.classList.add('suited');
+                hand = rowRank + colRank + 's';
             } else {
-                hand = colRank + rowRank + 'o';  // разномастные (ниже диагонали)
-                cell.classList.add('offsuit');
+                hand = colRank + rowRank + 'o';
             }
             cell.textContent = hand;
             cell.dataset.hand = hand;
             cell.dataset.selected = 'false';
-            cell.dataset.color = ''; // цвет, если рука уже принадлежит другому поддиапазону
-
-            // Обработчик клика
-            cell.addEventListener('click', function() {
-                toggleCell(this);
-            });
-
+            cell.addEventListener('click', function() { toggleCell(this); });
             container.appendChild(cell);
         });
     });
-
-    // После создания обновляем отображение всех поддиапазонов
     renderAllSubranges();
 }
 
-// Переключение ячейки (добавление/удаление из текущего поддиапазона)
 function toggleCell(cell) {
     const hand = cell.dataset.hand;
     const isSelected = cell.dataset.selected === 'true';
     if (isSelected) {
-        // Снять выделение
         cell.dataset.selected = 'false';
-        // Убираем из currentHands
         const index = currentHands.indexOf(hand);
-        if (index > -1) {
-            currentHands.splice(index, 1);
+        if (index > -1) currentHands.splice(index, 1);
+        if (editingId) {
+            const idx = editingHands.indexOf(hand);
+            if (idx > -1) editingHands.splice(idx, 1);
         }
-        // Перерисовываем ячейку (она может принадлежать другому поддиапазону)
         renderCell(cell);
     } else {
-        // Добавить выделение
         cell.dataset.selected = 'true';
-        if (!currentHands.includes(hand)) {
-            currentHands.push(hand);
+        if (!currentHands.includes(hand)) currentHands.push(hand);
+        if (editingId) {
+            if (!editingHands.includes(hand)) editingHands.push(hand);
         }
-        // Окрашиваем цветом текущего поддиапазона (поверх всего)
         cell.style.backgroundColor = currentColor;
     }
-    updateSelectedCount();
 }
 
-// Отрисовка отдельной ячейки с учётом всех поддиапазонов
 function renderCell(cell) {
     const hand = cell.dataset.hand;
-    // Проверяем, принадлежит ли рука какому-либо поддиапазону (кроме текущего)
     let foundColor = null;
-    for (let sub of tempSubranges) {
-        if (sub.hands.includes(hand)) {
-            foundColor = sub.color;
-            break;
+    if (editingId) {
+        if (editingHands.includes(hand)) {
+            if (cell.dataset.selected === 'true') {
+                foundColor = currentColor;
+            } else {
+                for (let sub of tempSubranges) {
+                    if (sub.id !== editingId && sub.hands.includes(hand)) {
+                        foundColor = sub.color;
+                        break;
+                    }
+                }
+            }
+        } else {
+            for (let sub of tempSubranges) {
+                if (sub.id !== editingId && sub.hands.includes(hand)) {
+                    foundColor = sub.color;
+                    break;
+                }
+            }
+        }
+    } else {
+        for (let sub of tempSubranges) {
+            if (sub.hands.includes(hand)) {
+                foundColor = sub.color;
+                break;
+            }
         }
     }
-    // Если рука выбрана в текущем поддиапазоне – показываем текущий цвет
-    if (cell.dataset.selected === 'true') {
+    if (cell.dataset.selected === 'true' && editingId && editingHands.includes(hand)) {
         cell.style.backgroundColor = currentColor;
     } else if (foundColor) {
         cell.style.backgroundColor = foundColor;
     } else {
-        // Сброс к исходному (определяется классами)
         cell.style.backgroundColor = '';
-        // Заново применяем класс (чтобы восстановить фоновый цвет)
-        cell.className = 'matrix-cell';
-        if (hand.length === 2 && hand[0] === hand[1]) {
-            cell.classList.add('pair');
-        } else if (hand.includes('s')) {
-            cell.classList.add('suited');
-        } else if (hand.includes('o')) {
-            cell.classList.add('offsuit');
-        }
     }
 }
 
-// Обновление всей матрицы на основе tempSubranges и currentHands
 function renderAllSubranges() {
     const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
-    cells.forEach(cell => {
-        // Сначала сбрасываем выделение (но не сбрасываем dataset.selected)
-        // Мы будем использовать dataset.selected только для текущего поддиапазона
-        // При открытии модалки currentHands пуст, поэтому все ячейки будут отображать цвета поддиапазонов
-        renderCell(cell);
-    });
-    updateSelectedCount();
+    cells.forEach(cell => renderCell(cell));
 }
 
-// Обновление счётчика выбранных рук для текущего поддиапазона
-function updateSelectedCount() {
-    const counter = document.getElementById('selected-count');
-    if (counter) counter.textContent = currentHands.length;
-}
-
-// Сброс выделения текущего поддиапазона (очистка currentHands, но не удаление поддиапазонов)
 function clearCurrentSelection() {
-    // Убираем выделение со всех ячеек
     const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
     cells.forEach(cell => {
         cell.dataset.selected = 'false';
     });
     currentHands = [];
-    // Перерисовываем, чтобы вернуть цвета поддиапазонов
+    if (editingId) editingHands = [];
     renderAllSubranges();
 }
 
-// Загрузка временных поддиапазонов из сессии при открытии модалки
+// Подсветка редактируемого поддиапазона в списке
+function highlightEditingSubrange() {
+    document.querySelectorAll('#subrange-list-ul li').forEach(li => li.classList.remove('editing-subrange'));
+    if (editingId) {
+        const li = document.querySelector(`#subrange-list-ul li[data-id="${editingId}"]`);
+        if (li) li.classList.add('editing-subrange');
+    }
+}
+
 function loadTempSubranges() {
     fetch('/create/get_temp')
         .then(response => response.json())
         .then(data => {
             if (data.subranges) {
                 tempSubranges = data.subranges.map(sub => ({
+                    id: sub.id,
                     name: sub.name,
                     color: sub.color || '#3498db',
                     hands: sub.hands || []
                 }));
-                // Обновить список на странице
+                if (editingId) {
+                    const sub = tempSubranges.find(s => s.id === editingId);
+                    if (sub) {
+                        editingHands = sub.hands.slice();
+                        currentHands = editingHands.slice();
+                        const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
+                        cells.forEach(cell => {
+                            const hand = cell.dataset.hand;
+                            if (editingHands.includes(hand)) {
+                                cell.dataset.selected = 'true';
+                            } else {
+                                cell.dataset.selected = 'false';
+                            }
+                        });
+                    } else {
+                        cancelEditing();
+                    }
+                }
                 updateSubrangeListUI();
-                // Перерисовать матрицу
+                highlightEditingSubrange();
                 renderAllSubranges();
             }
         })
         .catch(err => console.error('Ошибка загрузки поддиапазонов:', err));
 }
 
-// Обновление UI списка поддиапазонов
 function updateSubrangeListUI() {
     const ul = document.getElementById('subrange-list-ul');
     ul.innerHTML = '';
     tempSubranges.forEach(sub => {
         const li = document.createElement('li');
-        li.textContent = sub.name;
-        li.style.borderLeftColor = sub.color;
-        li.dataset.name = sub.name;
+        li.dataset.id = sub.id;
+
+        const dot = document.createElement('span');
+        dot.className = 'color-dot';
+        dot.style.backgroundColor = sub.color;
+        li.appendChild(dot);
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'sub-name';
+        nameSpan.textContent = sub.name;
+        li.appendChild(nameSpan);
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '✏️';
+        editBtn.className = 'edit-btn';
+        editBtn.title = 'Редактировать';
+        editBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            startEditing(sub.id);
+        });
+        li.appendChild(editBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '🗑️';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.title = 'Удалить';
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (confirm(`Удалить поддиапазон "${sub.name}"?`)) {
+                deleteSubrange(sub.id);
+            }
+        });
+        li.appendChild(deleteBtn);
+
         ul.appendChild(li);
     });
     const emptyMsg = document.getElementById('empty-message');
     emptyMsg.style.display = tempSubranges.length === 0 ? 'block' : 'none';
 }
 
-// Добавление нового поддиапазона (после сохранения)
-function addSubrangeToList(sub) {
-    tempSubranges.push(sub);
-    updateSubrangeListUI();
-    // Перерисовать матрицу, чтобы новый поддиапазон отобразился
-    renderAllSubranges();
+function deleteSubrange(id) {
+    fetch('/create/remove_subrange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            loadTempSubranges();
+            if (editingId === id) cancelEditing();
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    })
+    .catch(err => alert('Ошибка сети: ' + err));
 }
 
-// Инициализация модального окна
-const modal = document.getElementById('subrange-modal');
-const addBtn = document.getElementById('add-subrange-btn');
-const closeBtn = document.querySelector('.close');
-const cancelBtn = document.getElementById('cancel-subrange-btn');
-const saveSubrangeBtn = document.getElementById('save-subrange-btn');
-const colorPicker = document.getElementById('color-picker');
+function startEditing(id) {
+    const sub = tempSubranges.find(s => s.id === id);
+    if (!sub) return;
+    editingId = id;
+    editingHands = sub.hands.slice();
+    currentHands = editingHands.slice();
+    currentColor = sub.color;
 
-// Открытие модального окна
-addBtn.addEventListener('click', function() {
-    modal.style.display = 'block';
-    // Загружаем существующие поддиапазоны
-    loadTempSubranges();
-    // Очищаем текущее выделение
-    clearCurrentSelection();
-    // Заполняем имя поддиапазона предложением
-    const count = tempSubranges.length + 1;
-    document.getElementById('subname').value = `Поддиапазон ${count}`;
-    // Устанавливаем цвет из пикера
-    currentColor = colorPicker.value;
-});
+    document.getElementById('subname').value = sub.name;
+    document.getElementById('color-picker').value = sub.color;
+    document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+    document.getElementById('save-subrange-btn').textContent = '💾 Обновить поддиапазон';
 
-// Закрытие модального окна
-function closeModal() {
-    modal.style.display = 'none';
-    // Очищаем выделение, чтобы при следующем открытии всё было чисто
-    clearCurrentSelection();
-}
-closeBtn.addEventListener('click', closeModal);
-cancelBtn.addEventListener('click', closeModal);
-window.addEventListener('click', function(event) {
-    if (event.target == modal) {
-        closeModal();
-    }
-});
-
-// Изменение цвета – обновляем текущий цвет и перерисовываем выделенные ячейки
-colorPicker.addEventListener('input', function() {
-    currentColor = this.value;
-    // Перекрашиваем ячейки, которые выбраны в текущем поддиапазоне
     const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
     cells.forEach(cell => {
-        if (cell.dataset.selected === 'true') {
+        const hand = cell.dataset.hand;
+        if (editingHands.includes(hand)) {
+            cell.dataset.selected = 'true';
             cell.style.backgroundColor = currentColor;
-        }
-    });
-});
-
-// Сохранение поддиапазона
-saveSubrangeBtn.addEventListener('click', function() {
-    const name = document.getElementById('subname').value.trim();
-    if (!name) {
-        alert('Введите название поддиапазона');
-        return;
-    }
-    if (currentHands.length === 0) {
-        alert('Выберите хотя бы одну руку');
-        return;
-    }
-
-    // Отправляем на сервер
-    fetch('/create/add_subrange', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            name: name,
-            hands: currentHands,
-            color: currentColor   // передаём цвет
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'ok') {
-            // Добавляем поддиапазон в локальный список
-            addSubrangeToList({
-                name: name,
-                color: currentColor,
-                hands: currentHands.slice() // копия
-            });
-            // Очищаем текущее выделение, чтобы начать новый поддиапазон
-            clearCurrentSelection();
-            // Обновляем предложение имени
-            const count = tempSubranges.length + 1;
-            document.getElementById('subname').value = `Поддиапазон ${count}`;
-            // Модалка остаётся открытой – можно продолжать
-            alert('Поддиапазон сохранён! Можете создать следующий.');
         } else {
-            alert('Ошибка: ' + data.message);
+            cell.dataset.selected = 'false';
+            renderCell(cell);
         }
-    })
-    .catch(err => {
-        alert('Ошибка сети: ' + err);
     });
-});
+    highlightEditingSubrange();
+}
 
-// Очистка всех поддиапазонов (кнопка)
-document.getElementById('clear-all-btn').addEventListener('click', function() {
-    if (confirm('Удалить все добавленные поддиапазоны?')) {
-        fetch('/create/clear_temp', { method: 'POST' })
-        .then(() => {
-            tempSubranges = [];
-            updateSubrangeListUI();
-            renderAllSubranges();
-            clearCurrentSelection();
-        });
-    }
-});
-
-// Сохранение диапазона (позиция + все поддиапазоны)
-document.getElementById('save-range-btn').addEventListener('click', function() {
-    const position = document.getElementById('position').value.trim();
-    if (!position) {
-        alert('Введите название позиции');
-        return;
-    }
-    if (tempSubranges.length === 0) {
-        alert('Добавьте хотя бы один поддиапазон');
-        return;
-    }
-
-    if (!confirm(`Сохранить диапазон для позиции "${position}"?`)) return;
-
-    fetch('/create/save_range', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ position: position })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'ok') {
-            alert('Диапазон успешно сохранён в config.py!');
-            // Очищаем локальные данные
-            tempSubranges = [];
-            updateSubrangeListUI();
-            renderAllSubranges();
-            clearCurrentSelection();
-            // Очищаем сессию на сервере
-            fetch('/create/clear_temp', { method: 'POST' });
-        } else {
-            alert('Ошибка: ' + data.message);
-        }
-    })
-    .catch(err => {
-        alert('Ошибка сети: ' + err);
+function cancelEditing() {
+    editingId = null;
+    editingHands = [];
+    currentHands = [];
+    document.getElementById('edit-id').value = '';
+    document.getElementById('subname').value = '';
+    document.getElementById('color-picker').value = '#3498db';
+    currentColor = '#3498db';
+    document.getElementById('cancel-edit-btn').style.display = 'none';
+    document.getElementById('save-subrange-btn').textContent = '✅ Добавить поддиапазон';
+    const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
+    cells.forEach(cell => {
+        cell.dataset.selected = 'false';
     });
-});
+    renderAllSubranges();
+    highlightEditingSubrange();
+}
 
-// При загрузке страницы – генерируем матрицу и загружаем существующие поддиапазоны из сессии
-window.onload = function() {
+document.addEventListener('DOMContentLoaded', function() {
     generateHandMatrix();
-    // Загружаем временные поддиапазоны (если есть)
     loadTempSubranges();
-};
+
+    document.getElementById('color-picker').addEventListener('input', function() {
+        currentColor = this.value;
+        const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
+        cells.forEach(cell => {
+            if (cell.dataset.selected === 'true') {
+                cell.style.backgroundColor = currentColor;
+            }
+        });
+    });
+
+    document.getElementById('save-subrange-btn').addEventListener('click', function() {
+        const name = document.getElementById('subname').value.trim();
+        if (!name) {
+            alert('Введите название поддиапазона');
+            return;
+        }
+        if (currentHands.length === 0) {
+            alert('Выберите хотя бы одну руку');
+            return;
+        }
+
+        if (editingId) {
+            fetch('/create/update_subrange', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: editingId,
+                    name: name,
+                    hands: currentHands,
+                    color: currentColor
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    loadTempSubranges();
+                    cancelEditing();
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(err => alert('Ошибка сети: ' + err));
+        } else {
+            fetch('/create/add_subrange', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, hands: currentHands, color: currentColor })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    loadTempSubranges();
+                    clearCurrentSelection();
+                    document.getElementById('subname').value = '';
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(err => alert('Ошибка сети: ' + err));
+        }
+    });
+
+    document.getElementById('cancel-edit-btn').addEventListener('click', function() {
+        cancelEditing();
+    });
+
+    document.getElementById('clear-all-btn').addEventListener('click', function() {
+        if (confirm('Удалить все добавленные поддиапазоны?')) {
+            fetch('/create/clear_temp', { method: 'POST' })
+                .then(() => {
+                    loadTempSubranges();
+                    clearCurrentSelection();
+                    document.getElementById('subname').value = '';
+                    cancelEditing();
+                });
+        }
+    });
+
+    document.getElementById('save-range-btn').addEventListener('click', function() {
+        const position = document.getElementById('position').value.trim();
+        if (!position) {
+            alert('Введите название диапазона');
+            return;
+        }
+        if (tempSubranges.length === 0) {
+            alert('Добавьте хотя бы один поддиапазон');
+            return;
+        }
+        if (!confirm(`Сохранить диапазон для ситуации "${position}"?`)) return;
+
+        fetch('/create/save_range', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ position })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                fetch('/create/clear_temp', { method: 'POST' })
+                    .then(() => {
+                        tempSubranges = [];
+                        updateSubrangeListUI();
+                        renderAllSubranges();
+                        clearCurrentSelection();
+                        document.getElementById('position').value = '';
+                        document.getElementById('subname').value = '';
+                        cancelEditing();
+                    });
+            } else {
+                alert('Ошибка: ' + data.message);
+            }
+        })
+        .catch(err => alert('Ошибка сети: ' + err));
+    });
+});

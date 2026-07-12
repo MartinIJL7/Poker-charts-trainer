@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import random
 import os
 import json
+import uuid
 
 # ============================================================
 #  ИМПОРТ НАСТРОЕК ИЗ config.py (или создание файла, если его нет)
@@ -262,7 +263,7 @@ def add_subrange():
     data = request.get_json()
     name = data.get('name', '').strip()
     hands = data.get('hands', [])
-    color = data.get('color', '#3498db')   # получаем цвет
+    color = data.get('color', '#3498db')
     if not name or not hands:
         return jsonify({'status': 'error', 'message': 'Не указано имя или список рук'}), 400
 
@@ -272,10 +273,18 @@ def add_subrange():
 
     if 'temp_subranges' not in session:
         session['temp_subranges'] = []
+    
+    # Удаляем выбранные руки из всех существующих поддиапазонов
+    hands_set = set(hands)
+    for sub in session['temp_subranges']:
+        sub['hands'] = [h for h in sub['hands'] if h not in hands_set]
+
+    new_id = str(uuid.uuid4())
     session['temp_subranges'].append({
+        'id': new_id,
         'name': name,
         'hands': hands,
-        'color': color   # сохраняем цвет
+        'color': color
     })
     session.modified = True
     return jsonify({'status': 'ok', 'subranges': session['temp_subranges']})
@@ -360,6 +369,57 @@ def save_mode():
     # Записываем config
     write_config()
     return jsonify({'status': 'ok', 'message': f'Режим "{mode_name}" сохранён'})
+
+@app.route('/create/remove_subrange', methods=['POST'])
+def remove_subrange():
+    data = request.get_json()
+    sub_id = data.get('id')
+    if not sub_id:
+        return jsonify({'status': 'error', 'message': 'Не указан ID'}), 400
+
+    temp = session.get('temp_subranges', [])
+    # Находим и удаляем
+    new_temp = [sub for sub in temp if sub.get('id') != sub_id]
+    if len(new_temp) == len(temp):
+        return jsonify({'status': 'error', 'message': 'Поддиапазон не найден'}), 404
+    session['temp_subranges'] = new_temp
+    session.modified = True
+    return jsonify({'status': 'ok'})
+
+@app.route('/create/update_subrange', methods=['POST'])
+def update_subrange():
+    data = request.get_json()
+    sub_id = data.get('id')
+    name = data.get('name', '').strip()
+    hands = data.get('hands', [])
+    color = data.get('color', '#3498db')
+    if not sub_id:
+        return jsonify({'status': 'error', 'message': 'Не указан ID'}), 400
+    if not name:
+        return jsonify({'status': 'error', 'message': 'Введите название'}), 400
+    if not hands:
+        return jsonify({'status': 'error', 'message': 'Выберите хотя бы одну руку'}), 400
+
+    temp = session.get('temp_subranges', [])
+    found = False
+    for sub in temp:
+        if sub.get('id') == sub_id:
+            sub['name'] = name
+            sub['hands'] = hands
+            sub['color'] = color
+            found = True
+            break
+    if not found:
+        return jsonify({'status': 'error', 'message': 'Поддиапазон не найден'}), 404
+
+    # Удаляем эти руки из всех остальных поддиапазонов
+    hands_set = set(hands)
+    for sub in temp:
+        if sub.get('id') != sub_id:
+            sub['hands'] = [h for h in sub['hands'] if h not in hands_set]
+
+    session.modified = True
+    return jsonify({'status': 'ok'})
 
 # ============================================================
 #  ЗАПУСК

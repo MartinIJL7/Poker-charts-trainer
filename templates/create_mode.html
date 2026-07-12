@@ -14,7 +14,7 @@
             <input type="text" id="mode-name" placeholder="например, RFI">
         </div>
         <div class="positions-list">
-            <h3>Выберите ситуации для включения в режим:</h3>
+            <h3>Выберите диапазоны для включения в режим:</h3>
             {% if positions %}
                 <ul id="positions-ul">
                     {% for pos in positions %}
@@ -27,7 +27,7 @@
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="warning">Нет доступных ситуаций. Сначала создайте диапазоны.</p>
+                <p class="warning">Нет доступных диапазонов. Сначала создайте диапазоны.</p>
             {% endif %}
         </div>
         <div class="actions">
