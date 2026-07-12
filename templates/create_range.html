@@ -7,14 +7,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='create_range.css') }}">
 </head>
 <body class="create-page">
-    <!-- Заголовок с кнопкой "На главную" -->
     <div class="header-row">
         <h1>📝 Создание нового диапазона</h1>
         <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
     </div>
 
     <div class="create-container">
-        <!-- Верхняя строка: поле "Название диапазона" + кнопка "Сохранить диапазон" -->
         <div class="top-row">
             <div class="form-group">
                 <label for="position">Название диапазона:</label>
@@ -26,27 +24,22 @@
             </div>
         </div>
 
-        <!-- Двухколоночный блок -->
         <div class="two-columns">
-            <!-- Левая колонка: матрица -->
             <div class="left-column">
                 <h3>Матрица рук</h3>
                 <div id="hand-matrix"></div>
-                <div style="margin-top: 10px;">
-                    <label for="color-picker">Цвет для выделения:</label>
+                <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                    <label for="color-picker" style="margin: 0;">Цвет:</label>
                     <input type="color" id="color-picker" value="#3498db">
+                    <button id="clear-selection-btn" class="btn-secondary" style="height: 30px; padding: 0 12px; font-size: 0.9em;">✖ Убрать всё выделение</button>
                 </div>
             </div>
 
-            <!-- Правая колонка: список поддиапазонов и форма добавления -->
             <div class="right-column">
                 <h3>Добавленные поддиапазоны</h3>
-                <ul id="subrange-list-ul">
-                    <!-- динамически -->
-                </ul>
-                <p id="empty-message" style="color: #888; font-style: italic;">Пока нет поддиапозонов</p>
+                <ul id="subrange-list-ul"></ul>
+                <p id="empty-message" style="color: #888; font-style: italic;">Пока нет поддиапазонов</p>
 
-                <!-- Поле для имени поддиапазона и кнопки -->
                 <div class="subrange-add-area">
                     <input type="hidden" id="edit-id" value="">
                     <input type="text" id="subname" placeholder="Название поддиапазона (например, 100% RFI)" style="width: 100%; padding: 6px; box-sizing: border-box; margin-bottom: 6px;">
@@ -56,7 +49,6 @@
                     </div>
                 </div>
 
-                <!-- Кнопка очистки всех -->
                 <div style="margin-top: 10px;">
                     <button id="clear-all-btn" class="btn-danger" style="width: 100%;">🗑 Очистить все</button>
                 </div>

@@ -6,6 +6,12 @@ let tempSubranges = [];
 let editingId = null;
 let editingHands = [];
 
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragMode = 'select';
+const DRAG_THRESHOLD = 5;
+
 const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 
 function generateHandMatrix() {
@@ -26,7 +32,45 @@ function generateHandMatrix() {
             cell.textContent = hand;
             cell.dataset.hand = hand;
             cell.dataset.selected = 'false';
-            cell.addEventListener('click', function() { toggleCell(this); });
+
+            cell.addEventListener('pointerdown', function(e) {
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                isDragging = false;
+                this.dataset.dragStartSelected = this.dataset.selected === 'true';
+                e.preventDefault();
+            });
+
+            cell.addEventListener('pointermove', function(e) {
+                // Работаем только при зажатой левой кнопке
+                if (e.buttons !== 1) return;
+
+                if (!isDragging && (Math.abs(e.clientX - dragStartX) > DRAG_THRESHOLD || Math.abs(e.clientY - dragStartY) > DRAG_THRESHOLD)) {
+                    isDragging = true;
+                    const startSelected = this.dataset.dragStartSelected === 'true';
+                    dragMode = startSelected ? 'deselect' : 'select';
+                    if (dragMode === 'select') {
+                        if (this.dataset.selected === 'false') toggleCellForDrag(this);
+                    } else {
+                        if (this.dataset.selected === 'true') untoggleCellForDrag(this);
+                    }
+                }
+                if (isDragging) {
+                    if (dragMode === 'select') {
+                        if (this.dataset.selected === 'false') toggleCellForDrag(this);
+                    } else {
+                        if (this.dataset.selected === 'true') untoggleCellForDrag(this);
+                    }
+                }
+            });
+
+            cell.addEventListener('pointerup', function(e) {
+                if (!isDragging) {
+                    toggleCell(this);
+                }
+                isDragging = false;
+            });
+
             container.appendChild(cell);
         });
     });
@@ -53,6 +97,31 @@ function toggleCell(cell) {
         }
         cell.style.backgroundColor = currentColor;
     }
+}
+
+function toggleCellForDrag(cell) {
+    const hand = cell.dataset.hand;
+    if (cell.dataset.selected === 'true') return;
+    cell.dataset.selected = 'true';
+    cell.style.backgroundColor = currentColor;
+    if (!currentHands.includes(hand)) currentHands.push(hand);
+    if (editingId) {
+        if (!editingHands.includes(hand)) editingHands.push(hand);
+    }
+}
+
+function untoggleCellForDrag(cell) {
+    const hand = cell.dataset.hand;
+    if (cell.dataset.selected === 'false') return;
+    cell.dataset.selected = 'false';
+    cell.style.backgroundColor = '';
+    const index = currentHands.indexOf(hand);
+    if (index > -1) currentHands.splice(index, 1);
+    if (editingId) {
+        const idx = editingHands.indexOf(hand);
+        if (idx > -1) editingHands.splice(idx, 1);
+    }
+    renderCell(cell);
 }
 
 function renderCell(cell) {
@@ -110,7 +179,6 @@ function clearCurrentSelection() {
     renderAllSubranges();
 }
 
-// Подсветка редактируемого поддиапазона в списке
 function highlightEditingSubrange() {
     document.querySelectorAll('#subrange-list-ul li').forEach(li => li.classList.remove('editing-subrange'));
     if (editingId) {
@@ -278,6 +346,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    document.getElementById('clear-selection-btn').addEventListener('click', function() {
+        const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
+        cells.forEach(cell => {
+            cell.dataset.selected = 'false';
+            cell.style.backgroundColor = '';
+        });
+        currentHands = [];
+        if (editingId) editingHands = [];
+        renderAllSubranges();
+    });
+
     document.getElementById('save-subrange-btn').addEventListener('click', function() {
         const name = document.getElementById('subname').value.trim();
         if (!name) {
@@ -356,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Добавьте хотя бы один поддиапазон');
             return;
         }
-        if (!confirm(`Сохранить диапазон для ситуации "${position}"?`)) return;
+        if (!confirm(`Сохранить диапазон для позиции "${position}"?`)) return;
 
         fetch('/create/save_range', {
             method: 'POST',

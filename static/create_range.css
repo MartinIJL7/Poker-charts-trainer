@@ -7,7 +7,6 @@ body.create-page {
     background: #f7f9fc;
 }
 
-/* Шапка */
 .header-row {
     display: flex;
     justify-content: space-between;
@@ -41,7 +40,6 @@ body.create-page {
     box-sizing: border-box;
 }
 
-/* Верхняя строка: поле "Название ситуации" + кнопка "Сохранить диапазон" */
 .top-row {
     margin-bottom: 20px;
 }
@@ -50,7 +48,7 @@ body.create-page {
 }
 .position-input-wrapper {
     display: flex;
-    align-items: stretch; /* чтобы дети растягивались по высоте контейнера */
+    align-items: stretch;
     gap: 15px;
     max-width: 500px;
 }
@@ -88,7 +86,7 @@ body.create-page {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    line-height: 1; /* убираем лишнюю высоту от line-height */
+    line-height: 1;
 }
 .save-range-btn:hover {
     background: #1e8449;
@@ -153,7 +151,7 @@ body.create-page {
     margin-bottom: 6px;
     border-radius: 4px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    border-left: none; /* убрали полоску */
+    border-left: none;
 }
 .right-column ul li .color-dot {
     width: 16px;
@@ -261,7 +259,6 @@ body.create-page {
     padding: 8px 0;
     font-size: 0.85em;
     cursor: pointer;
-    border-radius: 3px;
     user-select: none;
     transition: background 0.2s;
     border: 1px solid #ddd;
@@ -273,13 +270,11 @@ body.create-page {
     border: 2px solid #2c3e50;
 }
 
-/* Подсветка редактируемого поддиапазона */
 #subrange-list-ul li.editing-subrange {
     background: #fff3cd;
     box-shadow: 0 0 0 2px #ffc107;
 }
 
-/* Адаптив */
 @media (max-width: 800px) {
     .two-columns {
         flex-wrap: wrap;
