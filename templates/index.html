@@ -6,10 +6,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>📊 Тренировка по покерным спектрам</h1>
+    <h1>📊 Тренировка по покерным чартам</h1>
 
     {% if no_modes %}
-        <p class="warning">⚠️ Нет доступных режимов. Заполните словарь <code>modes</code> в файле <code>config.py</code>.</p>
+        <p class="warning">⚠️ Нет доступных режимов, создайте его по кнопке ниже.</p>
     {% else %}
         <h2>Выберите режим:</h2>
         <ul class="mode-list">
@@ -20,9 +20,8 @@
     {% endif %}
 
     <p>
-    <a href="{{ url_for('reset_stats') }}">🔄 Сбросить статистику</a> |
-    <a href="{{ url_for('create_range') }}">📝 Создать диапазон</a> |
-    <a href="{{ url_for('create_mode') }}">📋 Создать режим</a>
+        <a href="{{ url_for('create_range') }}">📝 Создать диапазон</a> |
+        <a href="{{ url_for('create_mode') }}">📋 Создать режим</a>
     </p>
 </body>
 </html>
