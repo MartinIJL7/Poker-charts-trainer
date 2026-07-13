@@ -5,6 +5,7 @@ let currentHands = [];
 let tempSubranges = [];
 let editingId = null;
 let editingHands = [];
+let editingPosition = null;   // будет хранить позицию загруженного диапазона
 
 let isDragging = false;
 let dragStartX = 0;
@@ -332,6 +333,29 @@ function cancelEditing() {
     highlightEditingSubrange();
 }
 
+// Загрузить существующий диапазон по имени позиции
+function loadRange(position) {
+    fetch('/create/load_range', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ position: position })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            document.getElementById('position').value = data.position;
+            editingPosition = data.position;
+            // перезагружаем поддиапазоны из сессии
+            loadTempSubranges();
+            // сбрасываем редактирование, если было
+            cancelEditing();
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    })
+    .catch(err => alert('Ошибка сети: ' + err));
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     generateHandMatrix();
     loadTempSubranges();
@@ -445,6 +469,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'ok') {
+                alert(data.message);
+                editingPosition = null;   // сбрасываем флаг на клиенте
+
+                // Очищаем всё через сервер (temp_subranges и editing_position)
                 fetch('/create/clear_temp', { method: 'POST' })
                     .then(() => {
                         tempSubranges = [];
@@ -452,9 +480,83 @@ document.addEventListener('DOMContentLoaded', function() {
                         renderAllSubranges();
                         clearCurrentSelection();
                         document.getElementById('position').value = '';
+                        document.getElementById('load-range-select').value = '';   // сброс селекта
                         document.getElementById('subname').value = '';
                         cancelEditing();
                     });
+            } else {
+                alert('Ошибка: ' + data.message);
+            }
+        })
+        .catch(err => alert('Ошибка сети: ' + err));
+    });
+
+    // Обработчик выбора существующего диапазона из списка
+    document.getElementById('load-range-select').addEventListener('change', function() {
+        const pos = this.value;
+        if (!pos) return;
+        if (!confirm('Загрузить диапазон "' + pos + '"? Текущие изменения будут потеряны.')) {
+            this.value = ''; // сбросить выбор
+            return;
+        }
+        loadRange(pos);   // вызываем функцию, которую добавили выше
+    });
+
+    // Кнопка "Новый диапазон"
+    document.getElementById('new-range-btn').addEventListener('click', function() {
+        if (!confirm('Начать новый диапазон? Текущие изменения будут потеряны.')) return;
+        fetch('/create/clear_temp', { method: 'POST' })
+            .then(() => {
+                editingPosition = null;
+                document.getElementById('position').value = '';
+                document.getElementById('load-range-select').value = '';
+                tempSubranges = [];
+                updateSubrangeListUI();
+                renderAllSubranges();
+                clearCurrentSelection();
+                document.getElementById('subname').value = '';
+                cancelEditing();
+            });
+    });
+
+    // Удаление выбранного диапазона
+    document.getElementById('delete-range-btn').addEventListener('click', function() {
+        const select = document.getElementById('load-range-select');
+        const pos = select.value;
+        if (!pos) {
+            alert('Выберите диапазон для удаления');
+            return;
+        }
+        if (!confirm(`Удалить диапазон "${pos}"? Это действие необратимо.`)) return;
+
+        fetch('/create/delete_range', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ position: pos })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                alert(data.message);
+                // Если текущий редактируемый диапазон совпадает с удалённым – очищаем интерфейс
+                if (editingPosition === pos) {
+                    // Сбрасываем всё
+                    fetch('/create/clear_temp', { method: 'POST' })
+                        .then(() => {
+                            editingPosition = null;
+                            document.getElementById('position').value = '';
+                            document.getElementById('load-range-select').value = '';
+                            tempSubranges = [];
+                            updateSubrangeListUI();
+                            renderAllSubranges();
+                            clearCurrentSelection();
+                            document.getElementById('subname').value = '';
+                            cancelEditing();
+                        });
+                } else {
+                    // Просто обновляем список позиций в селекте (перезагружаем страницу или обновляем select)
+                    location.reload(); // проще всего перезагрузить, чтобы обновить список позиций
+                }
             } else {
                 alert('Ошибка: ' + data.message);
             }

@@ -252,11 +252,17 @@ def training(mode):
 
 @app.route('/create', methods=['GET'])
 def create_range():
-    """Страница создания диапазона."""
-    # Инициализируем список поддиапазонов в сессии, если его нет
+    # Собираем все уникальные позиции из ranges и subranges
+    positions = set()
+    for sub_dict in subranges.values():
+        positions.update(sub_dict.keys())
+    for pos in ranges.keys():
+        positions.add(pos)
+    positions = sorted(positions)
+
     if 'temp_subranges' not in session:
         session['temp_subranges'] = []
-    return render_template('create_range.html')
+    return render_template('create_range.html', all_positions=positions)
 
 @app.route('/create/add_subrange', methods=['POST'])
 def add_subrange():
@@ -291,10 +297,6 @@ def add_subrange():
 
 @app.route('/create/save_range', methods=['POST'])
 def save_range():
-    """
-    Сохраняет весь диапазон (позиция + список поддиапазонов) в config.py.
-    Ожидает JSON: {"position": "RFI_UTG"}
-    """
     data = request.get_json()
     position = data.get('position', '').strip()
     if not position:
@@ -304,42 +306,48 @@ def save_range():
     if not temp_subranges:
         return jsonify({'status': 'error', 'message': 'Нет добавленных поддиапазонов'}), 400
 
-    # Обновляем глобальные словари
+    # Проверяем, редактируем ли мы существующий диапазон
+    editing_pos = session.pop('editing_position', None)
+    if editing_pos:
+        # Удаляем все поддиапазоны для этой позиции
+        for subname in list(subranges.keys()):
+            if editing_pos in subranges[subname]:
+                del subranges[subname][editing_pos]
+                if not subranges[subname]:
+                    del subranges[subname]
+        # Удаляем из ranges (если есть)
+        if editing_pos in ranges:
+            del ranges[editing_pos]
+
+    # Добавляем новые поддиапазоны
     for sub in temp_subranges:
         name = sub['name']
-        hands = set(sub['hands'])  # множество для хранения
+        hands = set(sub['hands'])
 
-        # Добавляем в subranges
         if name not in subranges:
             subranges[name] = {}
         subranges[name][position] = hands
 
-        # Добавляем в subrange_answer_text (дублируем имя)
         if name not in subrange_answer_text:
             subrange_answer_text[name] = name
 
-        # Добавляем в subrange_order, если ещё нет
         if name not in subrange_order:
             subrange_order.append(name)
 
-    # Сохраняем цвета для всех поддиапазонов
-    for sub in temp_subranges:
-        name = sub['name']
+        # Сохраняем цвет
         color = sub.get('color', '#3498db')
         subrange_colors[name] = color
 
-    # Записываем config.py
+    # Записываем config
     write_config()
-
-    # Очищаем временные данные
-    session.pop('temp_subranges', None)
-
+    session.pop('editing_position', None)   # сбрасываем флаг редактирования, но НЕ удаляем temp_subranges
     return jsonify({'status': 'ok', 'message': f'Диапазон для {position} сохранён'})
 
 @app.route('/create/clear_temp', methods=['POST'])
 def clear_temp():
-    """Очищает временный список поддиапазонов (при отмене)."""
+    """Очищает временный список поддиапазонов и сбрасывает редактируемую позицию."""
     session.pop('temp_subranges', None)
+    session.pop('editing_position', None)   # <-- добавить
     return jsonify({'status': 'ok'})
 
 @app.route('/create/get_temp', methods=['GET'])
@@ -347,6 +355,47 @@ def get_temp_subranges():
     """Возвращает список временных поддиапазонов из сессии."""
     temp = session.get('temp_subranges', [])
     return jsonify({'subranges': temp})
+
+@app.route('/create/load_range', methods=['POST'])
+def load_range():
+    data = request.get_json()
+    position = data.get('position', '').strip()
+    if not position:
+        return jsonify({'status': 'error', 'message': 'Не указана позиция'}), 400
+
+    # Собираем все поддиапазоны, в которых есть эта позиция
+    loaded_subranges = []
+    for subname, sub_dict in subranges.items():
+        if position in sub_dict:
+            hands = list(sub_dict[position])  # множество -> список
+            color = subrange_colors.get(subname, '#3498db')
+            loaded_subranges.append({
+                'name': subname,
+                'hands': hands,
+                'color': color
+            })
+
+    if not loaded_subranges:
+        return jsonify({'status': 'error', 'message': 'Диапазон для этой позиции не найден'}), 404
+
+    # Сохраняем в сессию как временные поддиапазоны с новыми id
+    temp = []
+    for sub in loaded_subranges:
+        temp.append({
+            'id': str(uuid.uuid4()),
+            'name': sub['name'],
+            'hands': sub['hands'],
+            'color': sub['color']
+        })
+    session['temp_subranges'] = temp
+    session['editing_position'] = position   # запоминаем редактируемую позицию
+    session.modified = True
+
+    return jsonify({
+        'status': 'ok',
+        'position': position,
+        'subranges': temp
+    })
 
 @app.route('/create_mode', methods=['GET'])
 def create_mode():
@@ -426,6 +475,47 @@ def update_subrange():
 
     session.modified = True
     return jsonify({'status': 'ok'})
+
+@app.route('/create/delete_range', methods=['POST'])
+def delete_range():
+    data = request.get_json()
+    position = data.get('position', '').strip()
+    if not position:
+        return jsonify({'status': 'error', 'message': 'Не указана позиция'}), 400
+
+    # 1. Удаляем из ranges (старый формат)
+    if position in ranges:
+        del ranges[position]
+
+    # 2. Удаляем позицию из всех поддиапазонов
+    for subname in list(subranges.keys()):
+        if position in subranges[subname]:
+            del subranges[subname][position]
+            # Если поддиапазон остался без позиций, можно его удалить (опционально)
+            if not subranges[subname]:
+                del subranges[subname]
+                # Также удаляем из subrange_order и subrange_colors
+                if subname in subrange_order:
+                    subrange_order.remove(subname)
+                if subname in subrange_colors:
+                    del subrange_colors[subname]
+
+    # 3. Удаляем позицию из всех режимов
+    for mode_name in list(modes.keys()):
+        if position in modes[mode_name]:
+            modes[mode_name].remove(position)
+            # Если режим остался без позиций, удаляем его
+            if not modes[mode_name]:
+                del modes[mode_name]
+
+    # 4. Если позиция была загружена для редактирования, сбрасываем флаг
+    if session.get('editing_position') == position:
+        session.pop('editing_position', None)
+
+    # 5. Записываем config
+    write_config()
+
+    return jsonify({'status': 'ok', 'message': f'Диапазон "{position}" удалён'})
 
 # ============================================================
 #  ЗАПУСК

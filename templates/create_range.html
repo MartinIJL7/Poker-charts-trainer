@@ -2,25 +2,31 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Создание диапазона</title>
+    <title>Работа с диапазонами</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='create_range.css') }}">
 </head>
 <body class="create-page">
     <div class="header-row">
-        <h1>📝 Создание нового диапазона</h1>
+        <h1>📝 Работа с диапазонами</h1>
         <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
     </div>
 
     <div class="create-container">
         <div class="top-row">
             <div class="form-group">
-                <label for="position">Название диапазона:</label>
                 <div class="position-input-wrapper">
-                    <input type="text" id="position" placeholder="RFI_UTG" value="">
-                    <button id="save-range-btn" class="btn-success">💾 Сохранить диапазон</button>
+                    <select id="load-range-select">
+                        <option value="">-- Загрузить существующий --</option>
+                        {% for pos in all_positions %}
+                            <option value="{{ pos }}">{{ pos }}</option>
+                        {% endfor %}
+                    </select>
+                    <button id="delete-range-btn" class="btn-danger">🗑 Удалить</button>   <!-- ← добавить -->
+                    <input type="text" id="position" placeholder="Название (используйте __ вместо пробелов)" value="{{ position }}">
+                    <button id="save-range-btn" class="btn-success">Сохранить диапазон</button>
+                    <button id="new-range-btn" class="btn-secondary">Очистить</button>
                 </div>
-                <small>Используйте символ "_" вместо пробела</small>
             </div>
         </div>
 
@@ -31,14 +37,14 @@
                 <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
                     <label for="color-picker" style="margin: 0;">Цвет:</label>
                     <input type="color" id="color-picker" value="#3498db">
-                    <button id="clear-selection-btn" class="btn-secondary" style="height: 30px; padding: 0 12px; font-size: 0.9em;">✖ Убрать всё выделение</button>
+                    <button id="clear-selection-btn" class="btn-secondary">✖ Убрать всё выделение</button>
                 </div>
             </div>
 
             <div class="right-column">
-                <h3>Добавленные поддиапазоны</h3>
-                <ul id="subrange-list-ul"></ul>
+                <h3>Поддиапазоны</h3>
                 <p id="empty-message" style="color: #888; font-style: italic;">Пока нет поддиапазонов</p>
+                <ul id="subrange-list-ul"></ul>
 
                 <div class="subrange-add-area">
                     <input type="hidden" id="edit-id" value="">

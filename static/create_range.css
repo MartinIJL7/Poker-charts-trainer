@@ -46,12 +46,6 @@ body.create-page {
 .top-row .form-group {
     margin-bottom: 0;
 }
-.position-input-wrapper {
-    display: flex;
-    align-items: stretch;
-    gap: 15px;
-    max-width: 500px;
-}
 #position {
     flex: 1;
     height: 40px;
@@ -222,7 +216,34 @@ body.create-page {
 #clear-all-btn {
     height: 40px;
     width: 100%;
+    border-radius: 4px;        /* закругление */
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
     box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+#clear-selection-btn {
+    height: 40px;              /* теперь одного размера с полем цвета */
+    padding: 0 16px;
+    border-radius: 4px;        /* закругление */
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    background: #95a5a6;       /* цвет как у btn-secondary */
+    color: white;
+}
+#clear-selection-btn:hover {
+    background: #7f8c8d;
 }
 
 .btn-success {
@@ -235,6 +256,10 @@ body.create-page {
 .btn-danger {
     background: #e74c3c;
     color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 .btn-danger:hover {
     background: #c0392b;
@@ -246,22 +271,29 @@ body.create-page {
 .btn-secondary:hover {
     background: #7f8c8d;
 }
-
+.left-column h3 {
+    text-align: center;
+}
 #hand-matrix {
     display: grid;
     grid-template-columns: repeat(13, 1fr);
-    gap: 3px;
-    max-width: 100%;
+    gap: 2px;
+    max-width: 650px;   /* регулируйте этот размер */
+    margin: 0 auto;
 }
 .matrix-cell {
     background: #d5d8dc;
     text-align: center;
-    padding: 8px 0;
-    font-size: 0.85em;
+    font-size: 0.7em;
     cursor: pointer;
     user-select: none;
     transition: background 0.2s;
     border: 1px solid #ddd;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
 }
 .matrix-cell:hover {
     opacity: 0.8;
@@ -273,6 +305,68 @@ body.create-page {
 #subrange-list-ul li.editing-subrange {
     background: #fff3cd;
     box-shadow: 0 0 0 2px #ffc107;
+}
+
+/* Единообразная высота и выравнивание для элементов в строке */
+.position-input-wrapper {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+}
+
+.position-input-wrapper select,
+.position-input-wrapper input,
+.position-input-wrapper button {
+    height: 40px;
+    box-sizing: border-box;
+    font-size: 1em;
+    border-radius: 4px;
+}
+
+.position-input-wrapper select {
+    flex: 2 1 200px;
+    min-width: 160px;
+    border: 1px solid #ccc;
+    background: white;
+    padding: 0 10px;
+}
+
+.position-input-wrapper input[type="text"] {
+    flex: 2 1 200px;
+    min-width: 140px;
+    border: 1px solid #ccc;
+    padding: 0 10px;
+}
+
+.position-input-wrapper button {
+    flex: 0 0 auto;
+    padding: 0 20px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* Цвета кнопок (уже есть в файле, но переопределим для единообразия) */
+.position-input-wrapper .btn-success {
+    background: #27ae60;
+    color: white;
+}
+.position-input-wrapper .btn-success:hover {
+    background: #1e8449;
+}
+.position-input-wrapper .btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+.position-input-wrapper .btn-secondary:hover {
+    background: #7f8c8d;
+}
+
+#empty-message {
+    margin-top: 0;
+    margin-bottom: 10px;
 }
 
 @media (max-width: 800px) {
