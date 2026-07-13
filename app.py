@@ -21,10 +21,10 @@ subranges = {}
 subrange_order = []
 subrange_answer_text = {}
 modes = {}
+subrange_colors = {}   # <-- добавлено
 """)
 
-# Импортируем переменные из config.py
-from config import ranges, subranges, subrange_order, subrange_answer_text, modes
+from config import ranges, subranges, subrange_order, subrange_answer_text, modes, subrange_colors
 
 app = Flask(__name__)
 app.secret_key = 'замените-на-случайную-строку'
@@ -120,7 +120,6 @@ def format_list(lst):
     return "[" + ", ".join(repr(item) for item in lst) + "]"
 
 def format_config():
-    """Генерирует содержимое config.py с красивым форматированием."""
     content = """# config.py
 # ============================================================
 #  НАСТРОЙКА ДИАПАЗОНОВ И РЕЖИМОВ – АВТОМАТИЧЕСКИ СОЗДАНО
@@ -131,7 +130,8 @@ def format_config():
     content += "subranges = " + format_dict(subranges, extra_newline_between_keys=True) + "\n\n"
     content += "subrange_order = " + format_list(subrange_order) + "\n\n"
     content += "subrange_answer_text = " + format_dict(subrange_answer_text) + "\n\n"
-    content += "modes = " + format_dict(modes) + "\n"
+    content += "modes = " + format_dict(modes) + "\n\n"
+    content += "subrange_colors = " + format_dict(subrange_colors) + "\n"
     return content
 
 def write_config():
@@ -321,6 +321,12 @@ def save_range():
         # Добавляем в subrange_order, если ещё нет
         if name not in subrange_order:
             subrange_order.append(name)
+
+    # Сохраняем цвета для всех поддиапазонов
+    for sub in temp_subranges:
+        name = sub['name']
+        color = sub.get('color', '#3498db')
+        subrange_colors[name] = color
 
     # Записываем config.py
     write_config()
