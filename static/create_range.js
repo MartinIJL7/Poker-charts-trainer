@@ -356,6 +356,31 @@ function loadRange(position) {
     .catch(err => alert('Ошибка сети: ' + err));
 }
 
+// Обновить список позиций в выпадающем списке
+function updatePositionsSelect() {
+    fetch('/create/get_positions')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('load-range-select');
+            const currentValue = select.value; // сохраняем выбранное значение
+            // Очищаем, но оставляем первый option
+            select.innerHTML = '<option value="">-- Загрузить существующий --</option>';
+            data.positions.forEach(pos => {
+                const option = document.createElement('option');
+                option.value = pos;
+                option.textContent = pos;
+                select.appendChild(option);
+            });
+            // Если выбранное значение всё ещё есть в списке, восстанавливаем его
+            if (data.positions.includes(currentValue)) {
+                select.value = currentValue;
+            } else {
+                select.value = ''; // если удалили, сбрасываем
+            }
+        })
+        .catch(err => console.error('Ошибка обновления списка позиций:', err));
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     generateHandMatrix();
     loadTempSubranges();
@@ -480,9 +505,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         renderAllSubranges();
                         clearCurrentSelection();
                         document.getElementById('position').value = '';
-                        document.getElementById('load-range-select').value = '';   // сброс селекта
                         document.getElementById('subname').value = '';
                         cancelEditing();
+                        // Обновляем список позиций в селекте
+                        updatePositionsSelect();
                     });
             } else {
                 alert('Ошибка: ' + data.message);
@@ -538,25 +564,20 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.status === 'ok') {
                 alert(data.message);
-                // Если текущий редактируемый диапазон совпадает с удалённым – очищаем интерфейс
-                if (editingPosition === pos) {
-                    // Сбрасываем всё
-                    fetch('/create/clear_temp', { method: 'POST' })
-                        .then(() => {
-                            editingPosition = null;
-                            document.getElementById('position').value = '';
-                            document.getElementById('load-range-select').value = '';
-                            tempSubranges = [];
-                            updateSubrangeListUI();
-                            renderAllSubranges();
-                            clearCurrentSelection();
-                            document.getElementById('subname').value = '';
-                            cancelEditing();
-                        });
-                } else {
-                    // Просто обновляем список позиций в селекте (перезагружаем страницу или обновляем select)
-                    location.reload(); // проще всего перезагрузить, чтобы обновить список позиций
-                }
+                // После удаления всегда очищаем интерфейс, так как удаляемый диапазон был загружен
+                fetch('/create/clear_temp', { method: 'POST' })
+                    .then(() => {
+                        editingPosition = null;
+                        document.getElementById('position').value = '';
+                        tempSubranges = [];
+                        updateSubrangeListUI();
+                        renderAllSubranges();
+                        clearCurrentSelection();
+                        document.getElementById('subname').value = '';
+                        cancelEditing();
+                        // Обновляем селект (удалённая позиция исчезнет)
+                        updatePositionsSelect();
+                    });
             } else {
                 alert('Ошибка: ' + data.message);
             }

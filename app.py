@@ -517,6 +517,16 @@ def delete_range():
 
     return jsonify({'status': 'ok', 'message': f'Диапазон "{position}" удалён'})
 
+@app.route('/create/get_positions', methods=['GET'])
+def get_positions():
+    """Возвращает список всех существующих позиций."""
+    positions = set()
+    for sub_dict in subranges.values():
+        positions.update(sub_dict.keys())
+    for pos in ranges.keys():
+        positions.add(pos)
+    return jsonify({'positions': sorted(positions)})
+
 # ============================================================
 #  ЗАПУСК
 # ============================================================
