@@ -357,25 +357,23 @@ function loadRange(position) {
 }
 
 // Обновить список позиций в выпадающем списке
-function updatePositionsSelect() {
+function updatePositionsSelect(reset = false) {
     fetch('/create/get_positions')
         .then(response => response.json())
         .then(data => {
             const select = document.getElementById('load-range-select');
-            const currentValue = select.value; // сохраняем выбранное значение
-            // Очищаем, но оставляем первый option
-            select.innerHTML = '<option value="">-- Загрузить существующий --</option>';
+            const currentValue = reset ? '' : select.value;
+            select.innerHTML = '<option value="">📂 Загрузить</option>';
             data.positions.forEach(pos => {
                 const option = document.createElement('option');
                 option.value = pos;
                 option.textContent = pos;
                 select.appendChild(option);
             });
-            // Если выбранное значение всё ещё есть в списке, восстанавливаем его
-            if (data.positions.includes(currentValue)) {
+            if (!reset && data.positions.includes(currentValue)) {
                 select.value = currentValue;
             } else {
-                select.value = ''; // если удалили, сбрасываем
+                select.value = '';
             }
         })
         .catch(err => console.error('Ошибка обновления списка позиций:', err));
@@ -508,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('subname').value = '';
                         cancelEditing();
                         // Обновляем список позиций в селекте
-                        updatePositionsSelect();
+                        updatePositionsSelect(true);
                     });
             } else {
                 alert('Ошибка: ' + data.message);
@@ -576,7 +574,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('subname').value = '';
                         cancelEditing();
                         // Обновляем селект (удалённая позиция исчезнет)
-                        updatePositionsSelect();
+                        updatePositionsSelect(true);
                     });
             } else {
                 alert('Ошибка: ' + data.message);
