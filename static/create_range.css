@@ -29,6 +29,7 @@ body.create-page {
 }
 .home-link:hover {
     background: #2980b9;
+    text-decoration: none;
 }
 
 .create-container {
@@ -326,11 +327,16 @@ body.create-page {
 }
 
 .position-input-wrapper select {
-    flex: 2 1 200px;
-    min-width: 160px;
+    flex: 1 1 120px;      /* было 2 1 250px — уменьшили вдвое */
+    min-width: 100px;     /* было 200px */
     border: 1px solid #ccc;
     background: white;
-    padding: 0 10px;
+    padding: 0 8px;       /* можно чуть уменьшить отступы */
+    height: 40px;
+    box-sizing: border-box;
+    border-radius: 4px;
+    font-size: 1em;
+    cursor: pointer;
 }
 
 .position-input-wrapper input[type="text"] {
