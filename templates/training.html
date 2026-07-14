@@ -62,7 +62,7 @@
 
     <p>
         <a href="{{ url_for('index') }}">🏠 На главную</a> |
-        <a href="{{ url_for('reset_stats') }}">🔄 Сбросить статистику</a>
+        <a href="{{ url_for('reset_stats', next=request.url) }}">🔄 Сбросить статистику</a>
     </p>
 </body>
 </html>

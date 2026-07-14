@@ -164,6 +164,9 @@ def index():
 def reset_stats():
     session['stats'] = {'total': 0, 'correct': 0, 'wrong': 0}
     session.pop('last_result', None)
+    next_url = request.args.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect(url_for('index'))
 
 @app.route('/training/<mode>', methods=['GET', 'POST'])
