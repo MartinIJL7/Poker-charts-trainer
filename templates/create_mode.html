@@ -8,6 +8,23 @@
 </head>
 <body>
     <h1>📋 Создание нового режима тренировки</h1>
+    <div style="margin: 20px 0;">
+        <button id="toggle-modes-btn" class="btn-secondary">📂 Показать существующие режимы</button>
+    </div>
+
+    <div id="modes-container" style="display: none;">
+        <table class="modes-table">
+            <thead>
+                <tr>
+                    <th>Название режима</th>
+                    <th>Позиции</th>
+                </tr>
+            </thead>
+            <tbody id="modes-tbody">
+                <!-- строки будут добавлены через JavaScript -->
+            </tbody>
+        </table>
+    </div>
     <div class="create-mode-container">
         <div class="form-group">
             <label for="mode-name">Название режима:</label>

@@ -526,6 +526,10 @@ def get_positions():
         positions.add(pos)
     return jsonify({'positions': sorted(positions)})
 
+@app.route('/get_modes', methods=['GET'])
+def get_modes():
+    return jsonify({'modes': modes})
+
 # ============================================================
 #  ЗАПУСК
 # ============================================================
