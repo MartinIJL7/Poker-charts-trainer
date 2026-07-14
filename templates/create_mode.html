@@ -2,12 +2,12 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Создание режима</title>
+    <title>Работа с режимами</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='create_mode.css') }}">
 </head>
 <body>
-    <h1>📋 Создание нового режима тренировки</h1>
+    <h1>📋 Работа с режимами</h1>
     <div style="margin: 20px 0;">
         <button id="toggle-modes-btn" class="btn-secondary">📂 Показать существующие режимы</button>
     </div>
@@ -17,7 +17,7 @@
             <thead>
                 <tr>
                     <th>Название режима</th>
-                    <th>Позиции</th>
+                    <th>Диапазоны</th>
                 </tr>
             </thead>
             <tbody id="modes-tbody">
