@@ -19,12 +19,11 @@ if not os.path.exists('config.py'):
 ranges = {}
 subranges = {}
 subrange_order = []
-subrange_answer_text = {}
 modes = {}
 subrange_colors = {}   # <-- добавлено
 """)
 
-from config import ranges, subranges, subrange_order, subrange_answer_text, modes, subrange_colors
+from config import ranges, subranges, subrange_order, modes, subrange_colors
 
 app = Flask(__name__)
 app.secret_key = 'замените-на-случайную-строку'
@@ -57,7 +56,8 @@ def get_correct_answer_text(status):
         return 'yes'
     if status == 'not in a range':
         return 'fold'
-    return subrange_answer_text.get(status, '')
+    # status — это имя поддиапазона, возвращаем его как есть
+    return status
 
 def is_answer_correct(status, answer):
     return answer == get_correct_answer_text(status).lower()
@@ -129,7 +129,6 @@ def format_config():
     content += "ranges = " + format_dict(ranges) + "\n\n"
     content += "subranges = " + format_dict(subranges, extra_newline_between_keys=True) + "\n\n"
     content += "subrange_order = " + format_list(subrange_order) + "\n\n"
-    content += "subrange_answer_text = " + format_dict(subrange_answer_text) + "\n\n"
     content += "modes = " + format_dict(modes) + "\n\n"
     content += "subrange_colors = " + format_dict(subrange_colors) + "\n"
     return content
@@ -327,9 +326,6 @@ def save_range():
         if name not in subranges:
             subranges[name] = {}
         subranges[name][position] = hands
-
-        if name not in subrange_answer_text:
-            subrange_answer_text[name] = name
 
         if name not in subrange_order:
             subrange_order.append(name)
