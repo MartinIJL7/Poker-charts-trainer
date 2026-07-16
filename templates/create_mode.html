@@ -6,12 +6,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='create_mode.css') }}">
 </head>
-<body>
-    <h1>📋 Работа с режимами</h1>
+<body class="create-page">   <!-- добавили класс для единого фона и отступов -->
+
+    <!-- Верхняя строка с заголовком и ссылкой "На главную" -->
+    <div class="header-row">
+        <h1>📋 Работа с режимами</h1>
+        <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
+    </div>
+
+    <!-- Кнопка показа/скрытия режимов -->
     <div style="margin: 20px 0;">
         <button id="toggle-modes-btn" class="btn-secondary">📂 Показать существующие режимы</button>
     </div>
 
+    <!-- Таблица с режимами (скрыта по умолчанию) -->
     <div id="modes-container" style="display: none;">
         <table class="modes-table">
             <thead>
@@ -25,6 +33,8 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Основной блок создания режима -->
     <div class="create-mode-container">
         <div class="form-group">
             <label for="mode-name">Название режима:</label>
@@ -51,8 +61,9 @@
             <button id="save-mode-btn" class="btn-success" {% if not positions %}disabled{% endif %}>💾 Сохранить режим</button>
             <button id="clear-mode-btn" class="btn-secondary">Снять все</button>
         </div>
-        <p><a href="{{ url_for('index') }}">🏠 На главную</a></p>
+        <!-- старая ссылка внизу УДАЛЕНА -->
     </div>
+
     <script src="{{ url_for('static', filename='create_mode.js') }}"></script>
 </body>
 </html>
