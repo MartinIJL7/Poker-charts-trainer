@@ -530,6 +530,34 @@ def get_positions():
 def get_modes():
     return jsonify({'modes': modes})
 
+@app.route('/get_mode/<mode_name>', methods=['GET'])
+def get_mode(mode_name):
+    if mode_name not in modes:
+        return jsonify({'status': 'error', 'message': 'Режим не найден'}), 404
+    return jsonify({'status': 'ok', 'name': mode_name, 'positions': modes[mode_name]})
+
+@app.route('/create_mode/update', methods=['POST'])
+def update_mode():
+    data = request.get_json()
+    old_name = data.get('old_name', '').strip()
+    new_name = data.get('new_name', '').strip()
+    positions = data.get('positions', [])
+    if not old_name or not new_name:
+        return jsonify({'status': 'error', 'message': 'Не указано имя режима'}), 400
+    if old_name not in modes:
+        return jsonify({'status': 'error', 'message': 'Режим не найден'}), 404
+    if not positions:
+        return jsonify({'status': 'error', 'message': 'Выберите хотя бы одну позицию'}), 400
+    if old_name != new_name:
+        # Удаляем старый режим
+        del modes[old_name]
+        # Добавляем новый
+        modes[new_name] = positions
+    else:
+        modes[old_name] = positions
+    write_config()
+    return jsonify({'status': 'ok', 'message': f'Режим "{new_name}" обновлён'})
+
 # ============================================================
 #  ЗАПУСК
 # ============================================================

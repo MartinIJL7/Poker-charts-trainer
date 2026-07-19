@@ -162,3 +162,18 @@
     background: #2980b9;
     text-decoration: none;  /* убираем подчёркивание */
 }
+
+/* Кнопки в таблице режимов */
+.modes-table td button {
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.modes-table td button:hover {
+    background: #2980b9;
+}
