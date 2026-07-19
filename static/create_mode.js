@@ -37,14 +37,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Сохранить или обновить режим
     saveBtn.addEventListener('click', function() {
-        const name = modeNameInput.value.trim();
+        const name = document.getElementById('mode-name').value.trim();
         if (!name) {
             alert('Введите название режима');
             return;
         }
         const selected = [];
-        checkboxes.forEach(cb => {
-            if (cb.checked) selected.push(cb.value);
+        document.querySelectorAll('.position-checkbox:checked').forEach(cb => {
+            selected.push(cb.value);
         });
         if (selected.length === 0) {
             alert('Выберите хотя бы одну позицию');
@@ -53,18 +53,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Режим редактирования?
         if (editingModeName) {
-            // Редактирование (обновление)
-            const newName = modeNameInput.value.trim();
-            if (!newName) {
-                alert('Введите название режима');
-                return;
-            }
+            // Обновление
             fetch('/create_mode/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     old_name: editingModeName, 
-                    new_name: newName, 
+                    new_name: name, 
                     positions: selected 
                 })
             })
@@ -72,10 +67,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.status === 'ok') {
                     alert(data.message);
-                    // Если имя изменилось, обновляем editingModeName
-                    if (newName !== editingModeName) {
-                        editingModeName = newName;
-                    }
                     cancelEditMode();
                     if (modesContainer.style.display !== 'none') {
                         loadModesTable();
@@ -84,9 +75,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Ошибка: ' + data.message);
                 }
             })
-            .catch(err => {
-                alert('Ошибка сети: ' + err);
-            });
+            .catch(err => alert('Ошибка сети: ' + err));
+        } else {
+            // Создание
+            fetch('/create_mode/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, positions: selected })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    alert(data.message);
+                    document.getElementById('mode-name').value = '';
+                    document.querySelectorAll('.position-checkbox').forEach(cb => cb.checked = false);
+                    if (modesContainer.style.display !== 'none') {
+                        loadModesTable();
+                    }
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(err => alert('Ошибка сети: ' + err));
         }
     });
 
@@ -109,19 +119,19 @@ function loadModesTable() {
             }
             modeNames.forEach(name => {
                 const tr = document.createElement('tr');
-                // Название
                 const tdName = document.createElement('td');
                 tdName.textContent = name;
-                // Позиции
                 const tdPos = document.createElement('td');
                 tdPos.textContent = modes[name].join(', ');
-                // Действия
                 const tdActions = document.createElement('td');
+
+                // Кнопка "Редактировать"
                 const editBtn = document.createElement('button');
-                editBtn.textContent = '✏️ Редактировать';
+                editBtn.textContent = '✏️';
                 editBtn.className = 'btn-secondary';
-                editBtn.style.padding = '4px 12px';
-                editBtn.style.fontSize = '0.9em';
+                editBtn.style.padding = '4px 8px';
+                editBtn.style.marginRight = '6px';
+                editBtn.style.fontSize = '1em';
                 editBtn.style.borderRadius = '4px';
                 editBtn.style.border = 'none';
                 editBtn.style.cursor = 'pointer';
@@ -129,6 +139,39 @@ function loadModesTable() {
                     editMode(name);
                 });
                 tdActions.appendChild(editBtn);
+
+                // Кнопка "Удалить"
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '🗑️';
+                deleteBtn.className = 'btn-danger';
+                deleteBtn.style.padding = '4px 8px';
+                deleteBtn.style.fontSize = '1em';
+                deleteBtn.style.borderRadius = '4px';
+                deleteBtn.style.border = 'none';
+                deleteBtn.style.cursor = 'pointer';
+                deleteBtn.addEventListener('click', function() {
+                    if (!confirm(`Удалить режим "${name}"? Это действие необратимо.`)) return;
+                    fetch(`/delete_mode/${name}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'ok') {
+                            alert(data.message);
+                            if (editingModeName === name) {
+                                cancelEditMode();
+                            }
+                            if (modesContainer.style.display !== 'none') {
+                                loadModesTable();
+                            }
+                        } else {
+                            alert('Ошибка: ' + data.message);
+                        }
+                    })
+                    .catch(err => alert('Ошибка сети: ' + err));
+                });
+                tdActions.appendChild(deleteBtn);
 
                 tr.appendChild(tdName);
                 tr.appendChild(tdPos);

@@ -558,6 +558,14 @@ def update_mode():
     write_config()
     return jsonify({'status': 'ok', 'message': f'Режим "{new_name}" обновлён'})
 
+@app.route('/delete_mode/<mode_name>', methods=['POST'])
+def delete_mode(mode_name):
+    if mode_name not in modes:
+        return jsonify({'status': 'error', 'message': 'Режим не найден'}), 404
+    del modes[mode_name]
+    write_config()
+    return jsonify({'status': 'ok', 'message': f'Режим "{mode_name}" удалён'})
+
 # ============================================================
 #  ЗАПУСК
 # ============================================================
