@@ -32,6 +32,14 @@ app.secret_key = 'замените-на-случайную-строку'
 #  ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (оригинальные)
 # ============================================================
 
+def get_all_positions():
+    positions = set()
+    for sub_dict in subranges.values():
+        positions.update(sub_dict.keys())
+    for pos in ranges.keys():
+        positions.add(pos)
+    return sorted(positions)
+
 def generate_all_hands():
     ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2']
     hands = [f"{r}{r}" for r in ranks]
@@ -134,21 +142,15 @@ def format_config():
     return content
 
 def write_config():
-    """Перезаписывает файл config.py с отформатированным содержимым."""
+    # Обновляем All перед записью
+    all_positions = get_all_positions()
+    if all_positions:
+        modes['All'] = all_positions
+    else:
+        modes.pop('All', None)  # удаляем, если нет позиций
     content = format_config()
     with open('config.py', 'w', encoding='utf-8') as f:
         f.write(content)
-
-# ============================================================
-#  ДОБАВЛЕНИЕ РЕЖИМА "All" (как раньше)
-# ============================================================
-
-if modes:
-    all_positions = set()
-    for situs in modes.values():
-        all_positions.update(situs)
-    if 'All' not in modes:
-        modes['All'] = sorted(all_positions)
 
 # ============================================================
 #  МАРШРУТЫ
