@@ -3,6 +3,8 @@ import random
 import os
 import json
 import uuid
+import importlib
+import glob
 
 # ============================================================
 #  ИМПОРТ НАСТРОЕК ИЗ config.py (или создание файла, если его нет)
@@ -23,6 +25,9 @@ modes = {}
 subrange_colors = {}   # <-- добавлено
 """)
 
+if not os.path.exists('saved_configs'):
+    os.makedirs('saved_configs')
+
 from config import ranges, subranges, subrange_order, modes, subrange_colors
 
 app = Flask(__name__)
@@ -31,6 +36,22 @@ app.secret_key = 'замените-на-случайную-строку'
 # ============================================================
 #  ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (оригинальные)
 # ============================================================
+
+def reload_config():
+    """Перезагружает модуль config и обновляет глобальные переменные."""
+    global ranges, subranges, subrange_order, modes, subrange_colors
+    import config
+    importlib.reload(config)
+    ranges = config.ranges
+    subranges = config.subranges
+    subrange_order = config.subrange_order
+    modes = config.modes
+    subrange_colors = config.subrange_colors
+
+def get_backup_files():
+    """Возвращает список имён файлов бэкапов (без пути)."""
+    files = glob.glob('saved_configs/*.py')
+    return sorted([os.path.basename(f) for f in files])
 
 def get_all_positions():
     positions = set()
@@ -593,6 +614,57 @@ def debug():
                 'possible_statuses': possible_statuses   # просто список статусов
             }
     return render_template('debug.html', result=result, positions=all_positions)
+
+@app.route('/config_management', methods=['GET'])
+def config_management():
+    backups = get_backup_files()
+    return render_template('config_management.html', backups=backups)
+
+@app.route('/config_management/save', methods=['POST'])
+def save_config_backup():
+    name = request.form.get('name', '').strip()
+    overwrite = request.form.get('overwrite', 'false').lower() == 'true'
+    if not name:
+        return jsonify({'status': 'error', 'message': 'Введите имя бэкапа'}), 400
+    filename = name.replace(' ', '_') + '.py'
+    filepath = os.path.join('saved_configs', filename)
+    if os.path.exists(filepath) and not overwrite:
+        return jsonify({'status': 'exists', 'message': f'Файл {filename} уже существует. Перезаписать?'}), 409
+    import shutil
+    shutil.copy2('config.py', filepath)
+    return jsonify({'status': 'ok', 'message': f'Конфиг сохранён как {filename}'})
+
+@app.route('/config_management/load/<filename>', methods=['POST'])
+def load_config_backup(filename):
+    filepath = os.path.join('saved_configs', filename)
+    if not os.path.exists(filepath):
+        return jsonify({'status': 'error', 'message': 'Файл не найден'}), 404
+    # Заменяем config.py
+    import shutil
+    shutil.copy2(filepath, 'config.py')
+    # Перезагружаем конфиг
+    reload_config()
+    return jsonify({'status': 'ok', 'message': f'Конфиг {filename} загружен'})
+
+@app.route('/config_management/delete/<filename>', methods=['POST'])
+def delete_config_backup(filename):
+    filepath = os.path.join('saved_configs', filename)
+    if not os.path.exists(filepath):
+        return jsonify({'status': 'error', 'message': 'Файл не найден'}), 404
+    os.remove(filepath)
+    return jsonify({'status': 'ok', 'message': f'Файл {filename} удалён'})
+
+@app.route('/config_management/clear', methods=['POST'])
+def clear_config():
+    global ranges, subranges, subrange_order, modes, subrange_colors
+    ranges.clear()
+    subranges.clear()
+    subrange_order.clear()
+    modes.clear()
+    subrange_colors.clear()
+    write_config()
+    reload_config()
+    return jsonify({'status': 'ok', 'message': 'Конфиг очищен. Все данные удалены.'})
 
 # ============================================================
 #  ЗАПУСК

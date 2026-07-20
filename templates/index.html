@@ -21,12 +21,13 @@
 
     <p>
         <a href="{{ url_for('create_range') }}">📝 Работа с диапазонами</a> |
-        <a href="{{ url_for('create_mode') }}">📋 Работа с режимами</a>
+        <a href="{{ url_for('create_mode') }}">📋 Работа с режимами</a> |
+        <a href="{{ url_for('config_management') }}">💾 Работа с конфигами</a>
+    </p>
+
+    <!-- Небольшая ссылка на отладку (незаметная) -->
+    <p style="font-size:0.8em; color:#999; margin-top:10px;">
+        <a href="{{ url_for('debug') }}" style="color:#999; text-decoration:none;">🐞 Отладка</a>
     </p>
 </body>
-
-<p style="font-size:0.8em; color:#999; margin-top:40px;">
-    <a href="{{ url_for('debug') }}" style="color:#999; text-decoration:none;">🐞 Отладка</a>
-</p>
-
 </html>
