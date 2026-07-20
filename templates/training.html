@@ -6,7 +6,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Режим: {{ mode }}</h1>
+    <div class="header-row">
+        <h1>Режим: {{ mode }}</h1>
+        <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
+    </div>
 
     {% if show_result and result %}
         {# Блок результата #}
@@ -61,7 +64,6 @@
     </div>
 
     <p>
-        <a href="{{ url_for('index') }}">🏠 На главную</a> |
         <a href="{{ url_for('reset_stats', next=request.url) }}">🔄 Сбросить статистику</a>
     </p>
 </body>

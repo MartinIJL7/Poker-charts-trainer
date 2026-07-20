@@ -125,3 +125,29 @@ a {
 a:hover {
     text-decoration: underline;
 }
+
+/* Стили для верхней строки с заголовком и ссылкой "На главную" */
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 100%;
+    margin: 20px 0 10px 0;
+    padding: 0 20px;
+}
+.header-row h1 {
+    margin: 0;
+}
+.home-link {
+    font-size: 1.1em;
+    background: #3498db;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.home-link:hover {
+    background: #2980b9;
+    text-decoration: none;
+}
