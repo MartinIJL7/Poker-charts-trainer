@@ -568,6 +568,32 @@ def delete_mode(mode_name):
     write_config()
     return jsonify({'status': 'ok', 'message': f'Режим "{mode_name}" удалён'})
 
+@app.route('/debug', methods=['GET', 'POST'])
+def debug():
+    all_positions = get_all_positions()
+    result = None
+    if request.method == 'POST':
+        pos = request.form.get('position', '').strip()
+        hand = request.form.get('hand', '').strip()
+        if not pos or not hand:
+            result = {'error': 'Заполните оба поля'}
+        elif pos not in all_positions:
+            result = {'error': f'Неизвестная позиция: {pos}'}
+        elif hand not in ALL_HANDS:
+            result = {'error': f'Неизвестная рука: {hand}'}
+        else:
+            status = get_hand_status(hand, pos)
+            correct_text = get_correct_answer_text(status)
+            possible_statuses = get_possible_statuses(pos)
+            result = {
+                'position': pos,
+                'hand': hand,
+                'status': status,
+                'correct_text': correct_text,
+                'possible_statuses': possible_statuses   # просто список статусов
+            }
+    return render_template('debug.html', result=result, positions=all_positions)
+
 # ============================================================
 #  ЗАПУСК
 # ============================================================

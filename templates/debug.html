@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Режим отладки</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .error { color: #c0392b; }
+        .result-box { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-top: 20px; }
+        form label { display: inline-block; width: 80px; }
+        form select, form input { padding: 6px; width: 200px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        form button { padding: 8px 20px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        form button:hover { background: #2980b9; }
+        body { max-width: 800px; margin: 0 auto; padding: 20px; background: #f7f9fc; }
+    </style>
+</head>
+<body>
+
+    <div class="header-row">
+        <h1>🐞 Режим отладки</h1>
+        <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
+    </div>
+
+    <p>Выберите позицию и введите руку, чтобы узнать статус.</p>
+    <form method="post">
+        <label>Позиция:</label>
+        <select name="position" required>
+            <option value="">-- Выберите позицию --</option>
+            {% for pos in positions %}
+                <option value="{{ pos }}">{{ pos }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <label>Рука:</label>
+        <input type="text" name="hand" placeholder="A5s" required>
+        <br>
+        <button type="submit">Проверить</button>
+    </form>
+
+    {% if result %}
+        <div class="result-box">
+            {% if result.error %}
+                <p class="error">{{ result.error }}</p>
+            {% else %}
+                <p><strong>Позиция:</strong> {{ result.position }}</p>
+                <p><strong>Рука:</strong> {{ result.hand }}</p>
+                <p><strong>Статус:</strong> {{ result.status }}</p>
+                <p><strong>Возможные статусы для этой позиции:</strong> {{ result.possible_statuses | join(', ') }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+</body>
+</html>

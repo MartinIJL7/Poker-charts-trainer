@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Покерные чарты – тренировка</title>
+    <title>Тренировка по покерным чартам</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -24,4 +24,9 @@
         <a href="{{ url_for('create_mode') }}">📋 Работа с режимами</a>
     </p>
 </body>
+
+<p style="font-size:0.8em; color:#999; margin-top:40px;">
+    <a href="{{ url_for('debug') }}" style="color:#999; text-decoration:none;">🐞 Отладка</a>
+</p>
+
 </html>
