@@ -354,7 +354,7 @@ subranges = {
 }),
     },
 
-# ---------- BB defend ----------
+    # ---------- BB defend ----------
     '3bet': {
         'BB_defend_vs_EP': set({
     'AA', 'KK', 'QQ',
@@ -496,12 +496,46 @@ subranges = {
 }),
         'BB_defend_vs_SB': set(),
     },
+
+    # ---------- 3bet ----------
+    '3bet not bb defend': {
+        'IP_vs_EP': set(),
+        'IP_vs_MP': set(),
+        'IP_vs_CO': set(),
+        'SB_vs_EP': set(),
+        'SB_vs_MP': set(),
+        'SB_vs_CO': set(),
+        'SB_vs_BTN': set(),
+    },
+    '50/50 3bet/fold': {
+        'IP_vs_EP': set(),
+        'IP_vs_MP': set(),
+        'IP_vs_CO': set(),
+        'SB_vs_EP': set(),
+        'SB_vs_MP': set(),
+        'SB_vs_CO': set(),
+        'SB_vs_BTN': set(),
+    },
+    '3bet if convenient': {
+        'SB_vs_EP': set(),
+        'SB_vs_MP': set(),
+        'SB_vs_CO': set(),
+        'SB_vs_BTN': set(),
+    },
+    '3bet if extremely convenient': {
+        'SB_vs_EP': set(),
+        'SB_vs_MP': set(),
+        'SB_vs_CO': set(),
+        'SB_vs_BTN': set(),
+    },
 }
 
 # 3. Порядок проверки поддиапазонов (список имён)
 subrange_order = [
     # ---------- RFI ----------
-    '100% RFI', 'RFI if convenient', 'RFI if extremely convenient',
+    '100% RFI',
+    'RFI if convenient',
+    'RFI if extremely convenient',
 
     # ---------- ISO ----------
     '100% ISO',
@@ -516,6 +550,12 @@ subrange_order = [
     '50/50 3bet/call',
     'call',
     '50/50 call/fold',
+
+    # ---------- 3bet ----------
+    '3bet not bb defend',
+    '50/50 3bet/fold',
+    '3bet if convenient',
+    '3bet if extremely convenient',
     ]
 
 # 4. Текст правильного ответа для каждого поддиапазона
@@ -538,6 +578,12 @@ subrange_answer_text = {
     '50/50 3bet/call': '50/50 3bet/call',
     'call': 'call',
     '50/50 call/fold': '50/50 call/fold',
+
+    # ---------- 3bet ----------
+    '3bet not bb defend': '3bet',
+    '50/50 3bet/fold': '50/50 3bet/fold',
+    '3bet if convenient': '3bet conv',
+    '3bet if extremely convenient': '3bet xconv',
 }
 
 # 5. Режимы тренировки: название режима -> список позиций
@@ -545,7 +591,17 @@ modes = {
     'RFI': ['RFI_UTG', 'RFI_MP', 'RFI_CO', 'RFI_BTN', 'RFI_SB'],
     'ISO': ['ISO_MP', 'ISO_CO', 'ISO_BTN', 'ISO_SB', 'ISO_BB'],
     'BB defend': ['BB_defend_vs_EP', 'BB_defend_vs_MP', 'BB_defend_vs_CO', 'BB_defend_vs_BTN', 'BB_defend_vs_SB'],
+    '3bet': ['IP_vs_EP', 'IP_vs_MP', 'IP_vs_CO', 'SB_vs_EP', 'SB_vs_MP', 'SB_vs_CO', 'SB_vs_BTN'],
 }
+
+# Автоматически добавляем режим All (все ситуации из всех режимов, отсортированные)
+all_situations = []
+for mode_name, situs in modes.items():
+    for s in situs:
+        if s not in all_situations:
+            all_situations.append(s)
+all_situations.sort()
+modes['All'] = all_situations
 
 # ============================================================
 #  КОД ПРОГРАММЫ (НЕ МЕНЯТЬ, ЕСЛИ НЕ НАДО)
