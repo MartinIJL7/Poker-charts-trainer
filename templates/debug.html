@@ -1,26 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Режим отладки</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .error { color: #c0392b; }
-        .result-box { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-top: 20px; }
-        form label { display: inline-block; width: 80px; }
-        form select, form input { padding: 6px; width: 200px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        form button { padding: 8px 20px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        form button:hover { background: #2980b9; }
-        body { max-width: 800px; margin: 0 auto; padding: 20px; background: #f7f9fc; }
-    </style>
-</head>
-<body>
-
-    <div class="header-row">
-        <h1>🐞 Режим отладки</h1>
-        <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
-    </div>
-
+{% extends "base.html" %}
+{% block title %}Режим отладки{% endblock %}
+{% block header %}🐞 Режим отладки{% endblock %}
+{% block content %}
     <p>Выберите диапазон и введите руку, чтобы узнать статус.</p>
     <form method="post">
         <label>Диапазон:</label>
@@ -49,6 +30,4 @@
             {% endif %}
         </div>
     {% endif %}
-
-</body>
-</html>
+{% endblock %}

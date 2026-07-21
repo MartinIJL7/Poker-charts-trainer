@@ -1,36 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Работа с конфигами</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        body { max-width: 800px; margin: 0 auto; padding: 20px; background: #f7f9fc; }
-        .backup-list { list-style: none; padding: 0; }
-        .backup-list li { background: white; padding: 10px 15px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .backup-list li button { margin-left: 10px; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input { padding: 8px; width: 300px; border: 1px solid #ccc; border-radius: 4px; }
-        .form-group button { padding: 8px 20px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .form-group button:hover { background: #1e8449; }
-        .btn-danger { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 6px 14px; cursor: pointer; }
-        .btn-danger:hover { background: #c0392b; }
-        .btn-primary { background: #3498db; color: white; border: none; border-radius: 4px; padding: 6px 14px; cursor: pointer; }
-        .btn-primary:hover { background: #2980b9; }
-        .clear-section { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; }
-        .clear-section .btn-danger { font-size: 1.1em; padding: 10px 24px; }
-        .warning-text { color: #c0392b; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div class="header-row">
-        <h1>💾 Работа с конфигами</h1>
-        <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
-    </div>
-
-    <!-- Плашка убрана -->
-
+{% extends "base.html" %}
+{% block title %}Работа с конфигами{% endblock %}
+{% block header %}💾 Работа с конфигами{% endblock %}
+{% block body_class %}narrow-page{% endblock %}
+{% block content %}
     <div class="form-group">
         <label for="backup-name">Сохранить текущий конфиг как:</label>
         <input type="text" id="backup-name" placeholder="например, rfi_v1">
@@ -60,100 +32,98 @@
         <p class="warning-text">Рекомендуется сначала сохранить текущий конфиг с помощью формы выше.</p>
         <button id="clear-config-btn" class="btn-danger">🗑 Очистить конфиг</button>
     </div>
+{% endblock %}
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const saveBtn = document.getElementById('save-backup-btn');
-            const nameInput = document.getElementById('backup-name');
-            const clearBtn = document.getElementById('clear-config-btn');
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const saveBtn = document.getElementById('save-backup-btn');
+        const nameInput = document.getElementById('backup-name');
+        const clearBtn = document.getElementById('clear-config-btn');
 
-            // Функция сохранения с возможностью перезаписи
-            function saveBackup(overwrite = false) {
-                const name = nameInput.value.trim();
-                if (!name) {
-                    alert('Введите имя бэкапа');
-                    return;
+        function saveBackup(overwrite = false) {
+            const name = nameInput.value.trim();
+            if (!name) {
+                alert('Введите имя бэкапа');
+                return;
+            }
+            fetch('/config_management/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'name=' + encodeURIComponent(name) + '&overwrite=' + overwrite
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    alert(data.message);
+                    nameInput.value = '';
+                    location.reload();
+                } else if (data.status === 'exists') {
+                    if (confirm(data.message)) {
+                        saveBackup(true);
+                    }
+                } else {
+                    alert('Ошибка: ' + data.message);
                 }
-                fetch('/config_management/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'name=' + encodeURIComponent(name) + '&overwrite=' + overwrite
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'ok') {
-                        alert(data.message);
-                        nameInput.value = '';
-                        location.reload();
-                    } else if (data.status === 'exists') {
-                        if (confirm(data.message)) {
-                            saveBackup(true);
-                        }
-                    } else {
-                        alert('Ошибка: ' + data.message);
-                    }
-                })
-                .catch(err => alert('Ошибка сети: ' + err));
-            }
+            })
+            .catch(err => alert('Ошибка сети: ' + err));
+        }
 
-            saveBtn.addEventListener('click', function() {
-                saveBackup(false);
-            });
-
-            // Обработка кликов по кнопкам в списке
-            const backupList = document.getElementById('backup-list');
-            if (backupList) {
-                backupList.addEventListener('click', function(e) {
-                    const target = e.target;
-                    if (target.classList.contains('load-btn')) {
-                        const filename = target.dataset.filename;
-                        if (!confirm('Загрузить конфиг "' + filename + '"? Текущий конфиг будет заменён.')) return;
-                        fetch('/config_management/load/' + filename, { method: 'POST' })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'ok') {
-                                alert(data.message);
-                                location.reload();
-                            } else {
-                                alert('Ошибка: ' + data.message);
-                            }
-                        })
-                        .catch(err => alert('Ошибка сети: ' + err));
-                    }
-                    if (target.classList.contains('delete-btn')) {
-                        const filename = target.dataset.filename;
-                        if (!confirm('Удалить бэкап "' + filename + '"?')) return;
-                        fetch('/config_management/delete/' + filename, { method: 'POST' })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'ok') {
-                                alert(data.message);
-                                location.reload();
-                            } else {
-                                alert('Ошибка: ' + data.message);
-                            }
-                        })
-                        .catch(err => alert('Ошибка сети: ' + err));
-                    }
-                });
-            }
-
-            // Очистка конфига
-            clearBtn.addEventListener('click', function() {
-                if (!confirm('Вы уверены, что хотите очистить текущий конфиг? Все данные будут безвозвратно удалены. Рекомендуется сохранить конфиг перед очисткой. Нажмите ОК для продолжения.')) return;
-                fetch('/config_management/clear', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'ok') {
-                        alert(data.message);
-                        location.reload();
-                    } else {
-                        alert('Ошибка: ' + data.message);
-                    }
-                })
-                .catch(err => alert('Ошибка сети: ' + err));
-            });
+        saveBtn.addEventListener('click', function() {
+            saveBackup(false);
         });
-    </script>
-</body>
-</html>
+
+        const backupList = document.getElementById('backup-list');
+        if (backupList) {
+            backupList.addEventListener('click', function(e) {
+                const target = e.target;
+                if (target.classList.contains('load-btn')) {
+                    const filename = target.dataset.filename;
+                    if (!confirm('Загрузить конфиг "' + filename + '"? Текущий конфиг будет заменён.')) return;
+                    fetch('/config_management/load/' + filename, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'ok') {
+                            alert(data.message);
+                            location.reload();
+                        } else {
+                            alert('Ошибка: ' + data.message);
+                        }
+                    })
+                    .catch(err => alert('Ошибка сети: ' + err));
+                }
+                if (target.classList.contains('delete-btn')) {
+                    const filename = target.dataset.filename;
+                    if (!confirm('Удалить бэкап "' + filename + '"?')) return;
+                    fetch('/config_management/delete/' + filename, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'ok') {
+                            alert(data.message);
+                            location.reload();
+                        } else {
+                            alert('Ошибка: ' + data.message);
+                        }
+                    })
+                    .catch(err => alert('Ошибка сети: ' + err));
+                }
+            });
+        }
+
+        clearBtn.addEventListener('click', function() {
+            if (!confirm('Вы уверены, что хотите очистить текущий конфиг? Все данные будут безвозвратно удалены. Рекомендуется сохранить конфиг перед очисткой. Нажмите ОК для продолжения.')) return;
+            fetch('/config_management/clear', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(err => alert('Ошибка сети: ' + err));
+        });
+    });
+</script>
+{% endblock %}

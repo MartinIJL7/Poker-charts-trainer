@@ -1,17 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Работа с диапазонами</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% extends "base.html" %}
+{% block title %}Работа с диапазонами{% endblock %}
+{% block header %}📝 Работа с диапазонами{% endblock %}
+{% block body_class %}create-page{% endblock %}
+{% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='create_range.css') }}">
-</head>
-<body class="create-page">
-    <div class="header-row">
-        <h1>📝 Работа с диапазонами</h1>
-        <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
-    </div>
-
+{% endblock %}
+{% block content %}
     <div class="create-container">
         <div class="top-row">
             <div class="form-group">
@@ -22,7 +16,7 @@
                             <option value="{{ pos }}">{{ pos }}</option>
                         {% endfor %}
                     </select>
-                    <button id="delete-range-btn" class="btn-danger">🗑 Удалить</button>   <!-- ← добавить -->
+                    <button id="delete-range-btn" class="btn-danger">🗑 Удалить</button>
                     <input type="text" id="position" placeholder="Название диапазона" value="{{ position }}">
                     <button id="save-range-btn" class="btn-success">Сохранить диапазон</button>
                     <button id="new-range-btn" class="btn-secondary">Очистить</button>
@@ -63,5 +57,4 @@
     </div>
 
     <script src="{{ url_for('static', filename='create_range.js') }}"></script>
-</body>
-</html>
+{% endblock %}

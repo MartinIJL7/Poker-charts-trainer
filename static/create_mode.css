@@ -189,3 +189,14 @@
 .btn-danger:hover {
     background: #c0392b;
 }
+
+/* Одинаковая ширина для таблицы и блока создания */
+.mode-management {
+    max-width: 800px;
+    margin: 0 auto;
+}
+.mode-management #modes-container,
+.mode-management .create-mode-container {
+    width: 100%;
+    box-sizing: border-box;
+}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+{% block header %}🔐 Вход в систему{% endblock %}
+{% block content %}
+<div class="auth-container" style="max-width: 400px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+    <form method="post">
+        <div style="margin-bottom: 15px;">
+            <label>Имя пользователя:</label>
+            <input type="text" name="username" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label>Пароль:</label>
+            <input type="password" name="password" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <button type="submit" style="width: 100%; padding: 10px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 1.1em; cursor: pointer;">Войти</button>
+    </form>
+    {% if error %}
+        <p style="color: #c0392b; margin-top: 15px;">{{ error }}</p>
+    {% endif %}
+    <p style="margin-top: 15px;">Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрируйтесь</a></p>
+</div>
+{% endblock %}

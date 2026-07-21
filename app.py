@@ -1,16 +1,55 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import os
 import json
 import uuid
 import importlib
 import glob
+from datetime import datetime
+
+# ============================================================
+#  НАСТРОЙКА БАЗЫ ДАННЫХ
+# ============================================================
+app = Flask(__name__)
+app.secret_key = 'замените-на-случайную-строку'  # обязательно измените в продакшене
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Пожалуйста, войдите для доступа.'
+
+# ============================================================
+#  МОДЕЛЬ ПОЛЬЗОВАТЕЛЯ
+# ============================================================
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Создаём таблицы при первом запуске
+with app.app_context():
+    db.create_all()
 
 # ============================================================
 #  ИМПОРТ НАСТРОЕК ИЗ config.py (или создание файла, если его нет)
 # ============================================================
-
-# Проверяем существование config.py, если нет – создаём с пустыми данными
 if not os.path.exists('config.py'):
     with open('config.py', 'w', encoding='utf-8') as f:
         f.write("""# config.py
@@ -28,9 +67,6 @@ if not os.path.exists('saved_configs'):
     os.makedirs('saved_configs')
 
 from config import subranges, subrange_order, modes, subrange_colors
-
-app = Flask(__name__)
-app.secret_key = 'замените-на-случайную-строку'
 
 # ============================================================
 #  ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (оригинальные)
@@ -94,17 +130,13 @@ def get_possible_statuses(pos):
 # ============================================================
 
 def format_dict(d, indent=0, extra_newline_between_keys=False):
-    """
-    Форматирует словарь с отступами и запятыми между элементами.
-    Если extra_newline_between_keys=True, между ключами вставляется пустая строка.
-    """
+    """Форматирует словарь с отступами и запятыми между элементами."""
     if not d:
         return "{}"
     lines = []
     keys = list(d.keys())
     for idx, key in enumerate(keys):
         value = d[key]
-        # Форматируем значение
         if isinstance(value, dict):
             val_str = format_dict(value, indent + 4, extra_newline_between_keys=False)
         elif isinstance(value, set):
@@ -113,25 +145,20 @@ def format_dict(d, indent=0, extra_newline_between_keys=False):
             val_str = format_list(value)
         else:
             val_str = repr(value)
-        # Добавляем запятую после каждого элемента, кроме последнего
         comma = "," if idx < len(keys) - 1 else ""
         lines.append(" " * (indent + 4) + repr(key) + ": " + val_str + comma)
-        # Если нужно разделять пустой строкой и это не последний элемент
         if extra_newline_between_keys and idx < len(keys) - 1:
             lines.append("")
     result = "{\n" + "\n".join(lines) + "\n" + " " * indent + "}"
     return result
 
 def format_set(s):
-    """Форматирует множество в одну строку с запятыми."""
     if not s:
         return "set()"
     items = sorted(s)
-    # Добавляем запятые между элементами
     return "{" + ", ".join(repr(item) for item in items) + "}"
 
 def format_list(lst):
-    """Форматирует список в одну строку с запятыми."""
     if not lst:
         return "[]"
     return "[" + ", ".join(repr(item) for item in lst) + "]"
@@ -150,27 +177,75 @@ def format_config():
     return content
 
 def write_config():
-    # Обновляем All перед записью
     all_positions = get_all_positions()
     if all_positions:
         modes['All'] = all_positions
     else:
-        modes.pop('All', None)  # удаляем, если нет позиций
+        modes.pop('All', None)
     content = format_config()
     with open('config.py', 'w', encoding='utf-8') as f:
         f.write(content)
 
 # ============================================================
-#  МАРШРУТЫ
+#  МАРШРУТЫ АВТОРИЗАЦИИ
+# ============================================================
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        if not username or not password:
+            return render_template('register.html', error='Заполните все поля')
+        if User.query.filter_by(username=username).first():
+            return render_template('register.html', error='Пользователь с таким именем уже существует')
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        flash('Регистрация успешна! Теперь войдите.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            login_user(user)
+            flash('Добро пожаловать, {}!'.format(username), 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+        else:
+            return render_template('login.html', error='Неверное имя пользователя или пароль')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Вы вышли из системы.', 'info')
+    return redirect(url_for('login'))
+
+# ============================================================
+#  ОСНОВНЫЕ МАРШРУТЫ (все защищены @login_required)
 # ============================================================
 
 @app.route('/')
+@login_required
 def index():
     if not modes:
         return render_template('index.html', modes={}, no_modes=True)
     return render_template('index.html', modes=modes, no_modes=False)
 
 @app.route('/reset')
+@login_required
 def reset_stats():
     session['stats'] = {'total': 0, 'correct': 0, 'wrong': 0}
     session.pop('last_result', None)
@@ -180,6 +255,7 @@ def reset_stats():
     return redirect(url_for('index'))
 
 @app.route('/training/<mode>', methods=['GET', 'POST'])
+@login_required
 def training(mode):
     if mode not in modes:
         return "Режим не найден", 404
@@ -259,17 +335,19 @@ def training(mode):
         )
 
 # ============================================================
-#  НОВЫЕ МАРШРУТЫ ДЛЯ СОЗДАНИЯ ДИАПАЗОНОВ
+#  МАРШРУТЫ ДЛЯ СОЗДАНИЯ ДИАПАЗОНОВ (защищены)
 # ============================================================
 
 @app.route('/create', methods=['GET'])
+@login_required
 def create_range():
-    positions = get_all_positions()  # теперь используем общую функцию
+    positions = get_all_positions()
     if 'temp_subranges' not in session:
         session['temp_subranges'] = []
     return render_template('create_range.html', all_positions=positions)
 
 @app.route('/create/add_subrange', methods=['POST'])
+@login_required
 def add_subrange():
     data = request.get_json()
     name = data.get('name', '').strip()
@@ -285,7 +363,6 @@ def add_subrange():
     if 'temp_subranges' not in session:
         session['temp_subranges'] = []
     
-    # Удаляем выбранные руки из всех существующих поддиапазонов
     hands_set = set(hands)
     for sub in session['temp_subranges']:
         sub['hands'] = [h for h in sub['hands'] if h not in hands_set]
@@ -301,6 +378,7 @@ def add_subrange():
     return jsonify({'status': 'ok', 'subranges': session['temp_subranges']})
 
 @app.route('/create/save_range', methods=['POST'])
+@login_required
 def save_range():
     data = request.get_json()
     position = data.get('position', '').strip().replace(' ', '_')
@@ -311,17 +389,14 @@ def save_range():
     if not temp_subranges:
         return jsonify({'status': 'error', 'message': 'Нет добавленных поддиапазонов'}), 400
 
-    # Проверяем, редактируем ли мы существующий диапазон
     editing_pos = session.pop('editing_position', None)
     if editing_pos:
-        # Удаляем все поддиапазоны для этой позиции
         for subname in list(subranges.keys()):
             if editing_pos in subranges[subname]:
                 del subranges[subname][editing_pos]
                 if not subranges[subname]:
                     del subranges[subname]
 
-    # Добавляем новые поддиапазоны
     for sub in temp_subranges:
         name = sub['name']
         hands = set(sub['hands'])
@@ -333,40 +408,38 @@ def save_range():
         if name not in subrange_order:
             subrange_order.append(name)
 
-        # Сохраняем цвет
         color = sub.get('color', '#3498db')
         subrange_colors[name] = color
 
-    # Записываем config
     write_config()
-    session.pop('editing_position', None)   # сбрасываем флаг редактирования, но НЕ удаляем temp_subranges
+    session.pop('editing_position', None)
     return jsonify({'status': 'ok', 'message': f'Диапазон для {position} сохранён'})
 
 @app.route('/create/clear_temp', methods=['POST'])
+@login_required
 def clear_temp():
-    """Очищает временный список поддиапазонов и сбрасывает редактируемую позицию."""
     session.pop('temp_subranges', None)
-    session.pop('editing_position', None)   # <-- добавить
+    session.pop('editing_position', None)
     return jsonify({'status': 'ok'})
 
 @app.route('/create/get_temp', methods=['GET'])
+@login_required
 def get_temp_subranges():
-    """Возвращает список временных поддиапазонов из сессии."""
     temp = session.get('temp_subranges', [])
     return jsonify({'subranges': temp})
 
 @app.route('/create/load_range', methods=['POST'])
+@login_required
 def load_range():
     data = request.get_json()
     position = data.get('position', '').strip()
     if not position:
         return jsonify({'status': 'error', 'message': 'Не указана позиция'}), 400
 
-    # Собираем все поддиапазоны, в которых есть эта позиция
     loaded_subranges = []
     for subname, sub_dict in subranges.items():
         if position in sub_dict:
-            hands = list(sub_dict[position])  # множество -> список
+            hands = list(sub_dict[position])
             color = subrange_colors.get(subname, '#3498db')
             loaded_subranges.append({
                 'name': subname,
@@ -377,7 +450,6 @@ def load_range():
     if not loaded_subranges:
         return jsonify({'status': 'error', 'message': 'Диапазон для этой позиции не найден'}), 404
 
-    # Сохраняем в сессию как временные поддиапазоны с новыми id
     temp = []
     for sub in loaded_subranges:
         temp.append({
@@ -387,7 +459,7 @@ def load_range():
             'color': sub['color']
         })
     session['temp_subranges'] = temp
-    session['editing_position'] = position   # запоминаем редактируемую позицию
+    session['editing_position'] = position
     session.modified = True
 
     return jsonify({
@@ -397,9 +469,8 @@ def load_range():
     })
 
 @app.route('/create_mode', methods=['GET'])
+@login_required
 def create_mode():
-    """Страница создания нового режима."""
-    # Получаем все уникальные позиции из subranges
     positions = set()
     for sub_dict in subranges.values():
         positions.update(sub_dict.keys())
@@ -407,8 +478,8 @@ def create_mode():
     return render_template('create_mode.html', positions=positions, modes=modes)
 
 @app.route('/create_mode/save', methods=['POST'])
+@login_required
 def save_mode():
-    """Сохраняет новый режим."""
     data = request.get_json()
     mode_name = data.get('name', '').strip().replace(' ', '_')
     selected_positions = data.get('positions', [])
@@ -418,13 +489,12 @@ def save_mode():
         return jsonify({'status': 'error', 'message': 'Выберите хотя бы одну позицию'}), 400
     if mode_name in modes:
         return jsonify({'status': 'error', 'message': 'Режим с таким именем уже существует'}), 400
-    # Добавляем в modes
     modes[mode_name] = selected_positions
-    # Записываем config
     write_config()
     return jsonify({'status': 'ok', 'message': f'Режим "{mode_name}" сохранён'})
 
 @app.route('/create/remove_subrange', methods=['POST'])
+@login_required
 def remove_subrange():
     data = request.get_json()
     sub_id = data.get('id')
@@ -432,7 +502,6 @@ def remove_subrange():
         return jsonify({'status': 'error', 'message': 'Не указан ID'}), 400
 
     temp = session.get('temp_subranges', [])
-    # Находим и удаляем
     new_temp = [sub for sub in temp if sub.get('id') != sub_id]
     if len(new_temp) == len(temp):
         return jsonify({'status': 'error', 'message': 'Поддиапазон не найден'}), 404
@@ -441,6 +510,7 @@ def remove_subrange():
     return jsonify({'status': 'ok'})
 
 @app.route('/create/update_subrange', methods=['POST'])
+@login_required
 def update_subrange():
     data = request.get_json()
     sub_id = data.get('id')
@@ -466,7 +536,6 @@ def update_subrange():
     if not found:
         return jsonify({'status': 'error', 'message': 'Поддиапазон не найден'}), 404
 
-    # Удаляем эти руки из всех остальных поддиапазонов
     hands_set = set(hands)
     for sub in temp:
         if sub.get('id') != sub_id:
@@ -476,58 +545,54 @@ def update_subrange():
     return jsonify({'status': 'ok'})
 
 @app.route('/create/delete_range', methods=['POST'])
+@login_required
 def delete_range():
     data = request.get_json()
     position = data.get('position', '').strip()
     if not position:
         return jsonify({'status': 'error', 'message': 'Не указана позиция'}), 400
 
-    # 2. Удаляем позицию из всех поддиапазонов
     for subname in list(subranges.keys()):
         if position in subranges[subname]:
             del subranges[subname][position]
-            # Если поддиапазон остался без позиций, можно его удалить (опционально)
             if not subranges[subname]:
                 del subranges[subname]
-                # Также удаляем из subrange_order и subrange_colors
                 if subname in subrange_order:
                     subrange_order.remove(subname)
                 if subname in subrange_colors:
                     del subrange_colors[subname]
 
-    # 3. Удаляем позицию из всех режимов
     for mode_name in list(modes.keys()):
         if position in modes[mode_name]:
             modes[mode_name].remove(position)
-            # Если режим остался без позиций, удаляем его
             if not modes[mode_name]:
                 del modes[mode_name]
 
-    # 4. Если позиция была загружена для редактирования, сбрасываем флаг
     if session.get('editing_position') == position:
         session.pop('editing_position', None)
 
-    # 5. Записываем config
     write_config()
-
     return jsonify({'status': 'ok', 'message': f'Диапазон "{position}" удалён'})
 
 @app.route('/create/get_positions', methods=['GET'])
+@login_required
 def get_positions():
-    """Возвращает список всех существующих позиций."""
     return jsonify({'positions': get_all_positions()})
 
 @app.route('/get_modes', methods=['GET'])
+@login_required
 def get_modes():
     return jsonify({'modes': modes})
 
 @app.route('/get_mode/<mode_name>', methods=['GET'])
+@login_required
 def get_mode(mode_name):
     if mode_name not in modes:
         return jsonify({'status': 'error', 'message': 'Режим не найден'}), 404
     return jsonify({'status': 'ok', 'name': mode_name, 'positions': modes[mode_name]})
 
 @app.route('/create_mode/update', methods=['POST'])
+@login_required
 def update_mode():
     data = request.get_json()
     old_name = data.get('old_name', '').strip()
@@ -540,9 +605,7 @@ def update_mode():
     if not positions:
         return jsonify({'status': 'error', 'message': 'Выберите хотя бы одну позицию'}), 400
     if old_name != new_name:
-        # Удаляем старый режим
         del modes[old_name]
-        # Добавляем новый
         modes[new_name] = positions
     else:
         modes[old_name] = positions
@@ -550,6 +613,7 @@ def update_mode():
     return jsonify({'status': 'ok', 'message': f'Режим "{new_name}" обновлён'})
 
 @app.route('/delete_mode/<mode_name>', methods=['POST'])
+@login_required
 def delete_mode(mode_name):
     if mode_name not in modes:
         return jsonify({'status': 'error', 'message': 'Режим не найден'}), 404
@@ -558,6 +622,7 @@ def delete_mode(mode_name):
     return jsonify({'status': 'ok', 'message': f'Режим "{mode_name}" удалён'})
 
 @app.route('/debug', methods=['GET', 'POST'])
+@login_required
 def debug():
     all_positions = get_all_positions()
     result = None
@@ -579,16 +644,18 @@ def debug():
                 'hand': hand,
                 'status': status,
                 'correct_text': correct_text,
-                'possible_statuses': possible_statuses   # просто список статусов
+                'possible_statuses': possible_statuses
             }
     return render_template('debug.html', result=result, positions=all_positions)
 
 @app.route('/config_management', methods=['GET'])
+@login_required
 def config_management():
     backups = get_backup_files()
     return render_template('config_management.html', backups=backups)
 
 @app.route('/config_management/save', methods=['POST'])
+@login_required
 def save_config_backup():
     name = request.form.get('name', '').strip()
     overwrite = request.form.get('overwrite', 'false').lower() == 'true'
@@ -603,18 +670,18 @@ def save_config_backup():
     return jsonify({'status': 'ok', 'message': f'Конфиг сохранён как {filename}'})
 
 @app.route('/config_management/load/<filename>', methods=['POST'])
+@login_required
 def load_config_backup(filename):
     filepath = os.path.join('saved_configs', filename)
     if not os.path.exists(filepath):
         return jsonify({'status': 'error', 'message': 'Файл не найден'}), 404
-    # Заменяем config.py
     import shutil
     shutil.copy2(filepath, 'config.py')
-    # Перезагружаем конфиг
     reload_config()
     return jsonify({'status': 'ok', 'message': f'Конфиг {filename} загружен'})
 
 @app.route('/config_management/delete/<filename>', methods=['POST'])
+@login_required
 def delete_config_backup(filename):
     filepath = os.path.join('saved_configs', filename)
     if not os.path.exists(filepath):
@@ -623,6 +690,7 @@ def delete_config_backup(filename):
     return jsonify({'status': 'ok', 'message': f'Файл {filename} удалён'})
 
 @app.route('/config_management/clear', methods=['POST'])
+@login_required
 def clear_config():
     global subranges, subrange_order, modes, subrange_colors
     subranges.clear()

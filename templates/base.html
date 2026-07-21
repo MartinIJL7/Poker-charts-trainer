@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Тренировка по покерным чартам{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <div class="header-row">
+        <h1>{% block header %}📊 Тренировка по покерным чартам{% endblock %}</h1>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
+            {% if current_user.is_authenticated %}
+                <span>👤 {{ current_user.username }}</span>
+                <a href="{{ url_for('logout') }}" class="home-link" style="background: #e74c3c;">Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="home-link">Войти</a>
+                <a href="{{ url_for('register') }}" class="home-link" style="background: #27ae60;">Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flashes">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

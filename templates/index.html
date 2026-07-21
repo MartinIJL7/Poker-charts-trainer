@@ -1,13 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Тренировка по покерным чартам</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <h1>📊 Тренировка по покерным чартам</h1>
-
+{% extends "base.html" %}
+{% block title %}Главная{% endblock %}
+{% block header %}📊 Тренировка по покерным чартам{% endblock %}
+{% block content %}
+<div class="center-content">
     {% if no_modes %}
         <p class="warning">⚠️ Нет доступных режимов, создайте их по кнопке ниже.</p>
     {% else %}
@@ -19,15 +14,14 @@
         </ul>
     {% endif %}
 
-    <p>
-        <a href="{{ url_for('create_range') }}">📝 Работа с диапазонами</a> |
-        <a href="{{ url_for('create_mode') }}">📋 Работа с режимами</a> |
+    <div class="action-links">
+        <a href="{{ url_for('create_range') }}">📝 Работа с диапазонами</a>
+        <a href="{{ url_for('create_mode') }}">📋 Работа с режимами</a>
         <a href="{{ url_for('config_management') }}">💾 Работа с конфигами</a>
-    </p>
+    </div>
 
-    <!-- Небольшая ссылка на отладку (незаметная) -->
-    <p style="font-size:0.8em; color:#999; margin-top:10px;">
+    <p style="font-size:0.8em; color:#999; margin-top:20px;">
         <a href="{{ url_for('debug') }}" style="color:#999; text-decoration:none;">🐞 Отладка</a>
     </p>
-</body>
-</html>
+</div>
+{% endblock %}
