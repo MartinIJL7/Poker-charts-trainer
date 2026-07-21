@@ -220,6 +220,7 @@ subranges = {
 }
         ),
     }
+
 }
 
 # 3. Порядок проверки поддиапазонов (список имён)
@@ -257,11 +258,11 @@ def get_hand_status(hand, pos):
         if hand in subranges.get(subname, {}).get(pos, set()):
             return subname
     if hand in ranges.get(pos, set()):
-        return 'in'
+        return 'in a range'
     return 'not in a range'
 
 def get_correct_answer_text(status):
-    if status == 'in':
+    if status == 'in a range':
         return 'yes'
     if status == 'not in a range':
         return 'fold'
@@ -274,14 +275,14 @@ def get_possible_statuses(pos):
     """
     Возвращает список статусов (имён поддиапазонов), которые могут встретиться
     для данной ситуации (т.е. для которых есть хотя бы одна рука в subranges),
-    плюс 'in', если есть руки в ranges, и всегда 'not in a range'.
+    плюс 'in a range', если есть руки в ranges, и всегда 'not in a range'.
     """
     statuses = set()
     for subname in subrange_order:
         if subranges.get(subname, {}).get(pos, set()):
             statuses.add(subname)
     if ranges.get(pos, set()):
-        statuses.add('in')
+        statuses.add('in a range')
     statuses.add('not in a range')
     return sorted(statuses)
 
