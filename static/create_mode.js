@@ -114,7 +114,7 @@ function loadModesTable() {
             const modes = data.modes;
             const modeNames = Object.keys(modes).sort();
             if (modeNames.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3">Режимов пока нет.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3">Режимов пока нет</td></tr>';
                 return;
             }
             modeNames.forEach(name => {
