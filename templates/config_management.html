@@ -3,21 +3,23 @@
 {% block header %}💾 Работа с конфигами{% endblock %}
 {% block body_class %}narrow-page{% endblock %}
 {% block content %}
-    <div class="form-group">
-        <label for="backup-name">Сохранить текущий конфиг как:</label>
-        <input type="text" id="backup-name" placeholder="например, rfi_v1">
-        <button id="save-backup-btn">💾 Сохранить</button>
+    <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 30px;">
+        <label for="backup-name" style="margin: 0; font-weight: bold; font-size: 1.3em; white-space: nowrap;">
+            Сохранить текущий конфиг как:
+        </label>
+        <input type="text" id="backup-name" placeholder="например, rfi_v1" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        <button id="save-backup-btn" class="btn btn-success">💾 Сохранить</button>
     </div>
 
-    <h2>Сохранённые конфиги:</h2>
+    <h2 style="margin-top: 30px;">Сохранённые конфиги:</h2>
     {% if backups %}
-        <ul class="backup-list" id="backup-list">
+        <ul class="backup-list" id="backup-list" style="list-style: none; padding: 0;">
             {% for file in backups %}
-                <li>
+                <li style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 15px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                     <span>{{ file }}</span>
                     <div>
-                        <button class="btn-primary load-btn" data-filename="{{ file }}">Загрузить</button>
-                        <button class="btn-danger delete-btn" data-filename="{{ file }}">Удалить</button>
+                        <button class="btn btn-primary load-btn" data-filename="{{ file }}">Загрузить</button>
+                        <button class="btn btn-danger delete-btn" data-filename="{{ file }}">Удалить</button>
                     </div>
                 </li>
             {% endfor %}
@@ -26,16 +28,17 @@
         <p>Нет сохранённых конфигов.</p>
     {% endif %}
 
-    <div class="clear-section">
+    <div class="clear-section" style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px;">
         <h2>⚠️ Опасная зона</h2>
         <p>Очистить текущий конфиг – удалить все диапазоны, поддиапазоны, режимы и цвета.</p>
         <p class="warning-text">Рекомендуется сначала сохранить текущий конфиг с помощью формы выше.</p>
-        <button id="clear-config-btn" class="btn-danger">🗑 Очистить конфиг</button>
+        <button id="clear-config-btn" class="btn btn-danger" style="font-size: 1.1em; padding: 10px 24px;">🗑 Очистить конфиг</button>
     </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    // Весь скрипт остаётся без изменений (рабочий)
     document.addEventListener('DOMContentLoaded', function() {
         const saveBtn = document.getElementById('save-backup-btn');
         const nameInput = document.getElementById('backup-name');

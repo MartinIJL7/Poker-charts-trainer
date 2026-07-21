@@ -10,7 +10,7 @@
     <div class="header-row">
         <h1>{% block header %}📊 Тренировка по покерным чартам{% endblock %}</h1>
         <div style="display: flex; align-items: center; gap: 10px;">
-            <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
+            <a href="{{ url_for('index') }}" class="home-link">На главную</a>
             {% if current_user.is_authenticated %}
                 <span>👤 {{ current_user.username }}</span>
                 <a href="{{ url_for('logout') }}" class="home-link" style="background: #e74c3c;">Выйти</a>

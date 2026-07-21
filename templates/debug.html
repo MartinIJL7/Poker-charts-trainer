@@ -1,25 +1,28 @@
 {% extends "base.html" %}
 {% block title %}Режим отладки{% endblock %}
 {% block header %}🐞 Режим отладки{% endblock %}
+{% block body_class %}narrow-page{% endblock %}
 {% block content %}
-    <p>Выберите диапазон и введите руку, чтобы узнать статус.</p>
-    <form method="post">
-        <label>Диапазон:</label>
-        <select name="position" required>
-            <option value="">-- Выберите диапазон --</option>
-            {% for pos in positions %}
-                <option value="{{ pos }}">{{ pos }}</option>
-            {% endfor %}
-        </select>
-        <br>
-        <label>Рука:</label>
-        <input type="text" name="hand" placeholder="A5s" required>
-        <br>
-        <button type="submit">Проверить</button>
+    <p style="margin-bottom: 20px;">Выберите диапазон и введите руку, чтобы узнать статус.</p>
+    <form method="post" style="display: flex; flex-direction: column; gap: 25px;">
+        <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Диапазон:</label>
+            <select name="position" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;">
+                <option value="">-- Выберите диапазон --</option>
+                {% for pos in positions %}
+                    <option value="{{ pos }}">{{ pos }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Рука:</label>
+            <input type="text" name="hand" placeholder="A5s" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;">
+        </div>
+        <button type="submit" class="btn-primary" style="align-self: flex-start; padding: 10px 30px; border: none; border-radius: 4px; cursor: pointer; font-size: 1.1em;">Проверить</button>
     </form>
 
     {% if result %}
-        <div class="result-box">
+        <div class="result-box" style="margin-top: 20px;">
             {% if result.error %}
                 <p class="error">{{ result.error }}</p>
             {% else %}
