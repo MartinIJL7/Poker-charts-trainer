@@ -13,18 +13,43 @@ ranges = {
 
 # 2. Поддиапазоны (дополнительные категории)
 # subranges = { 'имя': { позиция: множество_рук, ... }, ... }
-subranges = {}
+subranges = {
+    '100% RFI': {
+        'RFI_UTG': set(),
+        'RFI_MP': set(),
+        'RFI_CO': set(),
+        'RFI_BTN': set(),
+        'RFI_SB': set(),
+    },
+    'RFI if convenient': {
+        'RFI_UTG': set(),
+        'RFI_MP': set(),
+        'RFI_CO': set(),
+        'RFI_BTN': set(),
+        'RFI_SB': set(),
+    },
+    'RFI if extremely convenient': {
+        'RFI_UTG': set(),
+        'RFI_MP': set(),
+        'RFI_CO': set(),
+        'RFI_BTN': set(),
+        'RFI_SB': set(),
+    }
+}
 
 # 3. Порядок проверки поддиапазонов (список имён)
-subrange_order = []
+subrange_order = ['100% RFI', 'RFI if convenient', 'RFI if extremely convenient']
 
 # 4. Текст правильного ответа для каждого поддиапазона
-subrange_answer_text = {}
+subrange_answer_text = {
+    '100% RFI': '100% RFI',
+    'RFI if convenient': 'RFI if convenient',
+    'RFI if extremely convenient': 'RFI if extremely convenient'
+}
 
 # 5. Режимы тренировки: название режима -> список позиций
 modes = {
-    # Пример: 'RFI': ['UTG', 'MP', 'CO', 'BTN', 'SB'],
-    #         '3-BET': ['vs EP', 'vs MP', ...]
+    'RFI': ['RFI_UTG', 'RFI_MP', 'RFI_CO', 'RFI_BTN', 'RFI_SB']
 }
 
 # ============================================================
