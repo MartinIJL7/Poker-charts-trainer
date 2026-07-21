@@ -21,11 +21,11 @@
         <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
     </div>
 
-    <p>Выберите позицию и введите руку, чтобы узнать статус.</p>
+    <p>Выберите диапазон и введите руку, чтобы узнать статус.</p>
     <form method="post">
-        <label>Позиция:</label>
+        <label>Диапазон:</label>
         <select name="position" required>
-            <option value="">-- Выберите позицию --</option>
+            <option value="">-- Выберите диапазон --</option>
             {% for pos in positions %}
                 <option value="{{ pos }}">{{ pos }}</option>
             {% endfor %}
