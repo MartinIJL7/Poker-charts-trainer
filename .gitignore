@@ -31,3 +31,4 @@ Thumbs.db
 # Наш config.py (если хотите, чтобы он был пустым-образцом, а не с вашими данными)
 # Если вы хотите сохранить свои настройки, то не включайте config.py в .gitignore
 config.py
+saved_configs/user_*.py
