@@ -499,14 +499,14 @@ subranges = {
 
     # ---------- 3bet ----------
     '3bet not bb defend': {
-        'IP_vs_EP': set({
+        '3bet_IP_vs_EP': set({
     'AA', 'KK', 'QQ', 'JJ', 'TT', '99',
     'AKs', 'AQs', 'AJs',
     'KQs', 'KJs',
     'QJs',
     'AKo'
 }),
-        'IP_vs_MP': set({
+        '3bet_IP_vs_MP': set({
     'AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88',
     'AKs', 'AQs', 'AJs', 'ATs',
     'KQs', 'KJs', 'KTs',
@@ -514,7 +514,7 @@ subranges = {
     'JTs',
     'AKo', 'AQo'
 }),
-        'IP_vs_CO': set({
+        '3bet_IP_vs_CO': set({
     'AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88',
     'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A5s', 'A4s',
     'KQs', 'KJs', 'KTs',
@@ -522,20 +522,20 @@ subranges = {
     'JTs',
     'AKo', 'AQo'
 }),
-        'SB_vs_EP': set({
+        '3bet_SB_vs_EP': set({
     'AA', 'KK', 'QQ', 'JJ', 'TT',
     'AKs', 'AQs', 'AJs',
     'KQs',
     'AKo'
 }),
-        'SB_vs_MP': set({
+        '3bet_SB_vs_MP': set({
     'AA', 'KK', 'QQ', 'JJ', 'TT',
     'AKs', 'AQs', 'AJs', 'ATs',
     'KQs', 'KJs',
     'QJs',
     'AKo'
 }),
-        'SB_vs_CO': set({
+        '3bet_SB_vs_CO': set({
     'AA', 'KK', 'QQ', 'JJ', 'TT', '99',
     'AKs', 'AQs', 'AJs', 'ATs',
     'KQs', 'KJs', 'KTs',
@@ -543,7 +543,7 @@ subranges = {
     'JTs',
     'AKo', 'AQo'
 }),
-        'SB_vs_BTN': set({
+        '3bet_SB_vs_BTN': set({
     'AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88',
     'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A5s', 'A4s',
     'KQs', 'KJs', 'KTs',
@@ -554,26 +554,26 @@ subranges = {
 }),
     },
     '50/50 3bet/fold': {
-        'IP_vs_EP': set({
+        '3bet_IP_vs_EP': set({
     'ATs', 'KTs', 'QTs', 'JTs', 'AQo'
 }),
-        'IP_vs_MP': set(),
-        'IP_vs_CO': set({
+        '3bet_IP_vs_MP': set(),
+        '3bet_IP_vs_CO': set({
     '77',
     'K9s', 'Q9s', 'J9s', 'T9s', '98s', '87s', '76s',
     'AJo', 'KQo'
 }),
-        'SB_vs_EP': set({
+        '3bet_SB_vs_EP': set({
     'KJs',
     'QJs'
 }),
-        'SB_vs_MP': set({
+        '3bet_SB_vs_MP': set({
     'AQo'
 }),
-        'SB_vs_CO': set({
+        '3bet_SB_vs_CO': set({
     'AJo', 'KQo'
 }),
-        'SB_vs_BTN': set({
+        '3bet_SB_vs_BTN': set({
     '77', '66',
     'A3s',
     'K9s',
@@ -581,19 +581,19 @@ subranges = {
 }),
     },
     '3bet if convenient': {
-        'SB_vs_EP': set({
+        '3bet_SB_vs_EP': set({
     '99', 'ATs', 'KTs', 'AQo'
 }),
-        'SB_vs_MP': set({
+        '3bet_SB_vs_MP': set({
     '99', '88', 'A5s', 'KTs', 'QTs'
 }),
-        'SB_vs_CO': set({
+        '3bet_SB_vs_CO': set({
     '88', '77',
     'A9s', 'A5s', 'A4s', 'A3s',
     'K9s',
     'KJo'
 }),
-        'SB_vs_BTN': set({
+        '3bet_SB_vs_BTN': set({
     'A8s', 'A7s', 'A6s',
     'A2s',
     'J9s', 'T9s',
@@ -601,17 +601,17 @@ subranges = {
 }),
     },
     '3bet if extremely convenient': {
-        'SB_vs_EP': set({
+        '3bet_SB_vs_EP': set({
     'A5s', 'A4s',
     'QTs', 'JTs'
 }),
-        'SB_vs_MP': set({
+        '3bet_SB_vs_MP': set({
     'A4s', 'A3s', 'JTs'
 }),
-        'SB_vs_CO': set({
+        '3bet_SB_vs_CO': set({
     'T9s', '98s', '87s', '76s'
 }),
-        'SB_vs_BTN': set({
+        '3bet_SB_vs_BTN': set({
     'T8s', '98s', '97s', '87s', '76s', 'KTo', 'QJo'
 }),
     },
@@ -678,7 +678,7 @@ modes = {
     'RFI': ['RFI_UTG', 'RFI_MP', 'RFI_CO', 'RFI_BTN', 'RFI_SB'],
     'ISO': ['ISO_MP', 'ISO_CO', 'ISO_BTN', 'ISO_SB', 'ISO_BB'],
     'BB defend': ['BB_defend_vs_EP', 'BB_defend_vs_MP', 'BB_defend_vs_CO', 'BB_defend_vs_BTN', 'BB_defend_vs_SB'],
-    '3bet': ['IP_vs_EP', 'IP_vs_MP', 'IP_vs_CO', 'SB_vs_EP', 'SB_vs_MP', 'SB_vs_CO', 'SB_vs_BTN'],
+    '3bet': ['3bet_IP_vs_EP', '3bet_IP_vs_MP', '3bet_IP_vs_CO', '3bet_SB_vs_EP', '3bet_SB_vs_MP', '3bet_SB_vs_CO', '3bet_SB_vs_BTN'],
 }
 
 # Автоматически добавляем режим All (все ситуации из всех режимов, отсортированные)
