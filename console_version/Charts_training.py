@@ -224,28 +224,134 @@ subranges = {
 
     # ---------- ISO ----------
     '100% ISO': {
-        'ISO_MP': set(),
-        'ISO_CO': set(),
-        'ISO_BTN': set(),
-        'ISO_SB': set(),
-        'ISO_BB': set(),
+        'ISO_MP': set({
+    'AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77',
+    'AKs', 'AQs', 'AJs', 'ATs', 'A9s',
+    'KQs', 'KJs', 'KTs',
+    'QJs', 'QTs',
+    'JTs',
+    'AKo', 'AQo', 'AJo',
+    'KQo'
+}),
+        'ISO_CO': set({
+    'AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77',
+    'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s',
+    'KQs', 'KJs', 'KTs',
+    'QJs', 'QTs',
+    'JTs',
+    'AKo', 'AQo', 'AJo', 'ATo',
+    'KQo'
+}),
+        'ISO_BTN': set({
+    'AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66',
+    'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s',
+    'KQs', 'KJs', 'KTs', 'K9s',
+    'QJs', 'QTs', 'Q9s',
+    'JTs', 'J9s',
+    'T9s',
+    '98s',
+    'AKo', 'AQo', 'AJo', 'ATo',
+    'KQo', 'KJo',
+    'QJo'
+}),
+        'ISO_SB': set({
+    'AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77',
+    'AKs', 'AQs', 'AJs', 'ATs', 'A9s',
+    'KQs', 'KJs', 'KTs',
+    'QJs', 'QTs',
+    'JTs',
+    'AKo', 'AQo', 'AJo',
+    'KQo'
+}),
+        'ISO_BB': set({
+    'AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77',
+    'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s',
+    'KQs', 'KJs', 'KTs',
+    'QJs', 'QTs',
+    'JTs',
+    'AKo', 'AQo', 'AJo',
+    'KQo'
+}),
     },
     '50/50 ISO/fold': {
-        'ISO_MP': set(),
-        'ISO_CO': set(),
-        'ISO_BTN': set(),
+        'ISO_MP': set({
+    'A5s'
+}),
+        'ISO_CO': set({
+    '66',
+    'K9s', 'Q9s', 'J9s', 'T9s', '98s',
+    'KJo', 'QJo'
+}),
+        'ISO_BTN': set({
+    '55',
+    'K8s', 'K7s',
+    'Q8s',
+    '87s', '76s',
+    'A9o',
+    'KTo', 'QTo', 'JTo'
+}),
     },
     '50/50 ISO/limp': {
-        'ISO_SB': set(),
+        'ISO_SB': set({
+    'A8s', 'A5s', 'A4s',
+    'K9s',
+    'ATo',
+    'KJo'
+}),
     },
     'limp': {
-        'ISO_SB': set(),
+        'ISO_SB': set({
+    '66', '55', '44', '33', '22',
+    'A7s', 'A6s', 'A3s', 'A2s',
+    'K8s', 'K7s', 'K6s', 'K5s', 'K4s', 'K3s', 'K2s',
+    'Q9s', 'Q8s', 'Q7s', 'Q6s', 'Q5s',
+    'J9s', 'J8s', 'J7s',
+    'T9s', 'T8s', 'T7s',
+    '98s', '97s',
+    '87s', '86s',
+    '76s', '65s', '54s',
+    'A9o', 'A8o',
+    'KTo',
+    'QJo', 'QTo',
+    'JTo'
+}),
     },
     '50/50 ISO/check': {
-        'ISO_BB': set(),
+        'ISO_BB': set({
+    'A4s', 'A3s', 'A2s',
+    'K9s',
+    'ATo',
+    'KJo',
+    'QJo'
+}),
     },
     'check': {
-        'ISO_BB': set(),
+        'ISO_BB': set({
+    '66', '55', '44', '33', '22',
+    'K8s', 'K7s', 'K6s', 'K5s', 'K4s', 'K3s', 'K2s',
+    'Q9s', 'Q8s', 'Q7s', 'Q6s', 'Q5s', 'Q4s', 'Q3s', 'Q2s',
+    'J9s', 'J8s', 'J7s', 'J6s', 'J5s', 'J4s', 'J3s', 'J2s',
+    'T9s', 'T8s', 'T7s', 'T6s', 'T5s', 'T4s', 'T3s', 'T2s',
+    '98s', '97s', '96s', '95s', '94s', '93s', '92s',
+    '87s', '86s', '85s', '84s', '83s', '82s',
+    '76s', '75s', '74s', '73s', '72s',
+    '65s', '64s', '63s', '62s',
+    '54s', '53s', '52s',
+    '43s', '42s',
+    '32s',
+    'A9o', 'A8o', 'A7o', 'A6o', 'A5o', 'A4o', 'A3o', 'A2o',
+    'KTo', 'K9o', 'K8o', 'K7o', 'K6o', 'K5o', 'K4o', 'K3o', 'K2o',
+    'QTo', 'Q9o', 'Q8o', 'Q7o', 'Q6o', 'Q5o', 'Q4o', 'Q3o', 'Q2o',
+    'JTo', 'J9o', 'J8o', 'J7o', 'J6o', 'J5o', 'J4o', 'J3o', 'J2o',
+    'T9o', 'T8o', 'T7o', 'T6o', 'T5o', 'T4o', 'T3o', 'T2o',
+    '98o', '97o', '96o', '95o', '94o', '93o', '92o',
+    '87o', '86o', '85o', '84o', '83o', '82o',
+    '76o', '75o', '74o', '73o', '72o',
+    '65o', '64o', '63o', '62o',
+    '54o', '53o', '52o',
+    '43o', '42o',
+    '32o'
+}),
     },
 }
 
