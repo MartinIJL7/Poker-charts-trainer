@@ -372,9 +372,9 @@ subrange_order = [
 # 4. Текст правильного ответа для каждого поддиапазона
 subrange_answer_text = {
     # ---------- RFI ----------
-    '100% RFI': '100%',
-    'RFI if convenient': 'if conv',
-    'RFI if extremely convenient': 'if extr conv',
+    '100% RFI': 'rfi 100%',
+    'RFI if convenient': 'rfi conv',
+    'RFI if extremely convenient': 'rfi xconv',
 
     # ---------- ISO ----------
     '100% ISO': 'iso',
@@ -451,7 +451,61 @@ def print_hint_for_mode(mode_positions):
             answer_text = get_correct_answer_text(st)
             print(f"  {st} -> вводить: {answer_text}")
 
+def debug_mode():
+    print("\n=== РЕЖИМ ОТЛАДКИ ===\n")
+    print("Вводите ситуацию и руку (точно как в диапазонах, регистр важен).")
+    print("Формат: ситуация рука (например: RFI_UTG A5s)")
+    print("'q' - выход из отладки\n")
+
+    all_situs = set()
+    for situs in modes.values():
+        all_situs.update(situs)
+
+    while True:
+        user_input = input("Проверить: ").strip()
+        if user_input.lower() == 'q':
+            break
+
+        parts = user_input.split()
+        if len(parts) != 2:
+            print("❌ Неверный формат. Вводите: ситуация рука (например: RFI_UTG A5s)")
+            continue
+
+        situ, hand = parts[0], parts[1]  # БЕЗ .upper() – вводим точно как в диапазонах
+
+        if situ not in all_situs:
+            print(f"❌ Неизвестная ситуация: {situ}")
+            print(f"   Доступные ситуации: {', '.join(sorted(all_situs))}")
+            continue
+
+        # Проверяем, есть ли такая рука в ALL_HANDS (но можно и без проверки, просто искать)
+        if hand not in ALL_HANDS:
+            print(f"❌ Неизвестная рука: {hand}")
+            print("   Допустимые форматы: AA, AKs, AKo, 72o, etc. (регистр важен)")
+            continue
+
+        status = get_hand_status(hand, situ)
+        correct_answer = get_correct_answer_text(status)
+
+        print(f"\n  Ситуация: {situ}")
+        print(f"  Рука: {hand}")
+        print(f"  Статус: {status}")
+        print(f"  Правильный ответ: {correct_answer}\n")
+
 def main():
+    print("Доступные режимы:")
+    print("1 - Тренировка")
+    print("2 - Отладка")
+    choice = input("Выберите режим (1/2): ").strip()
+
+    if choice == '2':
+        debug_mode()
+        return
+    elif choice != '1':
+        print("Неверный выбор.")
+        return
+
+    # ---- Обычный режим тренировки ----
     mode_names = list(modes.keys())
     print("Доступные режимы тренировки:")
     for i, name in enumerate(mode_names, 1):
