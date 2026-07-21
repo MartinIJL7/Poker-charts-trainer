@@ -18,7 +18,6 @@ if not os.path.exists('config.py'):
 #  НАСТРОЙКА ДИАПАЗОНОВ И РЕЖИМОВ
 # ============================================================
 
-ranges = {}
 subranges = {}
 subrange_order = []
 modes = {}
@@ -28,7 +27,7 @@ subrange_colors = {}   # <-- добавлено
 if not os.path.exists('saved_configs'):
     os.makedirs('saved_configs')
 
-from config import ranges, subranges, subrange_order, modes, subrange_colors
+from config import subranges, subrange_order, modes, subrange_colors
 
 app = Flask(__name__)
 app.secret_key = 'замените-на-случайную-строку'
@@ -38,11 +37,9 @@ app.secret_key = 'замените-на-случайную-строку'
 # ============================================================
 
 def reload_config():
-    """Перезагружает модуль config и обновляет глобальные переменные."""
-    global ranges, subranges, subrange_order, modes, subrange_colors
+    global subranges, subrange_order, modes, subrange_colors
     import config
     importlib.reload(config)
-    ranges = config.ranges
     subranges = config.subranges
     subrange_order = config.subrange_order
     modes = config.modes
@@ -57,8 +54,6 @@ def get_all_positions():
     positions = set()
     for sub_dict in subranges.values():
         positions.update(sub_dict.keys())
-    for pos in ranges.keys():
-        positions.add(pos)
     return sorted(positions)
 
 def generate_all_hands():
@@ -76,16 +71,11 @@ def get_hand_status(hand, pos):
     for subname in subrange_order:
         if hand in subranges.get(subname, {}).get(pos, set()):
             return subname
-    if hand in ranges.get(pos, set()):
-        return 'in a range'
     return 'not in a range'
 
 def get_correct_answer_text(status):
-    if status == 'in a range':
-        return 'yes'
     if status == 'not in a range':
         return 'fold'
-    # status — это имя поддиапазона, возвращаем его как есть
     return status
 
 def is_answer_correct(status, answer):
@@ -96,8 +86,6 @@ def get_possible_statuses(pos):
     for subname in subrange_order:
         if subranges.get(subname, {}).get(pos, set()):
             statuses.add(subname)
-    if ranges.get(pos, set()):
-        statuses.add('in a range')
     statuses.add('not in a range')
     return sorted(statuses)
 
@@ -155,7 +143,6 @@ def format_config():
 # ============================================================
 
 """
-    content += "ranges = " + format_dict(ranges) + "\n\n"
     content += "subranges = " + format_dict(subranges, extra_newline_between_keys=True) + "\n\n"
     content += "subrange_order = " + format_list(subrange_order) + "\n\n"
     content += "modes = " + format_dict(modes) + "\n\n"
@@ -277,14 +264,7 @@ def training(mode):
 
 @app.route('/create', methods=['GET'])
 def create_range():
-    # Собираем все уникальные позиции из ranges и subranges
-    positions = set()
-    for sub_dict in subranges.values():
-        positions.update(sub_dict.keys())
-    for pos in ranges.keys():
-        positions.add(pos)
-    positions = sorted(positions)
-
+    positions = get_all_positions()  # теперь используем общую функцию
     if 'temp_subranges' not in session:
         session['temp_subranges'] = []
     return render_template('create_range.html', all_positions=positions)
@@ -340,9 +320,6 @@ def save_range():
                 del subranges[subname][editing_pos]
                 if not subranges[subname]:
                     del subranges[subname]
-        # Удаляем из ranges (если есть)
-        if editing_pos in ranges:
-            del ranges[editing_pos]
 
     # Добавляем новые поддиапазоны
     for sub in temp_subranges:
@@ -505,10 +482,6 @@ def delete_range():
     if not position:
         return jsonify({'status': 'error', 'message': 'Не указана позиция'}), 400
 
-    # 1. Удаляем из ranges (старый формат)
-    if position in ranges:
-        del ranges[position]
-
     # 2. Удаляем позицию из всех поддиапазонов
     for subname in list(subranges.keys()):
         if position in subranges[subname]:
@@ -542,12 +515,7 @@ def delete_range():
 @app.route('/create/get_positions', methods=['GET'])
 def get_positions():
     """Возвращает список всех существующих позиций."""
-    positions = set()
-    for sub_dict in subranges.values():
-        positions.update(sub_dict.keys())
-    for pos in ranges.keys():
-        positions.add(pos)
-    return jsonify({'positions': sorted(positions)})
+    return jsonify({'positions': get_all_positions()})
 
 @app.route('/get_modes', methods=['GET'])
 def get_modes():
@@ -656,8 +624,7 @@ def delete_config_backup(filename):
 
 @app.route('/config_management/clear', methods=['POST'])
 def clear_config():
-    global ranges, subranges, subrange_order, modes, subrange_colors
-    ranges.clear()
+    global subranges, subrange_order, modes, subrange_colors
     subranges.clear()
     subrange_order.clear()
     modes.clear()
