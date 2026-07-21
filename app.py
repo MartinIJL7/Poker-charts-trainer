@@ -303,7 +303,7 @@ def add_subrange():
 @app.route('/create/save_range', methods=['POST'])
 def save_range():
     data = request.get_json()
-    position = data.get('position', '').strip()
+    position = data.get('position', '').strip().replace(' ', '_')
     if not position:
         return jsonify({'status': 'error', 'message': 'Не указана позиция'}), 400
 
@@ -410,7 +410,7 @@ def create_mode():
 def save_mode():
     """Сохраняет новый режим."""
     data = request.get_json()
-    mode_name = data.get('name', '').strip()
+    mode_name = data.get('name', '').strip().replace(' ', '_')
     selected_positions = data.get('positions', [])
     if not mode_name:
         return jsonify({'status': 'error', 'message': 'Введите название режима'}), 400
@@ -531,7 +531,7 @@ def get_mode(mode_name):
 def update_mode():
     data = request.get_json()
     old_name = data.get('old_name', '').strip()
-    new_name = data.get('new_name', '').strip()
+    new_name = data.get('new_name', '').strip().replace(' ', '_')
     positions = data.get('positions', [])
     if not old_name or not new_name:
         return jsonify({'status': 'error', 'message': 'Не указано имя режима'}), 400
