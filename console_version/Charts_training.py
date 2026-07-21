@@ -353,6 +353,149 @@ subranges = {
     '32o'
 }),
     },
+
+# ---------- BB defend ----------
+    '3bet': {
+        'BB defend vs EP': set({
+    'AA', 'KK', 'QQ',
+    'AKs', 'KQs', 'KJs', 'QJs'
+}),
+        'BB defend vs MP': set({
+    'AA', 'KK', 'QQ', 'JJ',
+    'AKs', 'AQs',
+    'KQs', 'KJs',
+    'QJs',
+    'AKo'
+}),
+        'BB defend vs CO': set({
+    'AA', 'KK', 'QQ', 'JJ', 'TT',
+    'AKs', 'AQs', 'AJs',
+    'KQs', 'KJs', 'KTs',
+    'QJs', 'QTs',
+    'JTs',
+    'AKo'
+}),
+        'BB defend vs BTN': set({
+    'AA', 'KK', 'QQ', 'JJ', 'TT', '99',
+    'AKs', 'AQs', 'AJs', 'ATs',
+    'KQs', 'KJs', 'KTs',
+    'QJs', 'QTs',
+    'JTs',
+    'AKo'
+}),
+        'BB defend vs SB': set({
+    'AA', 'KK', 'QQ', 'JJ', 'TT', '99',
+    'AKs', 'AQs', 'AJs', 'ATs', 'A5s', 'A4s',
+    'KQs', 'KJs', 'KTs',
+    'QJs',
+    'JTs', 'T9s', '98s', '87s', '76s', '65s', '54s',
+    'AKo', 'AQo'
+}),
+    },
+    '50/50 3bet/call': {
+        'BB defend vs EP': set({
+    'JJ', 'TT',
+    'AQs', 'AJs', 'ATs',
+    'A5s', 'A4s',
+    'KTs', 'QTs', 'JTs',
+    'AKo'
+}),
+        'BB defend vs MP': set({
+    'TT', '99',
+    'AJs', 'ATs', 'A5s', 'A4s',
+    'KTs', 'QTs', 'JTs'
+}),
+        'BB defend vs CO': set({
+    '99',
+    'ATs', 'A9s', 'A5s', 'A4s',
+    'K9s', 'Q9s', 'J9s', 'T9s',
+    'AQo'
+}),
+        'BB defend vs BTN': set({
+    '88', '77',
+    'A5s', 'A4s',
+    'T9s',
+    'AQo', 'AJo', 'ATo',
+    'KQo', 'KJo'
+}),
+        'BB defend vs SB': set({
+    '88', '77',
+    'A9s', 'A3s', 'K9s', 'K7s', 'K6s', 'QTs', 'J9s', 'J4s', 'J3s',
+    'T8s', 'T5s', 'T4s', 'T3s', 'T2s', '97s',
+    'AJo', 'A5o', 'A4o', 'A3o', 'A2o',
+    'KQo', 'K8o', 'K7o', 'K6o', 'K5o',
+    'Q8o', 'J8o', 'T8o'
+}),
+    },
+    'call': {
+        'BB defend vs EP': set({
+    '99', '88', '77', '66', '55', '44', '33', '22',
+    'A9s', 'A8s', 'A7s', 'A6s', 'A3s', 'A2s', 'K9s', 'T9s', '98s', '87s', '76s', '65s', '54s',
+    'AQo', 'KQo'
+}),
+        'BB defend vs MP': set({
+    '88', '77', '66', '55', '44', '33', '22',
+    'A9s', 'A8s', 'A7s', 'A6s', 'A3s', 'A2s',
+    'K9s', 'Q9s', 'T9s', '98s', '87s', '76s', '65s', '54s',
+    'AQo', 'AJo', 'KQo'
+}),
+        'BB defend vs CO': set({
+    '88', '77', '66', '55', '44', '33', '22',
+    'A8s', 'A7s', 'A6s', 'A3s', 'A2s',
+    'K8s', 'K7s', 'K6s',
+    'Q8s', 'Q7s',
+    'J8s', 'T8s', '98s', '87s', '76s', '65s', '54s',
+    'AJo', 'ATo', 'KQo', 'KJo', 'QJo'
+}),
+        'BB defend vs BTN': set({
+    '66', '55', '44', '33', '22',
+    'A9s', 'A8s', 'A7s', 'A6s', 'A3s', 'A2s',
+    'K9s', 'K8s', 'K7s', 'K6s', 'K5s', 'K4s',
+    'Q9s', 'Q8s',
+    'J9s',
+    '98s', '97s',
+    '87s', '76s', '65s', '54s',
+    'A9o',
+    'KTo',
+    'QJo', 'QTo',
+    'JTo'
+}),
+        'BB defend vs SB': set({
+    '66', '55', '44', '33', '22',
+    'A8s', 'A7s', 'A6s', 'A2s',
+    'K8s', 'K5s', 'K4s', 'K3s', 'K2s',
+    'Q9s', 'Q8s', 'Q7s', 'Q6s', 'Q5s', 'Q4s', 'Q3s', 'Q2s',
+    'J8s', 'J7s', 'J6s', 'J5s', 'J2s',
+    'T7s', 'T6s',
+    '96s', '95s', '94s', '93s',
+    '86s', '85s', '84s',
+    '75s', '74s', '73s',
+    '64s', '63s',
+    '53s', '52s',
+    '43s', '42s',
+    '32s',
+    'ATo', 'A9o', 'A8o', 'A7o', 'A6o',
+    'KJo', 'KTo', 'K9o',
+    'QJo', 'QTo', 'Q9o',
+    'JTo', 'J9o',
+    'T9o', '98o', '87o', '76o', '65o'
+}),
+    },
+    '50/50 call/fold': {
+        'BB defend vs EP': set({
+    'Q9s',
+    'AJo'
+}),
+        'BB defend vs MP': set({
+    'J9s', 'ATo', 'KJo'
+}),
+        'BB defend vs CO': set(),
+        'BB defend vs BTN': set({
+    'J8s',
+    'T8s'
+}),
+        'BB defend vs SB': set(),
+    },
 }
 
 # 3. Порядок проверки поддиапазонов (список имён)
@@ -367,6 +510,12 @@ subrange_order = [
     'limp',
     '50/50 ISO/check',
     'check',
+
+    # ---------- BB defend ----------
+    '3bet',
+    '50/50 3bet/call',
+    'call',
+    '50/50 call/fold',
     ]
 
 # 4. Текст правильного ответа для каждого поддиапазона
@@ -383,12 +532,19 @@ subrange_answer_text = {
     'limp': 'limp',
     '50/50 ISO/check': '50/50 iso/check',
     'check': 'check',
+
+    # ---------- BB defend ----------
+    '3bet': '3bet',
+    '50/50 3bet/call': '50/50 3bet/call',
+    'call': 'call',
+    '50/50 call/fold': '50/50 call/fold',
 }
 
 # 5. Режимы тренировки: название режима -> список позиций
 modes = {
     'RFI': ['RFI_UTG', 'RFI_MP', 'RFI_CO', 'RFI_BTN', 'RFI_SB'],
     'ISO': ['ISO_MP', 'ISO_CO', 'ISO_BTN', 'ISO_SB', 'ISO_BB'],
+    'BB defend': ['BB defend vs EP', 'BB defend vs MP', 'BB defend vs CO', 'BB defend vs BTN', 'BB defend vs SB'],
 }
 
 # ============================================================
