@@ -14,6 +14,7 @@ ranges = {
 # 2. Поддиапазоны (дополнительные категории)
 # subranges = { 'имя': { позиция: множество_рук, ... }, ... }
 subranges = {
+    # ---------- RFI ----------
     '100% RFI': {
         'RFI_UTG': set(
             {
@@ -219,23 +220,69 @@ subranges = {
     '32o'
 }
         ),
-    }
+    },
 
+    # ---------- ISO ----------
+    '100% ISO': {
+        'ISO_MP': set(),
+        'ISO_CO': set(),
+        'ISO_BTN': set(),
+        'ISO_SB': set(),
+        'ISO_BB': set(),
+    },
+    '50/50 ISO/fold': {
+        'ISO_MP': set(),
+        'ISO_CO': set(),
+        'ISO_BTN': set(),
+    },
+    '50/50 ISO/limp': {
+        'ISO_SB': set(),
+    },
+    'limp': {
+        'ISO_SB': set(),
+    },
+    '50/50 ISO/check': {
+        'ISO_BB': set(),
+    },
+    'check': {
+        'ISO_BB': set(),
+    },
 }
 
 # 3. Порядок проверки поддиапазонов (список имён)
-subrange_order = ['100% RFI', 'RFI if convenient', 'RFI if extremely convenient']
+subrange_order = [
+    # ---------- RFI ----------
+    '100% RFI', 'RFI if convenient', 'RFI if extremely convenient',
+
+    # ---------- ISO ----------
+    '100% ISO',
+    '50/50 ISO/fold',
+    '50/50 ISO/limp',
+    'limp',
+    '50/50 ISO/check',
+    'check',
+    ]
 
 # 4. Текст правильного ответа для каждого поддиапазона
 subrange_answer_text = {
+    # ---------- RFI ----------
     '100% RFI': '100%',
     'RFI if convenient': 'if conv',
-    'RFI if extremely convenient': 'if extr conv'
+    'RFI if extremely convenient': 'if extr conv',
+
+    # ---------- ISO ----------
+    '100% ISO': 'iso',
+    '50/50 ISO/fold': '50/50 iso/fold',
+    '50/50 ISO/limp': '50/50 iso/limp',
+    'limp': 'limp',
+    '50/50 ISO/check': '50/50 iso/check',
+    'check': 'check',
 }
 
 # 5. Режимы тренировки: название режима -> список позиций
 modes = {
-    'RFI': ['RFI_UTG', 'RFI_MP', 'RFI_CO', 'RFI_BTN', 'RFI_SB']
+    'RFI': ['RFI_UTG', 'RFI_MP', 'RFI_CO', 'RFI_BTN', 'RFI_SB'],
+    'ISO': ['ISO_MP', 'ISO_CO', 'ISO_BTN', 'ISO_SB', 'ISO_BB'],
 }
 
 # ============================================================
