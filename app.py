@@ -172,6 +172,16 @@ def get_backup_files(user_id):
     files = glob.glob(os.path.join('saved_configs', prefix + '*.py'))
     return sorted([os.path.basename(f) for f in files])
 
+def get_public_backup_files():
+    """Возвращает список публичных конфигов (файлы без префикса user_)."""
+    files = glob.glob(os.path.join('saved_configs', '*.py'))
+    public = []
+    for f in files:
+        basename = os.path.basename(f)
+        if not basename.startswith('user_'):
+            public.append(basename)
+    return sorted(public)
+
 # ============================================================
 #  МАРШРУТЫ АВТОРИЗАЦИИ
 # ============================================================
@@ -678,8 +688,11 @@ def debug():
 @app.route('/config_management', methods=['GET'])
 @login_required
 def config_management():
-    backups = get_backup_files(current_user.id)
-    return render_template('config_management.html', backups=backups)
+    personal_backups = get_backup_files(current_user.id)
+    public_backups = get_public_backup_files()
+    return render_template('config_management.html',
+                           personal_backups=personal_backups,
+                           public_backups=public_backups)
 
 @app.route('/config_management/save', methods=['POST'])
 @login_required
@@ -701,40 +714,62 @@ def save_config_backup():
 @app.route('/config_management/load/<filename>', methods=['POST'])
 @login_required
 def load_config_backup(filename):
-    if not filename.startswith(f'user_{current_user.id}_'):
-        return jsonify({'status': 'error', 'message': 'Доступ запрещён'}), 403
+    # Проверяем, что файл существует
     filepath = os.path.join('saved_configs', filename)
     if not os.path.exists(filepath):
         return jsonify({'status': 'error', 'message': 'Файл не найден'}), 404
+
+    # Если файл личный (начинается с user_), проверяем принадлежность текущему пользователю
+    if filename.startswith('user_') and not filename.startswith(f'user_{current_user.id}_'):
+        return jsonify({'status': 'error', 'message': 'Доступ запрещён'}), 403
+
+    # Загружаем данные из файла
     with open(filepath, 'r', encoding='utf-8') as f:
         code = f.read()
+
     namespace = {}
-    exec(code, namespace)
+    try:
+        exec(code, namespace)
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Ошибка при загрузке: {str(e)}'}), 400
+
     subranges = namespace.get('subranges', {})
     subrange_order = namespace.get('subrange_order', [])
     modes = namespace.get('modes', {})
     subrange_colors = namespace.get('subrange_colors', {})
+
+    # Сохраняем в конфиг текущего пользователя
     config = get_user_config(current_user.id)
     config.subranges = subranges
     config.subrange_order = subrange_order
     config.modes = modes
     config.subrange_colors = subrange_colors
-    ensure_lists_in_subranges(config)
+
+    ensure_lists_in_subranges(config)  # Преобразуем множества в списки, если есть
+
     flag_modified(config, 'subranges')
     flag_modified(config, 'subrange_order')
     flag_modified(config, 'modes')
     flag_modified(config, 'subrange_colors')
     db.session.commit()
+
     return jsonify({'status': 'ok', 'message': f'Конфиг {filename} загружен'})
 
 @app.route('/config_management/delete/<filename>', methods=['POST'])
 @login_required
 def delete_config_backup(filename):
+    # Запрещаем удаление публичных файлов (не начинаются с user_)
+    if not filename.startswith('user_'):
+        return jsonify({'status': 'error', 'message': 'Публичные конфиги нельзя удалять'}), 403
+
+    # Проверяем, что файл принадлежит текущему пользователю
     if not filename.startswith(f'user_{current_user.id}_'):
         return jsonify({'status': 'error', 'message': 'Доступ запрещён'}), 403
+
     filepath = os.path.join('saved_configs', filename)
     if not os.path.exists(filepath):
         return jsonify({'status': 'error', 'message': 'Файл не найден'}), 404
+
     os.remove(filepath)
     return jsonify({'status': 'ok', 'message': f'Файл {filename} удалён'})
 

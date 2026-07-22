@@ -11,10 +11,10 @@
         <button id="save-backup-btn" class="btn btn-success">💾 Сохранить</button>
     </div>
 
-    <h2 style="margin-top: 30px;">Сохранённые конфиги:</h2>
-    {% if backups %}
+    <h2 style="margin-top: 30px;">Мои конфиги</h2>
+    {% if personal_backups %}
         <ul class="backup-list" id="backup-list" style="list-style: none; padding: 0;">
-            {% for file in backups %}
+            {% for file in personal_backups %}
                 <li style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 15px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                     <span>{{ file }}</span>
                     <div>
@@ -25,7 +25,24 @@
             {% endfor %}
         </ul>
     {% else %}
-        <p>Нет сохранённых конфигов.</p>
+        <p>Нет личных конфигов</p>
+    {% endif %}
+
+    <h2 style="margin-top: 30px;">📂 Публичные конфиги (доступны всем)</h2>
+    {% if public_backups %}
+        <ul class="backup-list" id="public-backup-list" style="list-style: none; padding: 0;">
+            {% for file in public_backups %}
+                <li style="display: flex; justify-content: space-between; align-items: center; background: #fef9e7; padding: 10px 15px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                    <span>{{ file }}</span>
+                    <div>
+                        <button class="btn btn-primary load-btn" data-filename="{{ file }}">Загрузить</button>
+                        <!-- Кнопка удаления отсутствует -->
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Нет публичных конфигов. Чтобы создать, поместите файл в saved_configs без префикса user_.</p>
     {% endif %}
 
     <div class="clear-section" style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px;">
@@ -38,7 +55,6 @@
 
 {% block extra_js %}
 <script>
-    // Весь скрипт остаётся без изменений (рабочий)
     document.addEventListener('DOMContentLoaded', function() {
         const saveBtn = document.getElementById('save-backup-btn');
         const nameInput = document.getElementById('backup-name');
@@ -76,42 +92,40 @@
             saveBackup(false);
         });
 
-        const backupList = document.getElementById('backup-list');
-        if (backupList) {
-            backupList.addEventListener('click', function(e) {
-                const target = e.target;
-                if (target.classList.contains('load-btn')) {
-                    const filename = target.dataset.filename;
-                    if (!confirm('Загрузить конфиг "' + filename + '"? Текущий конфиг будет заменён.')) return;
-                    fetch('/config_management/load/' + filename, { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'ok') {
-                            alert(data.message);
-                            location.reload();
-                        } else {
-                            alert('Ошибка: ' + data.message);
-                        }
-                    })
-                    .catch(err => alert('Ошибка сети: ' + err));
-                }
-                if (target.classList.contains('delete-btn')) {
-                    const filename = target.dataset.filename;
-                    if (!confirm('Удалить бэкап "' + filename + '"?')) return;
-                    fetch('/config_management/delete/' + filename, { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'ok') {
-                            alert(data.message);
-                            location.reload();
-                        } else {
-                            alert('Ошибка: ' + data.message);
-                        }
-                    })
-                    .catch(err => alert('Ошибка сети: ' + err));
-                }
-            });
-        }
+        // Обработка кликов по кнопкам загрузки (работает для обоих списков)
+        document.addEventListener('click', function(e) {
+            const target = e.target;
+            if (target.classList.contains('load-btn')) {
+                const filename = target.dataset.filename;
+                if (!confirm('Загрузить конфиг "' + filename + '"? Текущий конфиг будет заменён.')) return;
+                fetch('/config_management/load/' + filename, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Ошибка: ' + data.message);
+                    }
+                })
+                .catch(err => alert('Ошибка сети: ' + err));
+            }
+            if (target.classList.contains('delete-btn')) {
+                const filename = target.dataset.filename;
+                if (!confirm('Удалить бэкап "' + filename + '"?')) return;
+                fetch('/config_management/delete/' + filename, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Ошибка: ' + data.message);
+                    }
+                })
+                .catch(err => alert('Ошибка сети: ' + err));
+            }
+        });
 
         clearBtn.addEventListener('click', function() {
             if (!confirm('Вы уверены, что хотите очистить текущий конфиг? Все данные будут безвозвратно удалены. Рекомендуется сохранить конфиг перед очисткой. Нажмите ОК для продолжения.')) return;
