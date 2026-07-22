@@ -9,6 +9,7 @@ import json
 import uuid
 import glob
 from datetime import datetime
+from sqlalchemy.sql import text
 
 # ============================================================
 #  НАСТРОЙКА ПРИЛОЖЕНИЯ И БАЗЫ ДАННЫХ
@@ -56,6 +57,8 @@ def load_user(user_id):
 
 with app.app_context():
     db.create_all()
+    with db.engine.connect() as conn:
+        conn.execute(text('PRAGMA journal_mode=WAL;'))
 
 # ============================================================
 #  ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
