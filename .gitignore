@@ -12,6 +12,7 @@ venv.bak/
 dist/
 build/
 *.log
+.env
 
 # Flask
 instance/

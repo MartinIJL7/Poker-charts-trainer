@@ -10,13 +10,15 @@ import uuid
 import glob
 from datetime import datetime
 from sqlalchemy.sql import text
+import logging
+logging.basicConfig(level=logging.WARNING)
 
 # ============================================================
 #  НАСТРОЙКА ПРИЛОЖЕНИЯ И БАЗЫ ДАННЫХ
 # ============================================================
 app = Flask(__name__)
-app.secret_key = 'замените-на-случайную-строку'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-key')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -795,4 +797,4 @@ def clear_config():
 #  ЗАПУСК
 # ============================================================
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
