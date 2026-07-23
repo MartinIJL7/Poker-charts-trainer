@@ -359,7 +359,7 @@ function updatePositionsSelect(reset = false) {
         .then(data => {
             const select = document.getElementById('load-range-select');
             const currentValue = reset ? '' : select.value;
-            select.innerHTML = '<option value="">📂 Load</option>';
+            select.innerHTML = '<option value="">📂 Выберите диапазон для загрузки</option>';
             data.positions.forEach(pos => {
                 const option = document.createElement('option');
                 option.value = pos;
@@ -523,7 +523,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('new-range-btn').addEventListener('click', function() {
         if (!confirm('Начать новый диапазон? Текущие изменения будут потеряны')) return;
-        fetch('/create/clear_temp', { method: 'POST' })
+        fetch('/create/reset', { method: 'POST' })
             .then(() => {
                 editingPosition = null;
                 document.getElementById('position').value = '';

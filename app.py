@@ -30,7 +30,7 @@ logging.basicConfig(
 # Application configuration
 # -------------------------------------------------------------------
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-key')
+app.secret_key = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -234,7 +234,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         get_user_config(user.id)
-        flash('Успешная регистрация! Пожалуйста, войдите.', 'success')
+        flash('Успешная регистрация! Пожалуйста, войдите', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -487,6 +487,13 @@ def save_range():
 @app.route('/create/clear_temp', methods=['POST'])
 @login_required
 def clear_temp():
+    session.pop('temp_subranges', None)
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/create/reset', methods=['POST'])
+@login_required
+def reset_editor():
     session.pop('temp_subranges', None)
     session.pop('editing_position', None)
     return jsonify({'status': 'ok'})
@@ -870,4 +877,4 @@ def clear_config():
 # Application entry point
 # -------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
