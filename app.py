@@ -407,6 +407,13 @@ def save_range():
                 if not config.subranges[subname]:
                     del config.subranges[subname]
 
+    if editing_pos and editing_pos != position:
+        for mode_name, positions in config.modes.items():
+            if editing_pos in positions:
+                idx = positions.index(editing_pos)
+                positions[idx] = position
+        flag_modified(config, 'modes')
+
     for sub in temp_subranges:
         name = sub['name']
         hands = sub['hands']  # уже список
