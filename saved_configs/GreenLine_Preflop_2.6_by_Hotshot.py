@@ -127,7 +127,7 @@ subrange_order = ['100% RFI', 'RFI if convenient', 'RFI if extremely convenient'
 modes = {
     'RFI': ['RFI_UTG', 'RFI_MP', 'RFI_CO', 'RFI_BTN', 'RFI_SB'],
     'ISO': ['ISO_MP', 'ISO_CO', 'ISO_BTN', 'ISO_SB', 'ISO_BB'],
-    'BB defend': ['BB_defend_vs_EP', 'BB_defend_vs_MP', 'BB_defend_vs_CO', 'BB_defend_vs_BTN', 'BB_defend_vs_SB'],
+    'BB_defend': ['BB_defend_vs_EP', 'BB_defend_vs_MP', 'BB_defend_vs_CO', 'BB_defend_vs_BTN', 'BB_defend_vs_SB'],
     '3bet': ['3bet_IP_vs_EP', '3bet_IP_vs_MP', '3bet_IP_vs_CO', '3bet_SB_vs_EP', '3bet_SB_vs_MP', '3bet_SB_vs_CO', '3bet_SB_vs_BTN'],
     'All': ['3bet_IP_vs_CO', '3bet_IP_vs_EP', '3bet_IP_vs_MP', '3bet_SB_vs_BTN', '3bet_SB_vs_CO', '3bet_SB_vs_EP', '3bet_SB_vs_MP', 'BB_defend_vs_BTN', 'BB_defend_vs_CO', 'BB_defend_vs_EP', 'BB_defend_vs_MP', 'BB_defend_vs_SB', 'ISO_BB', 'ISO_BTN', 'ISO_CO', 'ISO_MP', 'ISO_SB', 'RFI_BTN', 'RFI_CO', 'RFI_MP', 'RFI_SB', 'RFI_UTG']
 }
