@@ -33,3 +33,7 @@ Thumbs.db
 # Если вы хотите сохранить свои настройки, то не включайте config.py в .gitignore
 config.py
 saved_configs/user_*.py
+
+#Hosting files
+passenger_wsgi.py
+phpliteadmin.php
