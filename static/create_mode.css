@@ -1,4 +1,11 @@
-/* create_mode.css */
+/* create_mode.css – styles for the mode management page */
+
+.mode-management {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* ---- Mode creation block ---- */
 .create-mode-container {
     max-width: 800px;
     margin: 0 auto;
@@ -16,11 +23,13 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 8px 20px;
 }
+
 .positions-list li {
     margin: 0;
     display: flex;
     align-items: center;
 }
+
 .positions-list label {
     display: flex;
     align-items: center;
@@ -30,13 +39,15 @@
     cursor: pointer;
     width: 100%;
     box-sizing: border-box;
-    height: 38px;          /* фиксированная высота для ровности */
+    height: 38px;
     transition: background 0.2s;
     font-size: 0.95em;
 }
+
 .positions-list label:hover {
     background: #e0e0e0;
 }
+
 .positions-list input[type="checkbox"] {
     margin-right: 8px;
     flex-shrink: 0;
@@ -49,6 +60,7 @@
     align-items: center;
     flex-wrap: wrap;
 }
+
 .actions button {
     padding: 0 24px;
     border: none;
@@ -63,30 +75,13 @@
     justify-content: center;
     transition: background 0.2s;
 }
+
 .actions button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
-.btn-success {
-    background: #27ae60;
-    color: white;
-}
-.btn-success:hover:not(:disabled) {
-    background: #1e8449;
-}
-.btn-secondary {
-    background: #95a5a6;
-    color: white;
-}
-.btn-secondary:hover {
-    background: #7f8c8d;
-}
-.warning {
-    color: #c0392b;
-    margin-top: 10px;
-}
 
-/* Стили для таблицы режимов */
+/* ---- Table of modes ---- */
 .modes-table {
     width: 100%;
     border-collapse: collapse;
@@ -96,74 +91,55 @@
     overflow: hidden;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
+
 .modes-table th,
 .modes-table td {
     padding: 12px 16px;
     text-align: left;
     border-bottom: 1px solid #eee;
 }
+
 .modes-table th {
     background: #f5f7fa;
     font-weight: 600;
     color: #2c3e50;
 }
+
 .modes-table tr:hover {
     background: #f9fafb;
 }
+
 .modes-table td:first-child {
     font-weight: bold;
     width: 30%;
 }
+
 .modes-table td:last-child {
     word-break: break-word;
 }
 
+/* ---- Toggle button ---- */
 #toggle-modes-btn {
-    border: none;                      /* убрать чёрную обводку */
+    border: none;
     border-radius: 6px;
     height: 44px;
     padding: 0 28px;
     font-size: 1.15em;
     font-weight: 500;
     cursor: pointer;
-    background: #3498db;               /* синий */
+    background: #3498db;
     color: white;
     transition: background 0.2s;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
+
 #toggle-modes-btn:hover {
-    background: #2980b9;               /* темнее при наведении */
-}
-
-/* Стили для верхней строки */
-.header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 100%;
-    margin: 20px 0 10px 0;
-    padding: 0 20px;
-}
-.header-row h1 {
-    margin: 0;
-}
-.home-link {
-    font-size: 1.1em;
-    background: #3498db;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-    text-decoration: none;
-    transition: background 0.2s;
-}
-.home-link:hover {
     background: #2980b9;
-    text-decoration: none;  /* убираем подчёркивание */
 }
 
-/* Кнопки в таблице режимов */
+/* ---- Buttons inside table ---- */
 .modes-table td button {
     background: #3498db;
     color: white;
@@ -174,11 +150,12 @@
     cursor: pointer;
     transition: background 0.2s;
 }
+
 .modes-table td button:hover {
     background: #2980b9;
 }
 
-.btn-danger {
+.modes-table .btn-danger {
     background: #e74c3c;
     color: white;
     border-radius: 4px;
@@ -186,15 +163,18 @@
     cursor: pointer;
     transition: background 0.2s;
 }
-.btn-danger:hover {
+
+.modes-table .btn-danger:hover {
     background: #c0392b;
 }
 
-/* Одинаковая ширина для таблицы и блока создания */
-.mode-management {
-    max-width: 800px;
-    margin: 0 auto;
+/* ---- Warning text ---- */
+.warning {
+    color: #c0392b;
+    margin-top: 10px;
 }
+
+/* ---- Ensure consistent width ---- */
 .mode-management #modes-container,
 .mode-management .create-mode-container {
     width: 100%;

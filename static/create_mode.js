@@ -1,4 +1,5 @@
 // create_mode.js
+'use strict';
 
 let editingModeName = null;
 let modesContainer;
@@ -15,27 +16,23 @@ document.addEventListener('DOMContentLoaded', function() {
     modesContainer = document.getElementById('modes-container');
     toggleBtn = document.getElementById('toggle-modes-btn');
 
-    // Снять все галочки
     clearBtn.addEventListener('click', function() {
         checkboxes.forEach(cb => cb.checked = false);
     });
 
-    // Отменить редактирование
     cancelEditBtn.addEventListener('click', cancelEditMode);
 
-    // Показать/скрыть таблицу режимов
     toggleBtn.addEventListener('click', function() {
         if (modesContainer.style.display === 'none') {
             modesContainer.style.display = 'block';
-            this.textContent = '📁 Скрыть режимы';
+            this.textContent = '📁 Свернуть';
             loadModesTable();
         } else {
             modesContainer.style.display = 'none';
-            this.textContent = '📂 Показать существующие режимы';
+            this.textContent = '📂 Показать созданные режимы';
         }
     });
 
-    // Сохранить или обновить режим
     saveBtn.addEventListener('click', function() {
         const name = document.getElementById('mode-name').value.trim();
         if (!name) {
@@ -47,13 +44,11 @@ document.addEventListener('DOMContentLoaded', function() {
             selected.push(cb.value);
         });
         if (selected.length === 0) {
-            alert('Выберите хотя бы одну позицию');
+            alert('Выберите хотя бы один диапазон');
             return;
         }
 
-        // Режим редактирования?
         if (editingModeName) {
-            // Обновление
             fetch('/create_mode/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -77,7 +72,6 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(err => alert('Ошибка сети: ' + err));
         } else {
-            // Создание
             fetch('/create_mode/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -99,12 +93,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(err => alert('Ошибка сети: ' + err));
         }
     });
-
-    // Загрузить таблицу при первом открытии
-    // (она уже загружается по клику на кнопку)
 });
 
-// Загрузка таблицы режимов
 function loadModesTable() {
     fetch('/get_modes')
         .then(response => response.json())
@@ -125,7 +115,6 @@ function loadModesTable() {
                 tdPos.textContent = modes[name].join(', ');
                 const tdActions = document.createElement('td');
 
-                // Кнопка "Редактировать"
                 const editBtn = document.createElement('button');
                 editBtn.textContent = '✏️';
                 editBtn.className = 'btn-secondary';
@@ -140,7 +129,6 @@ function loadModesTable() {
                 });
                 tdActions.appendChild(editBtn);
 
-                // Кнопка "Удалить"
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = '🗑️';
                 deleteBtn.className = 'btn-danger';
@@ -150,7 +138,7 @@ function loadModesTable() {
                 deleteBtn.style.border = 'none';
                 deleteBtn.style.cursor = 'pointer';
                 deleteBtn.addEventListener('click', function() {
-                    if (!confirm(`Удалить режим "${name}"? Это действие необратимо.`)) return;
+                    if (!confirm(`Удалить режим "${name}"? Данное действие необратимо`)) return;
                     fetch(`/delete_mode/${name}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
@@ -179,10 +167,9 @@ function loadModesTable() {
                 tbody.appendChild(tr);
             });
         })
-        .catch(err => console.error('Ошибка загрузки режимов:', err));
+        .catch(err => console.error('Error loading modes:', err));
 }
 
-// Редактирование режима
 function editMode(name) {
     fetch(`/get_mode/${name}`)
         .then(response => response.json())
@@ -191,9 +178,7 @@ function editMode(name) {
                 alert(data.message);
                 return;
             }
-            // Сбросить предыдущее редактирование (без перезагрузки)
             cancelEditMode();
-            // Заполнить форму
             document.getElementById('mode-name').value = name;
             document.querySelectorAll('.position-checkbox').forEach(cb => {
                 cb.checked = data.positions.includes(cb.value);
@@ -202,10 +187,9 @@ function editMode(name) {
             document.getElementById('save-mode-btn').textContent = '🔄 Обновить режим';
             document.getElementById('cancel-edit-mode-btn').style.display = 'inline-block';
         })
-        .catch(err => alert('Ошибка загрузки режима: ' + err));
+        .catch(err => alert('Ошибка при загрузке режима: ' + err));
 }
 
-// Отмена редактирования
 function cancelEditMode() {
     editingModeName = null;
     document.getElementById('mode-name').value = '';

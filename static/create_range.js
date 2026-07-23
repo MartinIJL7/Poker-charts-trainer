@@ -1,11 +1,12 @@
 // create_range.js
+'use strict';
 
 let currentColor = '#3498db';
 let currentHands = [];
 let tempSubranges = [];
 let editingId = null;
 let editingHands = [];
-let editingPosition = null;   // будет хранить позицию загруженного диапазона
+let editingPosition = null;
 
 let isDragging = false;
 let dragStartX = 0;
@@ -43,7 +44,6 @@ function generateHandMatrix() {
             });
 
             cell.addEventListener('pointermove', function(e) {
-                // Работаем только при зажатой левой кнопке
                 if (e.buttons !== 1) return;
 
                 if (!isDragging && (Math.abs(e.clientX - dragStartX) > DRAG_THRESHOLD || Math.abs(e.clientY - dragStartY) > DRAG_THRESHOLD)) {
@@ -222,7 +222,7 @@ function loadTempSubranges() {
                 renderAllSubranges();
             }
         })
-        .catch(err => console.error('Ошибка загрузки поддиапазонов:', err));
+        .catch(err => console.error('Error loading subranges:', err));
 }
 
 function updateSubrangeListUI() {
@@ -245,7 +245,7 @@ function updateSubrangeListUI() {
         const editBtn = document.createElement('button');
         editBtn.textContent = '✏️';
         editBtn.className = 'edit-btn';
-        editBtn.title = 'Редактировать';
+        editBtn.title = 'Edit';
         editBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             startEditing(sub.id);
@@ -255,7 +255,7 @@ function updateSubrangeListUI() {
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '🗑️';
         deleteBtn.className = 'delete-btn';
-        deleteBtn.title = 'Удалить';
+        deleteBtn.title = 'Delete';
         deleteBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             if (confirm(`Удалить поддиапазон "${sub.name}"?`)) {
@@ -333,7 +333,6 @@ function cancelEditing() {
     highlightEditingSubrange();
 }
 
-// Загрузить существующий диапазон по имени позиции
 function loadRange(position) {
     fetch('/create/load_range', {
         method: 'POST',
@@ -345,9 +344,7 @@ function loadRange(position) {
         if (data.status === 'ok') {
             document.getElementById('position').value = data.position;
             editingPosition = data.position;
-            // перезагружаем поддиапазоны из сессии
             loadTempSubranges();
-            // сбрасываем редактирование, если было
             cancelEditing();
         } else {
             alert('Ошибка: ' + data.message);
@@ -356,14 +353,13 @@ function loadRange(position) {
     .catch(err => alert('Ошибка сети: ' + err));
 }
 
-// Обновить список позиций в выпадающем списке
 function updatePositionsSelect(reset = false) {
     fetch('/create/get_positions')
         .then(response => response.json())
         .then(data => {
             const select = document.getElementById('load-range-select');
             const currentValue = reset ? '' : select.value;
-            select.innerHTML = '<option value="">📂 Загрузить</option>';
+            select.innerHTML = '<option value="">📂 Load</option>';
             data.positions.forEach(pos => {
                 const option = document.createElement('option');
                 option.value = pos;
@@ -376,9 +372,12 @@ function updatePositionsSelect(reset = false) {
                 select.value = '';
             }
         })
-        .catch(err => console.error('Ошибка обновления списка позиций:', err));
+        .catch(err => console.error('Error updating positions list:', err));
 }
 
+// -------------------------------------------------------------------
+// DOM ready
+// -------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
     generateHandMatrix();
     loadTempSubranges();
@@ -407,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('save-subrange-btn').addEventListener('click', function() {
         const name = document.getElementById('subname').value.trim();
         if (!name) {
-            alert('Введите название поддиапазона');
+            alert('Введите имя поддиапазона');
             return;
         }
         if (currentHands.length === 0) {
@@ -475,14 +474,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('save-range-btn').addEventListener('click', function() {
         const position = document.getElementById('position').value.trim();
         if (!position) {
-            alert('Введите название диапазона');
+            alert('Введите имя диапазона');
             return;
         }
         if (tempSubranges.length === 0) {
             alert('Добавьте хотя бы один поддиапазон');
             return;
         }
-        if (!confirm(`Сохранить диапазон для позиции "${position}"?`)) return;
+        if (!confirm(`Сохранить диапазон "${position}"?`)) return;
 
         fetch('/create/save_range', {
             method: 'POST',
@@ -493,9 +492,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.status === 'ok') {
                 alert(data.message);
-                editingPosition = null;   // сбрасываем флаг на клиенте
-
-                // Очищаем всё через сервер (temp_subranges и editing_position)
+                editingPosition = null;
                 fetch('/create/clear_temp', { method: 'POST' })
                     .then(() => {
                         tempSubranges = [];
@@ -505,7 +502,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('position').value = '';
                         document.getElementById('subname').value = '';
                         cancelEditing();
-                        // Обновляем список позиций в селекте
                         updatePositionsSelect(true);
                     });
             } else {
@@ -515,20 +511,18 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(err => alert('Ошибка сети: ' + err));
     });
 
-    // Обработчик выбора существующего диапазона из списка
     document.getElementById('load-range-select').addEventListener('change', function() {
         const pos = this.value;
         if (!pos) return;
-        if (!confirm('Загрузить диапазон "' + pos + '"? Текущие изменения будут потеряны.')) {
-            this.value = ''; // сбросить выбор
+        if (!confirm(`Загрузить диапазон "${pos}"? Текущие изменения будут потеряны`)) {
+            this.value = '';
             return;
         }
-        loadRange(pos);   // вызываем функцию, которую добавили выше
+        loadRange(pos);
     });
 
-    // Кнопка "Новый диапазон"
     document.getElementById('new-range-btn').addEventListener('click', function() {
-        if (!confirm('Начать новый диапазон? Текущие изменения будут потеряны.')) return;
+        if (!confirm('Начать новый диапазон? Текущие изменения будут потеряны')) return;
         fetch('/create/clear_temp', { method: 'POST' })
             .then(() => {
                 editingPosition = null;
@@ -543,7 +537,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
-    // Удаление выбранного диапазона
     document.getElementById('delete-range-btn').addEventListener('click', function() {
         const select = document.getElementById('load-range-select');
         const pos = select.value;
@@ -551,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Выберите диапазон для удаления');
             return;
         }
-        if (!confirm(`Удалить диапазон "${pos}"? Это действие необратимо.`)) return;
+        if (!confirm(`Удалить диапазон "${pos}"? Данное действие необратимо`)) return;
 
         fetch('/create/delete_range', {
             method: 'POST',
@@ -562,7 +555,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.status === 'ok') {
                 alert(data.message);
-                // После удаления всегда очищаем интерфейс, так как удаляемый диапазон был загружен
                 fetch('/create/clear_temp', { method: 'POST' })
                     .then(() => {
                         editingPosition = null;
@@ -573,7 +565,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         clearCurrentSelection();
                         document.getElementById('subname').value = '';
                         cancelEditing();
-                        // Обновляем селект (удалённая позиция исчезнет)
                         updatePositionsSelect(true);
                     });
             } else {

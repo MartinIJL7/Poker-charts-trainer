@@ -42,13 +42,13 @@
             {% endfor %}
         </ul>
     {% else %}
-        <p>Нет публичных конфигов. Чтобы создать, поместите файл в saved_configs без префикса user_.</p>
+        <p>Нет публичных конфигов. Чтобы создать, поместите файл в saved_configs без префикса user_</p>
     {% endif %}
 
     <div class="clear-section" style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px;">
         <h2>⚠️ Опасная зона</h2>
-        <p>Очистить текущий конфиг – удалить все диапазоны, поддиапазоны, режимы и цвета.</p>
-        <p class="warning-text">Рекомендуется сначала сохранить текущий конфиг с помощью формы выше.</p>
+        <p>Очистить текущий конфиг – удалить все диапазоны, поддиапазоны, режимы и цвета</p>
+        <p class="warning-text">Рекомендуется сначала сохранить текущий конфиг с помощью формы выше</p>
         <button id="clear-config-btn" class="btn btn-danger" style="font-size: 1.1em; padding: 10px 24px;">🗑 Очистить конфиг</button>
     </div>
 {% endblock %}
@@ -63,7 +63,7 @@
         function saveBackup(overwrite = false) {
             const name = nameInput.value.trim();
             if (!name) {
-                alert('Введите имя бэкапа');
+                alert('Введите имя конфига');
                 return;
             }
             fetch('/config_management/save', {
@@ -97,7 +97,7 @@
             const target = e.target;
             if (target.classList.contains('load-btn')) {
                 const filename = target.dataset.filename;
-                if (!confirm('Загрузить конфиг "' + filename + '"? Текущий конфиг будет заменён.')) return;
+                if (!confirm('Загрузить конфиг "' + filename + '"? Текущий конфиг будет заменен')) return;
                 fetch('/config_management/load/' + filename, { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
@@ -112,7 +112,7 @@
             }
             if (target.classList.contains('delete-btn')) {
                 const filename = target.dataset.filename;
-                if (!confirm('Удалить бэкап "' + filename + '"?')) return;
+                if (!confirm('Удалить конфиг "' + filename + '"?')) return;
                 fetch('/config_management/delete/' + filename, { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
@@ -128,7 +128,7 @@
         });
 
         clearBtn.addEventListener('click', function() {
-            if (!confirm('Вы уверены, что хотите очистить текущий конфиг? Все данные будут безвозвратно удалены. Рекомендуется сохранить конфиг перед очисткой. Нажмите ОК для продолжения.')) return;
+            if (!confirm('Вы уверены, что хотите очистить текущий конфиг? Все данные будут безвозвратно удалены. Рекомендуется сохранить конфиг перед очисткой. Нажмите ОК для продолжения')) return;
             fetch('/config_management/clear', { method: 'POST' })
             .then(response => response.json())
             .then(data => {

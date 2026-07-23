@@ -3,7 +3,7 @@
 {% block header %}🐞 Режим отладки{% endblock %}
 {% block body_class %}narrow-page{% endblock %}
 {% block content %}
-    <p style="margin-bottom: 20px;">Выберите диапазон и введите руку, чтобы узнать статус.</p>
+    <p style="margin-bottom: 20px;">Выберите диапазон и введите руку, чтобы узнать статус</p>
     <form method="post" style="display: flex; flex-direction: column; gap: 25px;">
         <div>
             <label style="display: block; margin-bottom: 5px; font-weight: bold;">Диапазон:</label>
@@ -26,10 +26,10 @@
             {% if result.error %}
                 <p class="error">{{ result.error }}</p>
             {% else %}
-                <p><strong>Позиция:</strong> {{ result.position }}</p>
+                <p><strong>Диапазон:</strong> {{ result.position }}</p>
                 <p><strong>Рука:</strong> {{ result.hand }}</p>
-                <p><strong>Статус:</strong> {{ result.status }}</p>
-                <p><strong>Возможные статусы для этой позиции:</strong> {{ result.possible_statuses | join(', ') }}</p>
+                <p><strong>Поддиапазон:</strong> {{ result.status }}</p>
+                <p><strong>Все поддиапазоны этого диапазона:</strong> {{ result.possible_statuses | join(', ') }}</p>
             {% endif %}
         </div>
     {% endif %}

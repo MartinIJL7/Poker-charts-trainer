@@ -1,35 +1,10 @@
-/* create_range.css */
+/* create_range.css – styles for the range editor page */
 
 body.create-page {
     max-width: 100% !important;
     padding: 0 20px;
     margin: 0;
     background: #f7f9fc;
-}
-
-.header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 100%;
-    margin: 20px 0 10px 0;
-    padding: 0 20px;
-}
-.header-row h1 {
-    margin: 0;
-}
-.home-link {
-    font-size: 1.1em;
-    background: #3498db;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-    text-decoration: none;
-    transition: background 0.2s;
-}
-.home-link:hover {
-    background: #2980b9;
-    text-decoration: none;
 }
 
 .create-container {
@@ -41,12 +16,15 @@ body.create-page {
     box-sizing: border-box;
 }
 
+/* ---- Top row with position input and buttons ---- */
 .top-row {
     margin-bottom: 20px;
 }
+
 .top-row .form-group {
     margin-bottom: 0;
 }
+
 #position {
     flex: 1;
     height: 40px;
@@ -59,65 +37,27 @@ body.create-page {
     margin: 0;
     line-height: 1.4;
 }
+
 .top-row small {
     display: block;
     font-size: 0.7em;
     color: #666;
     margin-top: 4px;
 }
-.save-range-btn {
-    height: 40px;
-    padding: 0 24px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-    background: #27ae60;
-    color: white;
-    transition: background 0.2s;
-    white-space: nowrap;
-    flex-shrink: 0;
-    box-sizing: border-box;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-}
-.save-range-btn:hover {
-    background: #1e8449;
-}
 
-.form-group label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-.form-group input[type="text"],
-.form-group input[type="color"] {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-.form-group input[type="color"] {
-    width: 60px;
-    height: 40px;
-    padding: 2px;
-    cursor: pointer;
-}
-
+/* ---- Two-column layout ---- */
 .two-columns {
     display: flex;
     gap: 40px;
     margin-top: 10px;
     flex-wrap: nowrap;
 }
+
 .left-column {
     flex: 2 1 60%;
     min-width: 400px;
 }
+
 .right-column {
     flex: 1 1 30%;
     min-width: 250px;
@@ -129,15 +69,18 @@ body.create-page {
     display: flex;
     flex-direction: column;
 }
+
 .right-column h3 {
     margin-top: 0;
 }
+
 .right-column ul {
     list-style: none;
     padding: 0;
     margin: 0 0 10px 0;
     flex: 1;
 }
+
 .right-column ul li {
     display: flex;
     align-items: center;
@@ -146,8 +89,8 @@ body.create-page {
     margin-bottom: 6px;
     border-radius: 4px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    border-left: none;
 }
+
 .right-column ul li .color-dot {
     width: 16px;
     height: 16px;
@@ -155,10 +98,12 @@ body.create-page {
     margin-right: 10px;
     flex-shrink: 0;
 }
+
 .right-column ul li .sub-name {
     flex: 1;
     font-weight: 500;
 }
+
 .right-column ul li .edit-btn,
 .right-column ul li .delete-btn {
     background: none;
@@ -169,23 +114,31 @@ body.create-page {
     opacity: 0.5;
     transition: opacity 0.2s;
 }
+
 .right-column ul li .edit-btn:hover,
 .right-column ul li .delete-btn:hover {
     opacity: 1;
 }
+
 .right-column ul li .edit-btn {
     color: #2980b9;
 }
+
 .right-column ul li .delete-btn {
     color: #c0392b;
 }
+
 #empty-message {
     margin: 10px 0;
+    color: #888;
+    font-style: italic;
 }
 
+/* ---- Subrange add area ---- */
 .subrange-add-area {
     margin-top: 5px;
 }
+
 #subname {
     height: 40px;
     box-sizing: border-box;
@@ -195,10 +148,12 @@ body.create-page {
     width: 100%;
     font-size: 1em;
 }
+
 .subrange-actions {
     display: flex;
     gap: 10px;
 }
+
 .subrange-actions button {
     flex: 1;
     padding: 0 12px;
@@ -214,10 +169,11 @@ body.create-page {
     transition: background 0.2s;
 }
 
+/* ---- Clear buttons ---- */
 #clear-all-btn {
     height: 40px;
     width: 100%;
-    border-radius: 4px;        /* закругление */
+    border-radius: 4px;
     border: none;
     cursor: pointer;
     font-size: 1em;
@@ -229,9 +185,9 @@ body.create-page {
 }
 
 #clear-selection-btn {
-    height: 40px;              /* теперь одного размера с полем цвета */
+    height: 40px;
     padding: 0 16px;
-    border-radius: 4px;        /* закругление */
+    border-radius: 4px;
     border: none;
     cursor: pointer;
     font-size: 1em;
@@ -240,48 +196,27 @@ body.create-page {
     align-items: center;
     justify-content: center;
     transition: background 0.2s;
-    background: #95a5a6;       /* цвет как у btn-secondary */
+    background: #95a5a6;
     color: white;
 }
+
 #clear-selection-btn:hover {
     background: #7f8c8d;
 }
 
-.btn-success {
-    background: #27ae60;
-    color: white;
-}
-.btn-success:hover {
-    background: #1e8449;
-}
-.btn-danger {
-    background: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-.btn-danger:hover {
-    background: #c0392b;
-}
-.btn-secondary {
-    background: #95a5a6;
-    color: white;
-}
-.btn-secondary:hover {
-    background: #7f8c8d;
-}
+/* ---- Hand matrix ---- */
 .left-column h3 {
     text-align: center;
 }
+
 #hand-matrix {
     display: grid;
     grid-template-columns: repeat(13, 1fr);
     gap: 2px;
-    max-width: 650px;   /* регулируйте этот размер */
+    max-width: 650px;
     margin: 0 auto;
 }
+
 .matrix-cell {
     background: #d5d8dc;
     text-align: center;
@@ -296,19 +231,22 @@ body.create-page {
     justify-content: center;
     padding: 0;
 }
+
 .matrix-cell:hover {
     opacity: 0.8;
 }
+
 .matrix-cell.selected {
     border: 2px solid #2c3e50;
 }
 
+/* ---- Editing highlight ---- */
 #subrange-list-ul li.editing-subrange {
     background: #fff3cd;
     box-shadow: 0 0 0 2px #ffc107;
 }
 
-/* Единообразная высота и выравнивание для элементов в строке */
+/* ---- Position input wrapper (flex row) ---- */
 .position-input-wrapper {
     display: flex;
     align-items: stretch;
@@ -327,15 +265,11 @@ body.create-page {
 }
 
 .position-input-wrapper select {
-    flex: 1 1 120px;      /* было 2 1 250px — уменьшили вдвое */
-    min-width: 100px;     /* было 200px */
+    flex: 1 1 120px;
+    min-width: 100px;
     border: 1px solid #ccc;
     background: white;
-    padding: 0 8px;       /* можно чуть уменьшить отступы */
-    height: 40px;
-    box-sizing: border-box;
-    border-radius: 4px;
-    font-size: 1em;
+    padding: 0 8px;
     cursor: pointer;
 }
 
@@ -354,27 +288,26 @@ body.create-page {
     white-space: nowrap;
 }
 
-/* Цвета кнопок (уже есть в файле, но переопределим для единообразия) */
+/* ---- Contextual button overrides inside wrapper ---- */
 .position-input-wrapper .btn-success {
     background: #27ae60;
     color: white;
 }
+
 .position-input-wrapper .btn-success:hover {
     background: #1e8449;
 }
+
 .position-input-wrapper .btn-secondary {
     background: #95a5a6;
     color: white;
 }
+
 .position-input-wrapper .btn-secondary:hover {
     background: #7f8c8d;
 }
 
-#empty-message {
-    margin-top: 0;
-    margin-bottom: 10px;
-}
-
+/* ---- Responsive ---- */
 @media (max-width: 800px) {
     .two-columns {
         flex-wrap: wrap;
