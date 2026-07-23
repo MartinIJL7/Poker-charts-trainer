@@ -11,7 +11,14 @@ import glob
 from datetime import datetime
 from sqlalchemy.sql import text
 import logging
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(
+    level=logging.WARNING,
+    format='%(asctime)s %(levelname)s: %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),        # сохраняет в файл app.log
+        logging.StreamHandler()                # дублирует в консоль (для просмотра в панели)
+    ]
+)
 
 # ============================================================
 #  НАСТРОЙКА ПРИЛОЖЕНИЯ И БАЗЫ ДАННЫХ
