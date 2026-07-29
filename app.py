@@ -30,7 +30,7 @@ logging.basicConfig(
 # Application configuration
 # -------------------------------------------------------------------
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY')
+app.secret_key = os.environ.get('SECRET_KEY', 'development_key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -874,7 +874,81 @@ def clear_config():
 
 
 # -------------------------------------------------------------------
+# Drawing mode
+# -------------------------------------------------------------------
+@app.route('/draw_training/<mode>', methods=['GET', 'POST'])
+@login_required
+def draw_training(mode):
+    config = get_user_config(current_user.id)
+    if mode not in config.modes:
+        return "Mode not found", 404
+
+    if request.method == 'POST':
+        data = request.get_json()
+        user_subranges = data.get('subranges', [])
+        expected_serialized = session.get('draw_expected')
+        position = session.get('draw_position')
+        if not expected_serialized or not position:
+            return jsonify({'status': 'error', 'message': 'Сессия истекла, начните заново'}), 400
+
+        expected = {name: set(hands) for name, hands in expected_serialized.items()}
+
+        user_dict = {}
+        for sub in user_subranges:
+            name = sub.get('name', '').strip()
+            hands = set(sub.get('hands', []))
+            if name and hands:
+                if name in user_dict:
+                    user_dict[name].update(hands)
+                else:
+                    user_dict[name] = hands
+
+        missing = []
+        extra = []
+
+        for exp_name, exp_hands in expected.items():
+            if exp_name not in user_dict:
+                missing.append({'name': exp_name, 'hands': list(exp_hands)})
+            else:
+                user_hands = user_dict[exp_name]
+                miss = exp_hands - user_hands
+                if miss:
+                    missing.append({'name': exp_name, 'hands': list(miss)})
+                extra_hands = user_hands - exp_hands
+                if extra_hands:
+                    extra.append({'name': exp_name, 'hands': list(extra_hands)})
+
+        for user_name, user_hands in user_dict.items():
+            if user_name not in expected:
+                extra.append({'name': user_name, 'hands': list(user_hands)})
+
+        return jsonify({
+            'status': 'ok',
+            'missing': missing,
+            'extra': extra,
+            'position': position,
+            'mode': mode
+        })
+
+    positions = config.modes[mode]
+    if not positions:
+        return "No positions in this mode", 400
+    pos = random.choice(positions)
+
+    expected = {}
+    for subname, sub_dict in config.subranges.items():
+        if pos in sub_dict:
+            expected[subname] = list(sub_dict[pos])
+
+    session['draw_expected'] = expected
+    session['draw_position'] = pos
+    session['draw_mode'] = mode
+
+    return render_template('draw_training.html', mode=mode, position=pos)
+
+
+# -------------------------------------------------------------------
 # Application entry point
 # -------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)

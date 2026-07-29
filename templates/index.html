@@ -6,10 +6,19 @@
     {% if no_modes %}
         <p class="warning">⚠️ Нет доступных режимов, создайте их по кнопке ниже</p>
     {% else %}
-        <h2>Выберите режим:</h2>
+        <h2>Выберите режим для обычной тренировки:</h2>
         <ul class="mode-list">
         {% for mode_name in modes %}
             <li><a href="{{ url_for('training', mode=mode_name) }}">{{ mode_name }}</a></li>
+        {% endfor %}
+        </ul>
+
+        <hr style="margin: 30px 0;">
+
+        <h2>Выберите режим для тренировки рисования диапазона:</h2>
+        <ul class="mode-list">
+        {% for mode_name in modes %}
+            <li><a href="{{ url_for('draw_training', mode=mode_name) }}">{{ mode_name }} (рисование)</a></li>
         {% endfor %}
         </ul>
     {% endif %}
