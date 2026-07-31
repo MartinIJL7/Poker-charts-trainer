@@ -16,14 +16,18 @@
         .result-block h3 {
             margin-top: 0;
         }
-        .result-block .missing {
+        .result-item.missing {
             border-left-color: #e67e22;
         }
-        .result-block .extra {
+        .result-item.extra {
             border-left-color: #e74c3c;
+        }
+        .result-item.wrong-name {
+            border-left-color: #8e44ad;
         }
         .result-item {
             margin-bottom: 10px;
+            padding-left: 10px;
         }
         .result-item strong {
             display: inline-block;
@@ -38,24 +42,23 @@
             display: flex;
             gap: 10px;
         }
-        .btn-new {
-            background: #8e44ad;
-            color: white;
+        .stats {
+            background: #ecf0f1;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
         }
-        .btn-new:hover {
-            background: #732d91;
-        }
-        .result-item.wrong-name {
-            border-left-color: #8e44ad;
+        .stats p {
+            margin: 6px 0;
         }
     </style>
 {% endblock %}
 {% block content %}
 <div class="create-container">
     <div class="top-row">
-        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 10px; flex-wrap: wrap;">
             <h2 style="margin:0;">Позиция: <span id="position-label">{{ position }}</span></h2>
-            <button id="new-position-btn" class="btn btn-new">🔄 Новая позиция</button>
+            <button id="new-position-btn" class="btn btn-primary">🔄 Новая позиция</button>
         </div>
         <p style="color: #555; margin: 0;">Выделите руки, дайте имя поддиапазону и добавьте его. После создания всех поддиапазонов нажмите «Проверить»</p>
     </div>
@@ -64,10 +67,10 @@
         <div class="left-column">
             <h3>Матрица рук</h3>
             <div id="hand-matrix"></div>
-            <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+            <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <label for="color-picker" style="margin: 0;">Цвет:</label>
                 <input type="color" id="color-picker" value="#3498db">
-                <button id="clear-selection-btn" class="btn-secondary">✖ Убрать всё выделение</button>
+                <button id="clear-selection-btn" class="btn btn-secondary">✖ Убрать всё выделение</button>
             </div>
         </div>
 
@@ -80,14 +83,14 @@
                 <input type="hidden" id="edit-id" value="">
                 <input type="text" id="subname" placeholder="Название поддиапазона (например, 100% RFI)" style="width: 100%; padding: 6px; box-sizing: border-box; margin-bottom: 6px;">
                 <div class="subrange-actions">
-                    <button id="save-subrange-btn" class="btn-success">✅ Добавить поддиапазон</button>
-                    <button id="cancel-edit-btn" class="btn-secondary" style="display: none;">Отменить</button>
+                    <button id="save-subrange-btn" class="btn btn-success">✅ Добавить поддиапазон</button>
+                    <button id="cancel-edit-btn" class="btn btn-secondary" style="display: none;">Отменить</button>
                 </div>
             </div>
 
             <div style="margin-top: 10px; display: flex; gap: 10px;">
-                <button id="clear-all-btn" class="btn-danger" style="flex:1;">🗑 Очистить все</button>
-                <button id="check-btn" class="btn-primary" style="flex:1;">✅ Проверить</button>
+                <button id="clear-all-btn" class="btn btn-danger" style="flex:1;">🗑 Очистить все</button>
+                <button id="check-btn" class="btn btn-success" style="flex:1;">✅ Проверить</button>
             </div>
         </div>
     </div>
@@ -96,12 +99,12 @@
         <h3>📊 Результат проверки</h3>
         <div id="result-content"></div>
         <div class="result-actions">
-            <button id="retry-btn" class="btn-secondary">🔄 Попробовать снова (та же позиция)</button>
-            <button id="new-after-check-btn" class="btn-new">Новая позиция</button>
+            <button id="retry-btn" class="btn btn-secondary">🔄 Попробовать снова (та же позиция)</button>
+            <button id="new-after-check-btn" class="btn btn-primary">Новая позиция</button>
         </div>
     </div>
 
-    <div class="stats" style="margin-top: 20px;">
+    <div class="stats">
         <h2>📈 Статистика рисования</h2>
         <p>Всего попыток: <strong id="stats-total">{{ stats.total }}</strong></p>
         <p>✅ Верных: <strong id="stats-correct">{{ stats.correct }}</strong>
@@ -111,10 +114,10 @@
             (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
         </p>
         <p>
-            <a href="{{ url_for('reset_draw_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; background: #95a5a6; color: white; text-decoration: none;">🔄 Сбросить статистику</a>
+            <a href="{{ url_for('reset_draw_stats', next=request.url) }}" class="btn btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none;">🔄 Сбросить статистику</a>
         </p>
     </div>
-    
+
 </div>
 
 <script src="{{ url_for('static', filename='draw_training.js') }}"></script>
