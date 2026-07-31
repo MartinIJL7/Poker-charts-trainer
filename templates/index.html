@@ -6,21 +6,19 @@
     {% if no_modes %}
         <p class="warning">⚠️ Нет доступных режимов, создайте их по кнопке ниже</p>
     {% else %}
-        <h2>Выберите режим для обычной тренировки:</h2>
-        <ul class="mode-list">
-        {% for mode_name in modes %}
-            <li><a href="{{ url_for('training', mode=mode_name) }}">{{ mode_name }}</a></li>
-        {% endfor %}
-        </ul>
-
-        <hr style="margin: 30px 0;">
-
-        <h2>Выберите режим для тренировки рисования диапазона:</h2>
-        <ul class="mode-list">
-        {% for mode_name in modes %}
-            <li><a href="{{ url_for('draw_training', mode=mode_name) }}">{{ mode_name }} (рисование)</a></li>
-        {% endfor %}
-        </ul>
+        <h2>Выберите режим и тип тренировки:</h2>
+        <div style="margin: 20px auto; max-width: 400px;">
+            <select id="mode-select" style="width: 100%; padding: 10px; font-size: 1em; border-radius: 6px; border: 1px solid #ccc;">
+                <option value="">-- Выберите режим --</option>
+                {% for mode_name in modes %}
+                    <option value="{{ mode_name }}">{{ mode_name }}</option>
+                {% endfor %}
+            </select>
+            <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button id="btn-normal" class="btn btn-primary" style="min-width: 160px;">📝 Обычная тренировка</button>
+                <button id="btn-draw" class="btn btn-success" style="min-width: 160px;">🎨 Рисование диапазона</button>
+            </div>
+        </div>
     {% endif %}
 
     <div class="action-links">
@@ -33,4 +31,23 @@
         <a href="{{ url_for('debug') }}" style="color:#999; text-decoration:none;">🐞 Отладка</a>
     </p>
 </div>
+
+<script>
+    document.getElementById('btn-normal').addEventListener('click', function() {
+        var mode = document.getElementById('mode-select').value;
+        if (!mode) {
+            alert('Пожалуйста, выберите режим');
+            return;
+        }
+        window.location.href = "{{ url_for('training', mode='') }}" + encodeURIComponent(mode);
+    });
+    document.getElementById('btn-draw').addEventListener('click', function() {
+        var mode = document.getElementById('mode-select').value;
+        if (!mode) {
+            alert('Пожалуйста, выберите режим');
+            return;
+        }
+        window.location.href = "{{ url_for('draw_training', mode='') }}" + encodeURIComponent(mode);
+    });
+</script>
 {% endblock %}
