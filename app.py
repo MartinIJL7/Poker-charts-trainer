@@ -30,7 +30,7 @@ logging.basicConfig(
 # Application configuration
 # -------------------------------------------------------------------
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'development_key')
+app.secret_key = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -978,4 +978,4 @@ def reset_draw_stats():
 # Application entry point
 # -------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
