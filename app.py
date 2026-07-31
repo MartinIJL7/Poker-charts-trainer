@@ -883,6 +883,9 @@ def draw_training(mode):
     if mode not in config.modes:
         return "Mode not found", 404
 
+    if 'draw_stats' not in session:
+        session['draw_stats'] = {'total': 0, 'correct': 0, 'wrong': 0}
+
     if request.method == 'POST':
         data = request.get_json()
         user_subranges = data.get('subranges', [])
@@ -904,7 +907,8 @@ def draw_training(mode):
                     user_dict[name] = hands
 
         missing = []
-        extra = []
+        extra_hands = []
+        wrong_names = []
 
         for exp_name, exp_hands in expected.items():
             if exp_name not in user_dict:
@@ -914,20 +918,30 @@ def draw_training(mode):
                 miss = exp_hands - user_hands
                 if miss:
                     missing.append({'name': exp_name, 'hands': list(miss)})
-                extra_hands = user_hands - exp_hands
-                if extra_hands:
-                    extra.append({'name': exp_name, 'hands': list(extra_hands)})
+                extra = user_hands - exp_hands
+                if extra:
+                    extra_hands.append({'name': exp_name, 'hands': list(extra)})
 
-        for user_name, user_hands in user_dict.items():
+        for user_name in user_dict.keys():
             if user_name not in expected:
-                extra.append({'name': user_name, 'hands': list(user_hands)})
+                wrong_names.append(user_name)
+
+        stats = session['draw_stats']
+        stats['total'] += 1
+        if not missing and not extra_hands and not wrong_names:
+            stats['correct'] += 1
+        else:
+            stats['wrong'] += 1
+        session['draw_stats'] = stats
 
         return jsonify({
             'status': 'ok',
             'missing': missing,
-            'extra': extra,
+            'extra_hands': extra_hands,
+            'wrong_names': wrong_names,
             'position': position,
-            'mode': mode
+            'mode': mode,
+            'stats': stats
         })
 
     positions = config.modes[mode]
@@ -944,7 +958,20 @@ def draw_training(mode):
     session['draw_position'] = pos
     session['draw_mode'] = mode
 
-    return render_template('draw_training.html', mode=mode, position=pos)
+    return render_template(
+        'draw_training.html',
+        mode=mode,
+        position=pos,
+        stats=session['draw_stats']
+    )
+
+
+@app.route('/reset_draw_stats')
+@login_required
+def reset_draw_stats():
+    session['draw_stats'] = {'total': 0, 'correct': 0, 'wrong': 0}
+    next_url = request.args.get('next')
+    return redirect(next_url or url_for('index'))
 
 
 # -------------------------------------------------------------------

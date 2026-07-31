@@ -45,6 +45,9 @@
         .btn-new:hover {
             background: #732d91;
         }
+        .result-item.wrong-name {
+            border-left-color: #8e44ad;
+        }
     </style>
 {% endblock %}
 {% block content %}
@@ -54,7 +57,7 @@
             <h2 style="margin:0;">Позиция: <span id="position-label">{{ position }}</span></h2>
             <button id="new-position-btn" class="btn btn-new">🔄 Новая позиция</button>
         </div>
-        <p style="color: #555; margin: 0;">Выделите руки, дайте имя поддиапазону и добавьте его. После создания всех поддиапазонов нажмите «Проверить».</p>
+        <p style="color: #555; margin: 0;">Выделите руки, дайте имя поддиапазону и добавьте его. После создания всех поддиапазонов нажмите «Проверить»</p>
     </div>
 
     <div class="two-columns">
@@ -89,7 +92,6 @@
         </div>
     </div>
 
-    <!-- Блок результатов -->
     <div id="result-block" class="result-block">
         <h3>📊 Результат проверки</h3>
         <div id="result-content"></div>
@@ -98,6 +100,21 @@
             <button id="new-after-check-btn" class="btn-new">Новая позиция</button>
         </div>
     </div>
+
+    <div class="stats" style="margin-top: 20px;">
+        <h2>📈 Статистика рисования</h2>
+        <p>Всего попыток: <strong id="stats-total">{{ stats.total }}</strong></p>
+        <p>✅ Верных: <strong id="stats-correct">{{ stats.correct }}</strong>
+            (<span id="stats-correct-pct">{{ "%.1f"|format(stats.correct / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
+        </p>
+        <p>❌ Ошибок: <strong id="stats-wrong">{{ stats.wrong }}</strong>
+            (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
+        </p>
+        <p>
+            <a href="{{ url_for('reset_draw_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; background: #95a5a6; color: white; text-decoration: none;">🔄 Сбросить статистику</a>
+        </p>
+    </div>
+    
 </div>
 
 <script src="{{ url_for('static', filename='draw_training.js') }}"></script>

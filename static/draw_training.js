@@ -310,7 +310,7 @@ function clearAllSubranges() {
 
 function checkAnswer() {
     if (tempSubranges.length === 0) {
-        alert('Добавьте хотя бы один поддиапазон перед проверкой.');
+        alert('Добавьте хотя бы один поддиапазон перед проверкой');
         return;
     }
     const subranges = tempSubranges.map(sub => ({
@@ -326,6 +326,7 @@ function checkAnswer() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'ok') {
+            if (data.stats) updateStats(data.stats);
             showResult(data);
         } else {
             alert('Ошибка: ' + data.message);
@@ -341,8 +342,10 @@ function showResult(data) {
 
     let html = `<p><strong>Позиция:</strong> ${data.position}</p>`;
 
-    if (data.missing.length === 0 && data.extra.length === 0) {
-        html += `<p style="color: #27ae60; font-size: 1.2em;">✅ Отлично! Все поддиапазоны нарисованы верно.</p>`;
+    const hasErrors = data.missing.length > 0 || data.extra_hands.length > 0 || data.wrong_names.length > 0;
+
+    if (!hasErrors) {
+        html += `<p style="color: #27ae60; font-size: 1.2em;">✅ Отлично! Все поддиапазоны нарисованы верно</p>`;
     } else {
         if (data.missing.length > 0) {
             html += `<div class="result-item missing"><h4 style="color: #e67e22;">❌ Пропущенные руки (должны быть, но отсутствуют):</h4>`;
@@ -351,16 +354,37 @@ function showResult(data) {
             });
             html += `</div>`;
         }
-        if (data.extra.length > 0) {
-            html += `<div class="result-item extra"><h4 style="color: #e74c3c;">⚠️ Лишние руки (присутствуют, но не должны быть):</h4>`;
-            data.extra.forEach(item => {
+        if (data.extra_hands.length > 0) {
+            html += `<div class="result-item extra"><h4 style="color: #e74c3c;">⚠️ Лишние руки в правильных поддиапазонах:</h4>`;
+            data.extra_hands.forEach(item => {
                 html += `<p><strong>${item.name}:</strong> <span class="hands">${item.hands.join(', ')}</span></p>`;
+            });
+            html += `</div>`;
+        }
+        if (data.wrong_names.length > 0) {
+            html += `<div class="result-item wrong-name"><h4 style="color: #8e44ad;">❌ Неправильные названия поддиапазонов:</h4>`;
+            data.wrong_names.forEach(name => {
+                html += `<p><strong>${name}</strong></p>`;
             });
             html += `</div>`;
         }
     }
 
     content.innerHTML = html;
+}
+
+function updateStats(stats) {
+    document.getElementById('stats-total').textContent = stats.total;
+    document.getElementById('stats-correct').textContent = stats.correct;
+    document.getElementById('stats-wrong').textContent = stats.wrong;
+    const total = stats.total;
+    if (total > 0) {
+        document.getElementById('stats-correct-pct').textContent = (stats.correct / total * 100).toFixed(1);
+        document.getElementById('stats-wrong-pct').textContent = (stats.wrong / total * 100).toFixed(1);
+    } else {
+        document.getElementById('stats-correct-pct').textContent = '0.0';
+        document.getElementById('stats-wrong-pct').textContent = '0.0';
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
