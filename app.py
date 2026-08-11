@@ -944,10 +944,22 @@ def draw_training(mode):
             'stats': stats
         })
 
+    # ---- GET ----
     positions = config.modes[mode]
     if not positions:
         return "No positions in this mode", 400
-    pos = random.choice(positions)
+
+    queue_key = f'draw_queue_{mode}'
+    if queue_key not in session or not session[queue_key]:
+        shuffled = positions[:]
+        random.shuffle(shuffled)
+        session[queue_key] = shuffled
+
+    pos = session[queue_key].pop(0)
+    if not session[queue_key]:
+        del session[queue_key]
+
+    session['draw_position'] = pos
 
     expected = {}
     for subname, sub_dict in config.subranges.items():
@@ -955,15 +967,8 @@ def draw_training(mode):
             expected[subname] = list(sub_dict[pos])
 
     session['draw_expected'] = expected
-    session['draw_position'] = pos
-    session['draw_mode'] = mode
 
-    return render_template(
-        'draw_training.html',
-        mode=mode,
-        position=pos,
-        stats=session['draw_stats']
-    )
+    return render_template('draw_training.html', mode=mode, position=pos, stats=session['draw_stats'])
 
 
 @app.route('/reset_draw_stats')
