@@ -226,7 +226,6 @@ function startEditing(id) {
     currentHands = editingHands.slice();
     currentColor = sub.color;
 
-    document.getElementById('color-picker').value = sub.color;
     document.getElementById('subrange-edit-area').classList.add('visible');
 
     const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
@@ -247,7 +246,6 @@ function cancelEditing() {
     editingId = null;
     editingHands = [];
     currentHands = [];
-    document.getElementById('color-picker').value = '#3498db';
     currentColor = '#3498db';
     document.getElementById('subrange-edit-area').classList.remove('visible');
     const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
@@ -418,16 +416,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSubrangeListUI();
         renderAllSubranges();
     }
-
-    document.getElementById('color-picker').addEventListener('input', function() {
-        currentColor = this.value;
-        const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
-        cells.forEach(cell => {
-            if (cell.dataset.selected === 'true') {
-                cell.style.backgroundColor = currentColor;
-            }
-        });
-    });
 
     document.getElementById('clear-selection-btn').addEventListener('click', function() {
         clearCurrentSelection();
