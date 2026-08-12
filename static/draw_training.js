@@ -387,6 +387,8 @@ function showResult(data) {
     }
 
     content.innerHTML = html;
+
+    document.getElementById('check-btn').disabled = true;
 }
 
 function updateStats(stats) {
@@ -456,5 +458,6 @@ document.addEventListener('DOMContentLoaded', function() {
         renderAllSubranges();
         cancelEditing();
         clearCurrentSelection();
+        document.getElementById('check-btn').disabled = false;
     });
 });
