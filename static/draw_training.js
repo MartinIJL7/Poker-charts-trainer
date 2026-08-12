@@ -513,7 +513,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = window.location.href;
     }
 
-    document.getElementById('new-position-btn').addEventListener('click', newPosition);
     document.getElementById('new-after-check-btn').addEventListener('click', newPosition);
 
     document.getElementById('retry-btn').addEventListener('click', function() {
