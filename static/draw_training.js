@@ -482,6 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         }
+        document.querySelectorAll('.quick-select-btn').forEach(b => b.classList.remove('active'));
     });
 
     document.getElementById('save-edit-btn').addEventListener('click', function() {
