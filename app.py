@@ -30,7 +30,7 @@ logging.basicConfig(
 # Application configuration
 # -------------------------------------------------------------------
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY')
+app.secret_key = os.environ.get('SECRET_KEY', 'defkey')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -968,7 +968,23 @@ def draw_training(mode):
 
     session['draw_expected'] = expected
 
-    return render_template('draw_training.html', mode=mode, position=pos, stats=session['draw_stats'])
+    initial_subranges = []
+    for subname in expected.keys():
+        color = config.subrange_colors.get(subname, '#3498db')
+        initial_subranges.append({
+            'id': str(uuid.uuid4()),
+            'name': subname,
+            'hands': [],
+            'color': color
+        })
+
+    return render_template(
+        'draw_training.html',
+        mode=mode,
+        position=pos,
+        stats=session['draw_stats'],
+        initial_subranges=initial_subranges
+    )
 
 
 @app.route('/reset_draw_stats')

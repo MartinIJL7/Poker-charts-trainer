@@ -436,6 +436,17 @@ function updateStats(stats) {
 document.addEventListener('DOMContentLoaded', function() {
     generateHandMatrix();
 
+    if (typeof initialSubranges !== 'undefined' && Array.isArray(initialSubranges) && initialSubranges.length > 0) {
+        tempSubranges = initialSubranges.map(sub => ({
+            id: sub.id,
+            name: sub.name,
+            hands: sub.hands || [],
+            color: sub.color || '#3498db'
+        }));
+        updateSubrangeListUI();
+        renderAllSubranges();
+    }
+
     document.getElementById('color-picker').addEventListener('input', function() {
         currentColor = this.value;
         const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');

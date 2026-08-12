@@ -116,8 +116,10 @@
             <a href="{{ url_for('reset_draw_stats', next=request.url) }}" class="btn btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none;">🔄 Сбросить статистику</a>
         </p>
     </div>
-
 </div>
 
+<script>
+    var initialSubranges = {{ initial_subranges|tojson }};
+</script>
 <script src="{{ url_for('static', filename='draw_training.js') }}"></script>
 {% endblock %}
