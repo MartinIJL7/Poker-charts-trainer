@@ -451,5 +451,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('retry-btn').addEventListener('click', function() {
         document.getElementById('result-block').style.display = 'none';
+        tempSubranges.forEach(sub => sub.hands = []);
+        updateSubrangeListUI();
+        renderAllSubranges();
+        cancelEditing();
+        clearCurrentSelection();
     });
 });
