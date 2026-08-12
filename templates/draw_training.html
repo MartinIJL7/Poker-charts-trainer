@@ -51,6 +51,45 @@
         .stats p {
             margin: 6px 0;
         }
+        .subrange-edit-area {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 6px;
+        }
+        .subrange-edit-area.visible {
+            display: block;
+        }
+        .subrange-edit-area input[readonly] {
+            background: #e9ecef;
+            cursor: not-allowed;
+        }
+        .subrange-edit-area .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .subrange-edit-area .btn-group button {
+            flex: 1;
+        }
+        #clear-all-btn, #empty-message {
+            display: none !important;
+        }
+        #clear-selection-btn {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #clear-selection-btn:hover {
+            background: #7f8c8d;
+        }
+        .right-column .subrange-list-actions {
+            margin-top: 10px;
+        }
     </style>
 {% endblock %}
 {% block content %}
@@ -59,7 +98,7 @@
         <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 10px; flex-wrap: wrap;">
             <h2 style="margin:0;">Позиция: <span id="position-label">{{ position }}</span></h2>
         </div>
-        <p style="color: #555; margin: 0;">Выделите руки, дайте имя поддиапазону и добавьте его. После создания всех поддиапазонов нажмите «Проверить»</p>
+        <p style="color: #555; margin: 0;">Выделите руки на матрице, затем нажмите ✏️ у нужного поддиапазона и сохраните изменения.</p>
     </div>
 
     <div class="two-columns">
@@ -69,27 +108,23 @@
             <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <label for="color-picker" style="margin: 0;">Цвет:</label>
                 <input type="color" id="color-picker" value="#3498db">
-                <button id="clear-selection-btn" class="btn btn-secondary">✖ Убрать всё выделение</button>
+                <button id="clear-selection-btn" class="btn-secondary">✖ Убрать выделение</button>
             </div>
         </div>
 
         <div class="right-column">
-            <h3>Ваши поддиапазоны</h3>
-            <p id="empty-message" style="color: #888; font-style: italic;">Пока нет поддиапазонов</p>
+            <h3>Поддиапазоны</h3>
             <ul id="subrange-list-ul"></ul>
 
-            <div class="subrange-add-area">
-                <input type="hidden" id="edit-id" value="">
-                <input type="text" id="subname" placeholder="Название поддиапазона (например, 100% RFI)" style="width: 100%; padding: 6px; box-sizing: border-box; margin-bottom: 6px;">
-                <div class="subrange-actions">
-                    <button id="save-subrange-btn" class="btn btn-success">✅ Добавить поддиапазон</button>
-                    <button id="cancel-edit-btn" class="btn btn-secondary" style="display: none;">Отменить</button>
+            <div id="subrange-edit-area" class="subrange-edit-area">
+                <div class="btn-group">
+                    <button id="save-edit-btn" class="btn btn-success">💾 Сохранить</button>
+                    <button id="cancel-edit-btn" class="btn btn-secondary">Отменить</button>
                 </div>
             </div>
 
-            <div style="margin-top: 10px; display: flex; gap: 10px;">
-                <button id="clear-all-btn" class="btn btn-danger" style="flex:1;">🗑 Очистить все</button>
-                <button id="check-btn" class="btn btn-success" style="flex:1;">✅ Проверить</button>
+            <div class="subrange-list-actions">
+                <button id="check-btn" class="btn btn-success" style="width:100%;">✅ Проверить</button>
             </div>
         </div>
     </div>
@@ -113,7 +148,7 @@
             (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
         </p>
         <p>
-            <a href="{{ url_for('reset_draw_stats', next=request.url) }}" class="btn btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none;">🔄 Сбросить статистику</a>
+            <a href="{{ url_for('reset_draw_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display:inline-block;">🔄 Сбросить статистику</a>
         </p>
     </div>
 </div>

@@ -207,36 +207,15 @@ function updateSubrangeListUI() {
         const editBtn = document.createElement('button');
         editBtn.textContent = '✏️';
         editBtn.className = 'edit-btn';
-        editBtn.title = 'Edit';
+        editBtn.title = 'Редактировать (добавить руки)';
         editBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             startEditing(sub.id);
         });
         li.appendChild(editBtn);
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = '🗑️';
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.title = 'Delete';
-        deleteBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (confirm(`Удалить поддиапазон "${sub.name}"?`)) {
-                deleteSubrange(sub.id);
-            }
-        });
-        li.appendChild(deleteBtn);
-
         ul.appendChild(li);
     });
-    const emptyMsg = document.getElementById('empty-message');
-    emptyMsg.style.display = tempSubranges.length === 0 ? 'block' : 'none';
-}
-
-function deleteSubrange(id) {
-    tempSubranges = tempSubranges.filter(s => s.id !== id);
-    if (editingId === id) cancelEditing();
-    updateSubrangeListUI();
-    renderAllSubranges();
 }
 
 function startEditing(id) {
@@ -247,10 +226,8 @@ function startEditing(id) {
     currentHands = editingHands.slice();
     currentColor = sub.color;
 
-    document.getElementById('subname').value = sub.name;
     document.getElementById('color-picker').value = sub.color;
-    document.getElementById('cancel-edit-btn').style.display = 'inline-block';
-    document.getElementById('save-subrange-btn').textContent = '💾 Обновить поддиапазон';
+    document.getElementById('subrange-edit-area').classList.add('visible');
 
     const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
     cells.forEach(cell => {
@@ -270,12 +247,9 @@ function cancelEditing() {
     editingId = null;
     editingHands = [];
     currentHands = [];
-    document.getElementById('edit-id').value = '';
-    document.getElementById('subname').value = '';
     document.getElementById('color-picker').value = '#3498db';
     currentColor = '#3498db';
-    document.getElementById('cancel-edit-btn').style.display = 'none';
-    document.getElementById('save-subrange-btn').textContent = '✅ Добавить поддиапазон';
+    document.getElementById('subrange-edit-area').classList.remove('visible');
     const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
     cells.forEach(cell => {
         cell.dataset.selected = 'false';
@@ -284,33 +258,31 @@ function cancelEditing() {
     highlightEditingSubrange();
 }
 
-function addSubrange(name, hands, color) {
-    const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
-    const handsSet = new Set(hands);
-    tempSubranges = tempSubranges.map(sub => {
-        if (sub.id !== id) {
-            sub.hands = sub.hands.filter(h => !handsSet.has(h));
+function saveEdit() {
+    if (!editingId) return;
+    const sub = tempSubranges.find(s => s.id === editingId);
+    if (!sub) return;
+    if (currentHands.length === 0) {
+        alert('Выберите хотя бы одну руку');
+        return;
+    }
+    const handsSet = new Set(currentHands);
+    tempSubranges = tempSubranges.map(s => {
+        if (s.id !== editingId) {
+            s.hands = s.hands.filter(h => !handsSet.has(h));
         }
-        return sub;
+        return s;
     });
-    tempSubranges.push({ id, name, hands: hands.slice(), color });
-    updateSubrangeListUI();
-    renderAllSubranges();
-}
-
-function clearAllSubranges() {
-    if (tempSubranges.length === 0) return;
-    if (!confirm('Удалить все поддиапазоны?')) return;
-    tempSubranges = [];
+    sub.hands = currentHands.slice();
+    sub.color = currentColor;
     updateSubrangeListUI();
     renderAllSubranges();
     cancelEditing();
-    clearCurrentSelection();
 }
 
 function checkAnswer() {
     if (tempSubranges.length === 0) {
-        alert('Добавьте хотя бы один поддиапазон перед проверкой');
+        alert('Нет поддиапазонов для проверки');
         return;
     }
     const subranges = tempSubranges.map(sub => ({
@@ -473,58 +445,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    document.getElementById('save-subrange-btn').addEventListener('click', function() {
-        const name = document.getElementById('subname').value.trim();
-        if (!name) {
-            alert('Введите имя поддиапазона');
-            return;
-        }
-        if (currentHands.length === 0) {
-            alert('Выберите хотя бы одну руку');
-            return;
-        }
-
-        if (editingId) {
-            const sub = tempSubranges.find(s => s.id === editingId);
-            if (sub) {
-                const handsSet = new Set(currentHands);
-                tempSubranges = tempSubranges.map(s => {
-                    if (s.id !== editingId) {
-                        s.hands = s.hands.filter(h => !handsSet.has(h));
-                    }
-                    return s;
-                });
-                sub.name = name;
-                sub.hands = currentHands.slice();
-                sub.color = currentColor;
-                updateSubrangeListUI();
-                renderAllSubranges();
-                cancelEditing();
-            }
-        } else {
-            addSubrange(name, currentHands, currentColor);
-            clearCurrentSelection();
-            document.getElementById('subname').value = '';
-        }
+    document.getElementById('save-edit-btn').addEventListener('click', function() {
+        saveEdit();
     });
 
     document.getElementById('cancel-edit-btn').addEventListener('click', function() {
         cancelEditing();
     });
 
-    document.getElementById('clear-all-btn').addEventListener('click', function() {
-        clearAllSubranges();
-    });
-
     document.getElementById('check-btn').addEventListener('click', function() {
         checkAnswer();
     });
 
-    function newPosition() {
+    document.getElementById('new-after-check-btn').addEventListener('click', function() {
         window.location.href = window.location.href;
-    }
-
-    document.getElementById('new-after-check-btn').addEventListener('click', newPosition);
+    });
 
     document.getElementById('retry-btn').addEventListener('click', function() {
         document.getElementById('result-block').style.display = 'none';

@@ -999,4 +999,4 @@ def reset_draw_stats():
 # Application entry point
 # -------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
