@@ -240,6 +240,9 @@ function startEditing(id) {
         }
     });
     highlightEditingSubrange();
+    document.getElementById('quick-select-buttons').style.display = 'block';
+    document.getElementById('quick-select-buttons').style.display = 'flex';
+    document.querySelectorAll('.quick-select-btn').forEach(b => b.classList.remove('active'));
 }
 
 function cancelEditing() {
@@ -254,6 +257,8 @@ function cancelEditing() {
     });
     renderAllSubranges();
     highlightEditingSubrange();
+    document.getElementById('quick-select-buttons').style.display = 'none';
+    document.querySelectorAll('.quick-select-btn').forEach(b => b.classList.remove('active'));
 }
 
 function saveEdit() {
@@ -405,6 +410,33 @@ function updateStats(stats) {
     }
 }
 
+function getHandsByCategory(type) {
+    const broadway = ['A','K','Q','J','T'];
+    const allRanks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+    if (type === 'pairs') {
+        return allRanks.map(r => r+r);
+    }
+    if (type === 'suited-broadway') {
+        const hands = [];
+        for (let i = 0; i < broadway.length; i++) {
+            for (let j = i+1; j < broadway.length; j++) {
+                hands.push(broadway[i] + broadway[j] + 's');
+            }
+        }
+        return hands;
+    }
+    if (type === 'offsuit-broadway') {
+        const hands = [];
+        for (let i = 0; i < broadway.length; i++) {
+            for (let j = i+1; j < broadway.length; j++) {
+                hands.push(broadway[i] + broadway[j] + 'o');
+            }
+        }
+        return hands;
+    }
+    return [];
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     generateHandMatrix();
 
@@ -459,5 +491,41 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelEditing();
         clearCurrentSelection();
         document.getElementById('check-btn').disabled = false;
+    });
+
+    document.querySelectorAll('.quick-select-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (!editingId) return;
+            const type = this.dataset.type;
+            const hands = getHandsByCategory(type);
+            const isActive = this.classList.contains('active');
+            if (isActive) {
+                const handsSet = new Set(hands);
+                editingHands = editingHands.filter(h => !handsSet.has(h));
+                currentHands = currentHands.filter(h => !handsSet.has(h));
+                const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
+                cells.forEach(cell => {
+                    if (handsSet.has(cell.dataset.hand)) {
+                        cell.dataset.selected = 'false';
+                        renderCell(cell);
+                    }
+                });
+                this.classList.remove('active');
+            } else {
+                const existing = new Set(editingHands);
+                const toAdd = hands.filter(h => !existing.has(h));
+                toAdd.forEach(h => {
+                    editingHands.push(h);
+                    currentHands.push(h);
+                    const cell = document.querySelector(`#hand-matrix .matrix-cell[data-hand="${h}"]`);
+                    if (cell) {
+                        cell.dataset.selected = 'true';
+                        cell.style.backgroundColor = currentColor;
+                    }
+                });
+                this.classList.add('active');
+            }
+            renderAllSubranges();
+        });
     });
 });
