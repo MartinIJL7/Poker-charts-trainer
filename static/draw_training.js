@@ -335,6 +335,52 @@ function checkAnswer() {
     .catch(err => alert('Ошибка сети: ' + err));
 }
 
+function formatHands(hands) {
+    if (!hands || hands.length === 0) return '—';
+
+    const rankOrder = { 'A': 14, 'K': 13, 'Q': 12, 'J': 11, 'T': 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2 };
+    const compareByRank = (a, b) => {
+        const r1 = a[0], r2 = b[0];
+        if (rankOrder[r1] !== rankOrder[r2]) return rankOrder[r2] - rankOrder[r1];
+        if (a.length === 2) return 0;
+        const s1 = a[1], s2 = b[1];
+        if (a.length === 3 && a[2] === 's') {
+            const second1 = a[1], second2 = b[1];
+            return rankOrder[second2] - rankOrder[second1];
+        }
+        if (a.length === 3 && a[2] === 'o') {
+            const second1 = a[1], second2 = b[1];
+            return rankOrder[second2] - rankOrder[second1];
+        }
+        return 0;
+    };
+
+    const pairs = [];
+    const suited = [];
+    const offsuit = [];
+
+    hands.forEach(hand => {
+        if (hand.length === 2) {
+            pairs.push(hand);
+        } else if (hand.endsWith('s')) {
+            suited.push(hand);
+        } else if (hand.endsWith('o')) {
+            offsuit.push(hand);
+        }
+    });
+
+    const sortHands = (arr) => arr.sort(compareByRank);
+    sortHands(pairs);
+    sortHands(suited);
+    sortHands(offsuit);
+
+    const parts = [];
+    if (pairs.length) parts.push('Пары: ' + pairs.join(', '));
+    if (suited.length) parts.push('Одномастные: ' + suited.join(', '));
+    if (offsuit.length) parts.push('Разномастные: ' + offsuit.join(', '));
+    return parts.join('; ');
+}
+
 function showResult(data) {
     const block = document.getElementById('result-block');
     const content = document.getElementById('result-content');
@@ -350,14 +396,14 @@ function showResult(data) {
         if (data.missing.length > 0) {
             html += `<div class="result-item missing"><h4 style="color: #e67e22;">❌ Пропущенные руки (должны быть, но отсутствуют):</h4>`;
             data.missing.forEach(item => {
-                html += `<p><strong>${item.name}:</strong> <span class="hands">${item.hands.join(', ')}</span></p>`;
+                html += `<p><strong>${item.name}:</strong> <span class="hands">${formatHands(item.hands)}</span></p>`;
             });
             html += `</div>`;
         }
         if (data.extra_hands.length > 0) {
             html += `<div class="result-item extra"><h4 style="color: #e74c3c;">⚠️ Лишние руки в правильных поддиапазонах:</h4>`;
             data.extra_hands.forEach(item => {
-                html += `<p><strong>${item.name}:</strong> <span class="hands">${item.hands.join(', ')}</span></p>`;
+                html += `<p><strong>${item.name}:</strong> <span class="hands">${formatHands(item.hands)}</span></p>`;
             });
             html += `</div>`;
         }
