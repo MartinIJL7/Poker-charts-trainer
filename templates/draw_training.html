@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Рисование диапазона – {{ mode }}{% endblock %}
-{% block header %}🎨 Рисование диапазона для {{ mode }}{% endblock %}
+{% block header %}🎨 Рисование диапазонов для {{ mode }}{% endblock %}
 {% block body_class %}create-page{% endblock %}
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='create_range.css') }}">
@@ -137,7 +137,7 @@
 <div class="create-container">
     <div class="top-row">
         <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 10px; flex-wrap: wrap;">
-            <h2 style="margin:0;">Позиция: <span id="position-label">{{ position }}</span></h2>
+            <h2 style="margin:0;">Диапазон: <span id="position-label">{{ position }}</span></h2>
         </div>
         <p style="color: #555; margin: 0;">Чтобы добавить руки в поддиапазон, сначала нажмите ✏️, после чего выбирайте руки и нажимайте "💾 Сохранить"</p>
     </div>
@@ -178,8 +178,8 @@
         <h3>📊 Результат проверки</h3>
         <div id="result-content"></div>
         <div class="result-actions">
-            <button id="retry-btn" class="btn btn-secondary">🔄 Попробовать снова (та же позиция)</button>
-            <button id="new-after-check-btn" class="btn btn-primary">Новая позиция</button>
+            <button id="retry-btn" class="btn btn-secondary">🔄 Попробовать снова (тот же диапазон)</button>
+            <button id="new-after-check-btn" class="btn btn-primary">Новый диапазон</button>
         </div>
     </div>
 

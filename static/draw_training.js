@@ -365,7 +365,7 @@ function showResult(data) {
     const content = document.getElementById('result-content');
     block.style.display = 'block';
 
-    let html = `<p><strong>Позиция:</strong> ${data.position}</p>`;
+    let html = `<p><strong>Диапазон:</strong> ${data.position}</p>`;
 
     const hasErrors = data.missing.length > 0 || data.extra_hands.length > 0 || data.wrong_names.length > 0;
 
