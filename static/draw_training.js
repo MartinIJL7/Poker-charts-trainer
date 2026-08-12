@@ -373,14 +373,14 @@ function showResult(data) {
         html += `<p style="color: #27ae60; font-size: 1.2em;">✅ Отлично! Все поддиапазоны нарисованы верно</p>`;
     } else {
         if (data.missing.length > 0) {
-            html += `<div class="result-item missing"><h4 style="color: #e67e22;">❌ Пропущенные руки (должны быть, но отсутствуют):</h4>`;
+            html += `<div class="result-item missing"><h4 style="color: #e67e22;">❌ Пропущенные руки:</h4>`;
             data.missing.forEach(item => {
                 html += `<p><strong>${item.name}:</strong> <span class="hands">${formatHands(item.hands)}</span></p>`;
             });
             html += `</div>`;
         }
         if (data.extra_hands.length > 0) {
-            html += `<div class="result-item extra"><h4 style="color: #e74c3c;">⚠️ Лишние руки в правильных поддиапазонах:</h4>`;
+            html += `<div class="result-item extra"><h4 style="color: #e74c3c;">⚠️ Лишние руки:</h4>`;
             data.extra_hands.forEach(item => {
                 html += `<p><strong>${item.name}:</strong> <span class="hands">${formatHands(item.hands)}</span></p>`;
             });
