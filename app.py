@@ -934,6 +934,7 @@ def draw_training(mode):
             stats['wrong'] += 1
         session['draw_stats'] = stats
 
+        expected_hands = [{'name': name, 'hands': list(hands)} for name, hands in expected.items()]
         return jsonify({
             'status': 'ok',
             'missing': missing,
@@ -941,7 +942,8 @@ def draw_training(mode):
             'wrong_names': wrong_names,
             'position': position,
             'mode': mode,
-            'stats': stats
+            'stats': stats,
+            'expected_hands': expected_hands
         })
 
     # ---- GET ----

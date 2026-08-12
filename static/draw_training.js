@@ -7,6 +7,10 @@ let tempSubranges = [];
 let editingId = null;
 let editingHands = [];
 
+let correctSubranges = null;
+let userSubranges = null;
+let showingCorrect = false;
+
 let isDragging = false;
 let dragStartX = 0;
 let dragStartY = 0;
@@ -391,6 +395,19 @@ function showResult(data) {
         }
     }
 
+    if (data.expected_hands) {
+        correctSubranges = data.expected_hands.map((item, index) => ({
+            id: tempSubranges[index] ? tempSubranges[index].id : 'correct_' + index,
+            name: item.name,
+            hands: item.hands.slice(),
+            color: tempSubranges[index] ? tempSubranges[index].color : '#3498db'
+        }));
+        userSubranges = tempSubranges.map(sub => ({...sub, hands: sub.hands.slice()}));
+        document.getElementById('toggle-correct-btn').style.display = 'inline-block';
+        document.getElementById('toggle-correct-btn').textContent = 'Показать правильный диапазон';
+        showingCorrect = false;
+    }
+
     content.innerHTML = html;
 
     document.getElementById('check-btn').disabled = true;
@@ -491,6 +508,10 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelEditing();
         clearCurrentSelection();
         document.getElementById('check-btn').disabled = false;
+        document.getElementById('toggle-correct-btn').style.display = 'none';
+        correctSubranges = null;
+        userSubranges = null;
+        showingCorrect = false;
     });
 
     document.querySelectorAll('.quick-select-btn').forEach(btn => {
@@ -527,5 +548,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             renderAllSubranges();
         });
+    });
+
+    document.getElementById('toggle-correct-btn').addEventListener('click', function() {
+        if (!correctSubranges || !userSubranges) return;
+        if (showingCorrect) {
+            tempSubranges = userSubranges.map(sub => ({...sub, hands: sub.hands.slice()}));
+            this.textContent = 'Показать правильный диапазон';
+            showingCorrect = false;
+        } else {
+            tempSubranges = correctSubranges.map(sub => ({...sub, hands: sub.hands.slice()}));
+            this.textContent = 'Показать мой диапазон';
+            showingCorrect = true;
+        }
+        updateSubrangeListUI();
+        renderAllSubranges();
+        clearCurrentSelection();
     });
 });
