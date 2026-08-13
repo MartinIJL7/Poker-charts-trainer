@@ -131,6 +131,63 @@
             cursor: pointer;
             transition: background 0.2s;
         }
+
+        @media screen and (max-width: 600px) {
+            .create-container {
+                padding: 10px 6px;
+            }
+            .two-columns {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .left-column, .right-column {
+                flex: 1 1 100%;
+                min-width: unset;
+            }
+            .right-column {
+                max-height: 400px;
+            }
+            #hand-matrix {
+                gap: 1px;
+                max-width: 100%;
+                touch-action: none;
+                user-select: none;
+                -webkit-user-select: none;
+            }
+            .matrix-cell {
+                font-size: 0.5rem;
+                min-height: 28px;
+                min-width: 28px;
+                touch-action: none;
+                -webkit-touch-callout: none;
+            }
+            .matrix-cell:active {
+                transform: scale(0.95);
+                opacity: 0.7;
+            }
+            .right-column ul li {
+                padding: 6px 8px;
+            }
+            .subrange-edit-area .btn-group button {
+                height: 44px;
+                font-size: 16px;
+            }
+            #check-btn, #retry-btn, #new-after-check-btn {
+                height: 44px;
+                font-size: 16px;
+            }
+            #clear-selection-btn, #toggle-correct-btn {
+                height: 44px;
+                font-size: 16px;
+                padding: 0 14px;
+            }
+            .stats p {
+                font-size: 0.9em;
+            }
+            .header-row h1 {
+                font-size: 1.1em;
+            }
+        }
     </style>
 {% endblock %}
 {% block content %}

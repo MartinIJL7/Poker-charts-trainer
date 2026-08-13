@@ -15,13 +15,15 @@ let isDragging = false;
 let dragStartX = 0;
 let dragStartY = 0;
 let dragMode = 'select';
-const DRAG_THRESHOLD = 5;
+const DRAG_THRESHOLD = 10;
 
 const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 
 function generateHandMatrix() {
     const container = document.getElementById('hand-matrix');
     container.innerHTML = '';
+    const matrixCells = [];
+
     ranks.forEach((rowRank, i) => {
         ranks.forEach((colRank, j) => {
             const cell = document.createElement('div');
@@ -37,46 +39,104 @@ function generateHandMatrix() {
             cell.textContent = hand;
             cell.dataset.hand = hand;
             cell.dataset.selected = 'false';
-
-            cell.addEventListener('pointerdown', function(e) {
-                dragStartX = e.clientX;
-                dragStartY = e.clientY;
-                isDragging = false;
-                this.dataset.dragStartSelected = this.dataset.selected === 'true';
-                e.preventDefault();
-            });
-
-            cell.addEventListener('pointermove', function(e) {
-                if (e.buttons !== 1) return;
-                if (!isDragging && (Math.abs(e.clientX - dragStartX) > DRAG_THRESHOLD || Math.abs(e.clientY - dragStartY) > DRAG_THRESHOLD)) {
-                    isDragging = true;
-                    const startSelected = this.dataset.dragStartSelected === 'true';
-                    dragMode = startSelected ? 'deselect' : 'select';
-                    if (dragMode === 'select') {
-                        if (this.dataset.selected === 'false') toggleCellForDrag(this);
-                    } else {
-                        if (this.dataset.selected === 'true') untoggleCellForDrag(this);
-                    }
-                }
-                if (isDragging) {
-                    if (dragMode === 'select') {
-                        if (this.dataset.selected === 'false') toggleCellForDrag(this);
-                    } else {
-                        if (this.dataset.selected === 'true') untoggleCellForDrag(this);
-                    }
-                }
-            });
-
-            cell.addEventListener('pointerup', function(e) {
-                if (!isDragging) {
-                    toggleCell(this);
-                }
-                isDragging = false;
-            });
-
             container.appendChild(cell);
+            matrixCells.push(cell);
         });
     });
+
+    let dragData = null;
+
+    function getCellAtPoint(clientX, clientY) {
+        const elem = document.elementFromPoint(clientX, clientY);
+        if (elem && elem.classList && elem.classList.contains('matrix-cell')) {
+            return elem;
+        }
+        return null;
+    }
+
+    function handlePointerDown(e) {
+        const cell = e.currentTarget;
+        e.preventDefault();
+        const rect = cell.getBoundingClientRect();
+        dragData = {
+            cell: cell,
+            startX: e.clientX,
+            startY: e.clientY,
+            started: false,
+            dragMode: null,
+            initialSelected: cell.dataset.selected === 'true'
+        };
+        cell.setPointerCapture(e.pointerId);
+        dragData.pointerId = e.pointerId;
+        document.addEventListener('pointermove', handlePointerMove);
+        document.addEventListener('pointerup', handlePointerUp);
+    }
+
+    function handlePointerMove(e) {
+        if (!dragData) return;
+        const cell = dragData.cell;
+        const dx = e.clientX - dragData.startX;
+        const dy = e.clientY - dragData.startY;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+
+        if (!dragData.started && distance > DRAG_THRESHOLD) {
+            dragData.started = true;
+            dragData.dragMode = dragData.initialSelected ? 'deselect' : 'select';
+            applyAction(cell);
+        }
+
+        if (dragData.started) {
+            const target = getCellAtPoint(e.clientX, e.clientY);
+            if (target && target !== cell) {
+                applyAction(target);
+            }
+        }
+        e.preventDefault();
+    }
+
+    function applyAction(cell) {
+        if (!dragData) return;
+        const hand = cell.dataset.hand;
+        if (dragData.dragMode === 'select') {
+            if (cell.dataset.selected !== 'true') {
+                cell.dataset.selected = 'true';
+                cell.style.backgroundColor = currentColor;
+                if (!currentHands.includes(hand)) currentHands.push(hand);
+                if (editingId && !editingHands.includes(hand)) editingHands.push(hand);
+            }
+        } else if (dragData.dragMode === 'deselect') {
+            if (cell.dataset.selected === 'true') {
+                cell.dataset.selected = 'false';
+                cell.style.backgroundColor = '';
+                const idx = currentHands.indexOf(hand);
+                if (idx > -1) currentHands.splice(idx, 1);
+                if (editingId) {
+                    const idx2 = editingHands.indexOf(hand);
+                    if (idx2 > -1) editingHands.splice(idx2, 1);
+                }
+                renderCell(cell);
+            }
+        }
+    }
+
+    function handlePointerUp(e) {
+        if (!dragData) return;
+        const cell = dragData.cell;
+        if (!dragData.started) {
+            toggleCell(cell);
+        }
+        cell.releasePointerCapture(e.pointerId);
+        document.removeEventListener('pointermove', handlePointerMove);
+        document.removeEventListener('pointerup', handlePointerUp);
+        dragData = null;
+        isDragging = false;
+        e.preventDefault();
+    }
+
+    matrixCells.forEach(cell => {
+        cell.addEventListener('pointerdown', handlePointerDown);
+    });
+
     renderAllSubranges();
 }
 

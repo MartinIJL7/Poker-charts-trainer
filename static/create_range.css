@@ -210,6 +210,9 @@ body.create-page {
 }
 
 #hand-matrix {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
     display: grid;
     grid-template-columns: repeat(13, 1fr);
     gap: 2px;
@@ -218,6 +221,8 @@ body.create-page {
 }
 
 .matrix-cell {
+    touch-action: none;
+    -webkit-touch-callout: none;
     background: #d5d8dc;
     text-align: center;
     font-size: 0.7em;
@@ -336,4 +341,34 @@ body.create-page {
     .save-range-btn {
         width: 100%;
     }
+}
+
+@media screen and (max-width: 600px) {
+    body.create-page { padding: 0 6px; }
+    .create-container { padding: 10px 6px; }
+    .two-columns { flex-direction: column; gap: 15px; }
+    .left-column, .right-column { flex: 1 1 100%; min-width: unset; }
+    .right-column { max-height: 400px; }
+    .position-input-wrapper { flex-wrap: wrap; gap: 6px; }
+    .position-input-wrapper select,
+    .position-input-wrapper input,
+    .position-input-wrapper button {
+        height: 44px;
+        font-size: 16px;
+        flex: 1 1 100%;
+        min-width: 100%;
+    }
+    .position-input-wrapper .btn-success,
+    .position-input-wrapper .btn-secondary {
+        flex: 1 1 45%;
+        min-width: 45%;
+    }
+    #hand-matrix { gap: 1px; max-width: 100%; }
+    .matrix-cell { font-size: 0.5rem; min-height: 28px; min-width: 28px; border-width: 1px; }
+    .subrange-actions button { height: 44px; font-size: 16px; }
+    #clear-all-btn, #clear-selection-btn { height: 44px; font-size: 16px; }
+    #subname { height: 44px; font-size: 16px; }
+    .right-column ul li { padding: 6px 8px; }
+    .right-column ul li .edit-btn,
+    .right-column ul li .delete-btn { font-size: 1.1em; padding: 4px 6px; }
 }
