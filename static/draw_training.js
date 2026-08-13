@@ -403,9 +403,14 @@ function showResult(data) {
             color: tempSubranges[index] ? tempSubranges[index].color : '#3498db'
         }));
         userSubranges = tempSubranges.map(sub => ({...sub, hands: sub.hands.slice()}));
-        document.getElementById('toggle-correct-btn').style.display = 'inline-block';
-        document.getElementById('toggle-correct-btn').textContent = 'Показать правильный диапазон';
-        showingCorrect = false;
+        
+        if (hasErrors) {
+            document.getElementById('toggle-correct-btn').style.display = 'inline-block';
+            document.getElementById('toggle-correct-btn').textContent = 'Показать правильный диапазон';
+            showingCorrect = false;
+        } else {
+            document.getElementById('toggle-correct-btn').style.display = 'none';
+        }
     }
 
     content.innerHTML = html;
