@@ -134,32 +134,34 @@
 
         @media screen and (max-width: 600px) {
             .create-container {
-                padding: 10px 6px;
+                overflow: visible !important;
+                height: auto !important;
+                padding-bottom: 80px !important;
             }
             .two-columns {
-                flex-direction: column;
-                gap: 15px;
+                overflow: visible !important;
+                height: auto !important;
             }
-            .left-column, .right-column {
-                flex: 1 1 100%;
-                min-width: unset;
+            .left-column {
+                overflow: visible !important;
+                height: auto !important;
             }
             .right-column {
-                max-height: 400px;
+                overflow: visible !important;
+                height: auto !important;
+                max-height: none !important;
             }
             #hand-matrix {
-                gap: 1px;
-                max-width: 100%;
-                touch-action: none;
-                user-select: none;
-                -webkit-user-select: none;
+                gap: 1px !important;
+                max-width: 100% !important;
+                width: 100% !important;
             }
             .matrix-cell {
-                font-size: 0.5rem;
-                min-height: 28px;
-                min-width: 28px;
-                touch-action: none;
-                -webkit-touch-callout: none;
+                font-size: 0.6rem !important;
+                min-height: 26px !important;
+                min-width: 26px !important;
+                padding: 0 !important;
+                border-width: 1px !important;
             }
             .matrix-cell:active {
                 transform: scale(0.95);
@@ -186,6 +188,48 @@
             }
             .header-row h1 {
                 font-size: 1.1em;
+            }
+        }
+
+        @media screen and (max-width: 400px) {
+            .create-container {
+                overflow: visible !important;
+                height: auto !important;
+                padding-bottom: 80px !important;
+            }
+            .two-columns {
+                overflow: visible !important;
+                height: auto !important;
+            }
+            .left-column {
+                overflow: visible !important;
+                height: auto !important;
+            }
+            .right-column {
+                overflow: visible !important;
+                height: auto !important;
+                max-height: none !important;
+            }
+
+            #hand-matrix {
+                grid-template-columns: repeat(13, 1fr) !important;
+                gap: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+            }
+
+            .matrix-cell {
+                font-size: 0.5rem !important;
+                min-width: 0 !important;
+                min-height: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                aspect-ratio: 1 / 1 !important;
+                line-height: 1 !important;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
         }
     </style>

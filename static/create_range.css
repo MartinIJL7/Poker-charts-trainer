@@ -345,10 +345,24 @@ body.create-page {
 
 @media screen and (max-width: 600px) {
     body.create-page { padding: 0 6px; }
-    .create-container { padding: 10px 6px; }
-    .two-columns { flex-direction: column; gap: 15px; }
-    .left-column, .right-column { flex: 1 1 100%; min-width: unset; }
-    .right-column { max-height: 400px; }
+    .create-container {
+        overflow: visible !important;
+        height: auto !important;
+        padding-bottom: 80px !important;
+    }
+    .two-columns {
+        overflow: visible !important;
+        height: auto !important;
+    }
+    .left-column {
+        overflow: visible !important;
+        height: auto !important;
+    }
+    .right-column {
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+    }
     .position-input-wrapper { flex-wrap: wrap; gap: 6px; }
     .position-input-wrapper select,
     .position-input-wrapper input,
@@ -363,12 +377,64 @@ body.create-page {
         flex: 1 1 45%;
         min-width: 45%;
     }
-    #hand-matrix { gap: 1px; max-width: 100%; }
-    .matrix-cell { font-size: 0.5rem; min-height: 28px; min-width: 28px; border-width: 1px; }
+    #hand-matrix {
+        gap: 1px !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    .matrix-cell {
+        font-size: 0.6rem !important;
+        min-height: 26px !important;
+        min-width: 26px !important;
+        padding: 0 !important;
+        border-width: 1px !important;
+    }
     .subrange-actions button { height: 44px; font-size: 16px; }
     #clear-all-btn, #clear-selection-btn { height: 44px; font-size: 16px; }
     #subname { height: 44px; font-size: 16px; }
     .right-column ul li { padding: 6px 8px; }
     .right-column ul li .edit-btn,
     .right-column ul li .delete-btn { font-size: 1.1em; padding: 4px 6px; }
+}
+
+@media screen and (max-width: 400px) {
+    .create-container {
+        overflow: visible !important;
+        height: auto !important;
+        padding-bottom: 80px !important;
+    }
+    .two-columns {
+        overflow: visible !important;
+        height: auto !important;
+    }
+    .left-column {
+        overflow: visible !important;
+        height: auto !important;
+    }
+    .right-column {
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+    }
+
+    #hand-matrix {
+        grid-template-columns: repeat(13, 1fr) !important;
+        gap: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .matrix-cell {
+        font-size: 0.5rem !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        aspect-ratio: 1 / 1 !important;
+        line-height: 1 !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 }
