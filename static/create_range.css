@@ -313,7 +313,7 @@ body.create-page {
 }
 
 /* ---- Responsive ---- */
-@media (max-width: 800px) {
+@media (max-width: 1000px) {
     .two-columns {
         flex-wrap: wrap;
     }
@@ -338,8 +338,22 @@ body.create-page {
     .top-row .form-group {
         flex: 1 1 100%;
     }
-    .save-range-btn {
-        width: 100%;
+
+    .position-input-wrapper {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .position-input-wrapper select,
+    .position-input-wrapper input,
+    .position-input-wrapper button {
+        flex: 1 1 0;
+        min-width: 0;
+        height: 40px;
+        font-size: 0.9em;
+    }
+    .position-input-wrapper button {
+        white-space: normal;
+        padding: 0 8px;
     }
 }
 
@@ -374,8 +388,10 @@ body.create-page {
     }
     .position-input-wrapper .btn-success,
     .position-input-wrapper .btn-secondary {
-        flex: 1 1 45%;
-        min-width: 45%;
+        flex: 1 1 100%;
+        min-width: 100%;
+        white-space: normal;
+        font-size: 0.9em;
     }
     #hand-matrix {
         gap: 1px !important;

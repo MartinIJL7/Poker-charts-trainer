@@ -146,6 +146,7 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px 20px;
+    min-width: 0;
 }
 
 .positions-list li {
@@ -156,6 +157,9 @@
 
 .positions-list label {
     display: flex;
+    white-space: normal;
+    word-break: break-word;
+    overflow: hidden;
     align-items: center;
     padding: 8px 12px;
     background: #f5f5f5;
