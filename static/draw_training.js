@@ -456,12 +456,38 @@ function showResult(data) {
     }
 
     if (data.expected_hands) {
-        correctSubranges = data.expected_hands.map((item, index) => ({
-            id: tempSubranges[index] ? tempSubranges[index].id : 'correct_' + index,
-            name: item.name,
-            hands: item.hands.slice(),
-            color: tempSubranges[index] ? tempSubranges[index].color : '#3498db'
-        }));
+        const expectedMap = {};
+        data.expected_hands.forEach(item => {
+            expectedMap[item.name] = item.hands.slice();
+        });
+
+        const userColorMap = {};
+        tempSubranges.forEach(sub => {
+            userColorMap[sub.name] = sub.color;
+        });
+
+        correctSubranges = tempSubranges.map(sub => {
+            const hands = expectedMap[sub.name] || [];
+            return {
+                id: sub.id,
+                name: sub.name,
+                hands: hands,
+                color: userColorMap[sub.name] || '#3498db'
+            };
+        });
+
+        const userNames = new Set(tempSubranges.map(s => s.name));
+        data.expected_hands.forEach(item => {
+            if (!userNames.has(item.name)) {
+                correctSubranges.push({
+                    id: 'correct_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                    name: item.name,
+                    hands: item.hands.slice(),
+                    color: '#3498db'
+                });
+            }
+        });
+
         userSubranges = tempSubranges.map(sub => ({...sub, hands: sub.hands.slice()}));
         
         if (hasErrors) {
