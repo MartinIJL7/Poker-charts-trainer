@@ -231,6 +231,14 @@
                 align-items: center;
                 justify-content: center;
             }
+
+            .result-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .result-actions button {
+                width: 100%;
+            }
         }
     </style>
 {% endblock %}
@@ -279,7 +287,7 @@
         <h3>📊 Результат проверки</h3>
         <div id="result-content"></div>
         <div class="result-actions">
-            <button id="retry-btn" class="btn btn-secondary">🔄 Попробовать снова (тот же диапазон)</button>
+            <button id="retry-btn" class="btn btn-secondary">🔄 Попробовать снова</button>
             <button id="new-after-check-btn" class="btn btn-primary">Новый диапазон</button>
         </div>
     </div>
