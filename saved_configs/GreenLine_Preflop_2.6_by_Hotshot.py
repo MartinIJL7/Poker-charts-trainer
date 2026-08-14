@@ -88,7 +88,7 @@ subranges = {
         'BB_defend_vs_BTN': {'J8s', 'T8s'}
     },
 
-    '3bet not bb defend': {
+    '3bet 100%': {
         '3bet_IP_vs_EP': {'99', 'AA', 'AJs', 'AKo', 'AKs', 'AQs', 'JJ', 'KJs', 'KK', 'KQs', 'QJs', 'QQ', 'TT'},
         '3bet_IP_vs_MP': {'88', '99', 'AA', 'AJs', 'AKo', 'AKs', 'AQo', 'AQs', 'ATs', 'JJ', 'JTs', 'KJs', 'KK', 'KQs', 'KTs', 'QJs', 'QQ', 'QTs', 'TT'},
         '3bet_IP_vs_CO': {'88', '99', 'A4s', 'A5s', 'A9s', 'AA', 'AJs', 'AKo', 'AKs', 'AQo', 'AQs', 'ATs', 'JJ', 'JTs', 'KJs', 'KK', 'KQs', 'KTs', 'QJs', 'QQ', 'QTs', 'TT'},
@@ -122,7 +122,7 @@ subranges = {
     }
 }
 
-subrange_order = ['100% RFI', 'RFI if convenient', 'RFI if extremely convenient', '100% ISO', '50/50 ISO/fold', '50/50 ISO/limp', 'limp', '50/50 ISO/check', 'check', '3bet', '50/50 3bet/call', 'call', '50/50 call/fold', '3bet not bb defend', '50/50 3bet/fold', '3bet if convenient', '3bet if extremely convenient']
+subrange_order = ['100% RFI', 'RFI if convenient', 'RFI if extremely convenient', '100% ISO', '50/50 ISO/fold', '50/50 ISO/limp', 'limp', '50/50 ISO/check', 'check', '3bet', '50/50 3bet/call', 'call', '50/50 call/fold', '3bet 100%', '50/50 3bet/fold', '3bet if convenient', '3bet if extremely convenient']
 
 modes = {
     'RFI': ['RFI_UTG', 'RFI_MP', 'RFI_CO', 'RFI_BTN', 'RFI_SB'],
@@ -146,7 +146,7 @@ subrange_colors = {
     '50/50 3bet/call': '#FF4500',
     'call': '#FFB747',
     '50/50 call/fold': '#9ACD32',
-    '3bet not bb defend': '#E14444',
+    '3bet 100%': '#E14444',
     '50/50 3bet/fold': '#8B3A3A',
     '3bet if convenient': '#FFB747',
     '3bet if extremely convenient': '#72BF44'
