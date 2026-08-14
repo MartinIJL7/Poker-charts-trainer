@@ -1,95 +1,51 @@
-/* create_mode.css – styles for the mode management page */
+/* ============================================================
+   create_mode.css – styles for mode management page
+   ============================================================ */
 
+/* ----- General container ----- */
 .mode-management {
     max-width: 800px;
     margin: 0 auto;
+    padding: 0 10px; /* small side padding for mobile */
 }
 
-/* ---- Mode creation block ---- */
-.create-mode-container {
-    max-width: 800px;
-    margin: 0 auto;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.positions-list ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px 20px;
-}
-
-.positions-list li {
-    margin: 0;
-    display: flex;
-    align-items: center;
-}
-
-.positions-list label {
-    display: flex;
-    align-items: center;
-    padding: 6px 12px;
-    background: #f5f5f5;
-    border-radius: 4px;
-    cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-    height: 38px;
-    transition: background 0.2s;
-    font-size: 0.95em;
-}
-
-.positions-list label:hover {
-    background: #e0e0e0;
-}
-
-.positions-list input[type="checkbox"] {
-    margin-right: 8px;
-    flex-shrink: 0;
-}
-
-.actions {
-    margin-top: 20px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.actions button {
-    padding: 0 24px;
+/* ----- Toggle button for showing modes ----- */
+#toggle-modes-btn {
     border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
+    border-radius: 6px;
     height: 44px;
-    min-width: 160px;
-    box-sizing: border-box;
+    padding: 0 28px;
+    font-size: 1.15em;
+    font-weight: 500;
+    cursor: pointer;
+    background: #3498db;
+    color: white;
+    transition: background 0.2s;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s;
 }
 
-.actions button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+#toggle-modes-btn:hover {
+    background: #2980b9;
 }
 
-/* ---- Table of modes ---- */
+/* ----- Modes table container (scrollable on small screens) ----- */
+#modes-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 20px 0;
+}
+
+/* ----- Table styles ----- */
 .modes-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 20px 0;
     background: white;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    min-width: 500px; /* ensures readability on desktop, but scrollable on mobile */
 }
 
 .modes-table th,
@@ -118,34 +74,13 @@
     word-break: break-word;
 }
 
-/* ---- Toggle button ---- */
-#toggle-modes-btn {
-    border: none;
-    border-radius: 6px;
-    height: 44px;
-    padding: 0 28px;
-    font-size: 1.15em;
-    font-weight: 500;
-    cursor: pointer;
-    background: #3498db;
-    color: white;
-    transition: background 0.2s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#toggle-modes-btn:hover {
-    background: #2980b9;
-}
-
-/* ---- Buttons inside table ---- */
+/* ----- Buttons inside table ----- */
 .modes-table td button {
     background: #3498db;
     color: white;
     border: none;
     border-radius: 4px;
-    padding: 4px 12px;
+    padding: 6px 12px;
     font-size: 0.9em;
     cursor: pointer;
     transition: background 0.2s;
@@ -158,7 +93,6 @@
 .modes-table .btn-danger {
     background: #e74c3c;
     color: white;
-    border-radius: 4px;
     border: none;
     cursor: pointer;
     transition: background 0.2s;
@@ -168,15 +102,193 @@
     background: #c0392b;
 }
 
-/* ---- Warning text ---- */
+/* ----- Create mode block ----- */
+.create-mode-container {
+    max-width: 800px;
+    margin: 20px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* ----- Form group for mode name ----- */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+#mode-name {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+    height: 44px; /* touch friendly */
+}
+
+/* ----- Positions checklist ----- */
+.positions-list h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.positions-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px 20px;
+}
+
+.positions-list li {
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.positions-list label {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 38px;
+    transition: background 0.2s;
+    font-size: 0.95em;
+}
+
+.positions-list label:hover {
+    background: #e0e0e0;
+}
+
+.positions-list input[type="checkbox"] {
+    margin-right: 8px;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* ----- Actions (save/clear/cancel) ----- */
+.actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.actions button {
+    padding: 0 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    height: 44px;
+    min-width: 160px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ----- Warning text ----- */
 .warning {
     color: #c0392b;
     margin-top: 10px;
 }
 
-/* ---- Ensure consistent width ---- */
-.mode-management #modes-container,
-.mode-management .create-mode-container {
-    width: 100%;
-    box-sizing: border-box;
+/* ============================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================ */
+
+@media screen and (max-width: 640px) {
+    .mode-management {
+        padding: 0 6px;
+    }
+
+    /* Toggle button full width on mobile */
+    #toggle-modes-btn {
+        width: 100%;
+        font-size: 1em;
+        height: 48px;
+    }
+
+    /* Table container uses horizontal scroll automatically */
+    #modes-container {
+        margin: 10px 0;
+    }
+
+    /* Make table cells more compact */
+    .modes-table th,
+    .modes-table td {
+        padding: 8px 10px;
+        font-size: 0.9em;
+    }
+
+    /* Positions grid: single column on mobile */
+    .positions-list ul {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .positions-list label {
+        padding: 10px 12px;
+        font-size: 1em;
+        min-height: 44px;
+    }
+
+    /* Action buttons stack vertically or become full width */
+    .actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .actions button {
+        width: 100%;
+        min-width: unset;
+    }
+
+    /* Create mode container padding reduced */
+    .create-mode-container {
+        padding: 15px 12px;
+        margin: 10px auto;
+    }
+
+    /* Increase input height */
+    #mode-name {
+        height: 48px;
+        font-size: 16px; /* prevents zoom on iOS */
+    }
+}
+
+/* Extra small screens (under 400px) */
+@media screen and (max-width: 400px) {
+    .modes-table th,
+    .modes-table td {
+        padding: 6px 8px;
+        font-size: 0.8em;
+    }
+
+    .modes-table td button {
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
 }
