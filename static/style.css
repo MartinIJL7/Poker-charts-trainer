@@ -329,6 +329,10 @@ body.narrow-page {
     background: #7f8c8d;
 }
 
+body {
+    border: 5px solid red !important;
+}
+
 /* Mobile adaptation */
 @media screen and (max-width: 640px) {
     body {
