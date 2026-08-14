@@ -383,6 +383,24 @@ def training(mode):
     )
 
 
+@app.route('/api/range/<position>', methods=['GET'])
+@login_required
+def api_get_range(position):
+    config = get_user_config(current_user.id)
+    all_positions = get_all_positions(config)
+    if position not in all_positions:
+        return jsonify({'status': 'error', 'message': 'Position not found'}), 404
+
+    subranges = {}
+    colors = {}
+    for subname, sub_dict in config.subranges.items():
+        if position in sub_dict:
+            subranges[subname] = list(sub_dict[position])
+            colors[subname] = config.subrange_colors.get(subname, '#3498db')
+
+    return jsonify({'status': 'ok', 'subranges': subranges, 'colors': colors})
+
+
 # -------------------------------------------------------------------
 # Range management routes
 # -------------------------------------------------------------------

@@ -1,6 +1,106 @@
 {% extends "base.html" %}
 {% block title %}Тренировка – {{ mode }}{% endblock %}
 {% block header %}Режим: {{ mode }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .range-matrix-grid {
+        display: grid;
+        grid-template-columns: repeat(13, 1fr);
+        gap: 2px;
+        max-width: 650px;
+        margin: 0 auto;
+        touch-action: none;
+        user-select: none;
+    }
+
+    .range-matrix-cell {
+        background: #d5d8dc;
+        text-align: center;
+        font-size: 0.7em;
+        border: 1px solid #ddd;
+        aspect-ratio: 1 / 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: background 0.2s;
+    }
+
+    .range-matrix-cell.current-hand {
+        border: 3px solid #2c3e50;
+        font-weight: bold;
+        font-size: 0.9em;
+    }
+
+    .range-subrange-list {
+        list-style: none;
+        padding: 0;
+        margin: 15px 0 0 0;
+    }
+
+    .range-subrange-list li {
+        display: flex;
+        align-items: center;
+        background: white;
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .range-color-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin-right: 10px;
+        flex-shrink: 0;
+    }
+
+    @media screen and (max-width: 600px) {
+        .range-matrix-grid {
+            gap: 1px;
+            max-width: 100%;
+        }
+        .range-matrix-cell {
+            font-size: 0.6rem;
+            min-height: 26px;
+            min-width: 26px;
+            border-width: 1px;
+        }
+        .range-matrix-cell.current-hand {
+            font-size: 0.8rem;
+            border-width: 2px;
+        }
+    }
+
+    @media screen and (max-width: 430px) {
+        .range-matrix-grid {
+            gap: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+        .range-matrix-cell {
+            font-size: 0.5rem !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            border: none !important;
+            aspect-ratio: 1 / 1 !important;
+            line-height: 1 !important;
+            padding: 0 !important;
+        }
+        .range-matrix-cell.current-hand {
+            border: 2px solid #2c3e50 !important;
+            font-size: 0.6rem !important;
+        }
+        .range-subrange-list li {
+            padding: 6px 8px;
+            font-size: 0.9em;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
     {% if show_result and result %}
         <div class="result-box">
@@ -18,10 +118,122 @@
             <p><strong>Рука:</strong> <span class="hand">{{ result.hand }}</span></p>
             <p><strong>Ваш ответ:</strong> {{ result.user_answer }}</p>
             <p><strong>Правильный ответ:</strong> <span class="correct-answer">{{ result.correct_answer }}</span></p>
-            <form action="{{ next_url }}" method="get">
-                <button type="submit" class="next-btn">➡️ Следующий вопрос</button>
-            </form>
+
+            <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <form action="{{ next_url }}" method="get">
+                    <button type="submit" class="next-btn">➡️ Следующий вопрос</button>
+                </form>
+                <button id="show-range-btn" class="btn-secondary">📊 Показать диапазон</button>
+            </div>
+
+            <div id="range-display" style="display: none; margin-top: 20px;">
+                <h3>Диапазон для позиции <span id="range-pos"></span></h3>
+                <div id="range-matrix"></div>
+                <ul id="range-subrange-list" class="range-subrange-list"></ul>
+            </div>
         </div>
+
+        <script>
+            (function() {
+                const currentPos = '{{ result.pos }}';
+                const currentHand = '{{ result.hand }}';
+                const showRangeBtn = document.getElementById('show-range-btn');
+                const rangeDisplay = document.getElementById('range-display');
+                const rangePosSpan = document.getElementById('range-pos');
+                const matrixContainer = document.getElementById('range-matrix');
+                const listContainer = document.getElementById('range-subrange-list');
+
+                let isVisible = false;
+
+                if (showRangeBtn) {
+                    showRangeBtn.addEventListener('click', function() {
+                        if (isVisible) {
+                            rangeDisplay.style.display = 'none';
+                            this.textContent = '📊 Показать диапазон';
+                            isVisible = false;
+                            return;
+                        }
+
+                        fetch('/api/range/' + encodeURIComponent(currentPos))
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.status === 'ok') {
+                                    rangePosSpan.textContent = currentPos;
+                                    renderRangeMatrix(data.subranges, data.colors, currentHand);
+                                    rangeDisplay.style.display = 'block';
+                                    showRangeBtn.textContent = '📊 Скрыть диапазон';
+                                    isVisible = true;
+                                } else {
+                                    alert('Ошибка: ' + data.message);
+                                }
+                            })
+                            .catch(err => {
+                                alert('Ошибка загрузки диапазона: ' + err.message + '\nПроверьте, что сервер запущен и сессия активна.');
+                                console.error(err);
+                            });
+                    });
+                }
+
+                function renderRangeMatrix(subranges, colors, highlightHand) {
+                    const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+                    matrixContainer.innerHTML = '';
+
+                    const grid = document.createElement('div');
+                    grid.className = 'range-matrix-grid';
+
+                    ranks.forEach(rowRank => {
+                        ranks.forEach(colRank => {
+                            const cell = document.createElement('div');
+                            cell.className = 'range-matrix-cell';
+
+                            const i = ranks.indexOf(rowRank);
+                            const j = ranks.indexOf(colRank);
+                            let hand = '';
+                            if (i === j) hand = rowRank + colRank;
+                            else if (i < j) hand = rowRank + colRank + 's';
+                            else hand = colRank + rowRank + 'o';
+
+                            cell.textContent = hand;
+
+                            let color = '#d5d8dc';
+                            for (const [name, hands] of Object.entries(subranges)) {
+                                if (hands.includes(hand)) {
+                                    color = colors[name] || '#3498db';
+                                    break;
+                                }
+                            }
+                            cell.style.backgroundColor = color;
+
+                            if (hand === highlightHand) {
+                                cell.classList.add('current-hand');
+                            }
+
+                            grid.appendChild(cell);
+                        });
+                    });
+
+                    matrixContainer.appendChild(grid);
+
+                    listContainer.innerHTML = '';
+                    for (const [name, hands] of Object.entries(subranges)) {
+                        const li = document.createElement('li');
+                        const dot = document.createElement('span');
+                        dot.className = 'range-color-dot';
+                        dot.style.backgroundColor = colors[name] || '#3498db';
+                        li.appendChild(dot);
+                        const text = document.createTextNode(name + ' (' + hands.length + ' рук)');
+                        li.appendChild(text);
+                        listContainer.appendChild(li);
+                    }
+                }
+            })();
+        </script>
+
     {% else %}
         <div class="question">
             <p><strong>Диапазон:</strong> {{ pos }}</p>
