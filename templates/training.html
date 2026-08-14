@@ -123,7 +123,7 @@
                 <form action="{{ next_url }}" method="get">
                     <button type="submit" class="next-btn">➡️ Следующий вопрос</button>
                 </form>
-                <button id="show-range-btn" class="btn-secondary">📊 Показать диапазон</button>
+                <button id="show-range-btn" class="next-btn">Показать диапазон</button>
             </div>
 
             <div id="range-display" style="display: none; margin-top: 20px;">
@@ -149,7 +149,7 @@
                     showRangeBtn.addEventListener('click', function() {
                         if (isVisible) {
                             rangeDisplay.style.display = 'none';
-                            this.textContent = '📊 Показать диапазон';
+                            this.textContent = 'Показать диапазон';
                             isVisible = false;
                             return;
                         }
@@ -166,7 +166,7 @@
                                     rangePosSpan.textContent = currentPos;
                                     renderRangeMatrix(data.subranges, data.colors, currentHand);
                                     rangeDisplay.style.display = 'block';
-                                    showRangeBtn.textContent = '📊 Скрыть диапазон';
+                                    showRangeBtn.textContent = 'Скрыть диапазон';
                                     isVisible = true;
                                 } else {
                                     alert('Ошибка: ' + data.message);
@@ -226,7 +226,7 @@
                         dot.className = 'range-color-dot';
                         dot.style.backgroundColor = colors[name] || '#3498db';
                         li.appendChild(dot);
-                        const text = document.createTextNode(name + ' (' + hands.length + ' рук)');
+                        const text = document.createTextNode(name);
                         li.appendChild(text);
                         listContainer.appendChild(li);
                     }
