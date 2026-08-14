@@ -2,55 +2,312 @@
 {% block title %}Работа с конфигами{% endblock %}
 {% block header %}💾 Работа с конфигами{% endblock %}
 {% block body_class %}narrow-page{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ============================================================
+       config_management.css – embedded styles for config page
+       ============================================================ */
+
+    .config-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 10px;
+    }
+
+    /* ----- Save form ----- */
+    .save-form {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 20px 0 30px;
+    }
+
+    .save-form label {
+        font-weight: bold;
+        font-size: 1.1em;
+        white-space: nowrap;
+    }
+
+    .save-form input {
+        height: 40px !important;
+        max-height: 40px !important;
+        min-height: 40px !important;
+        box-sizing: border-box !important;
+        font-size: 16px;
+        line-height: normal !important;
+        -webkit-appearance: none;
+        appearance: none;
+        background: white;
+        border: 1px solid #ccc !important;
+        outline: none;
+        border-radius: 4px !important;
+    }
+
+    .save-form button {
+        height: 40px !important;
+        padding: 0 24px;
+        border: none;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 16px;
+        cursor: pointer;
+        white-space: nowrap;
+        background: #27ae60;
+        color: white;
+        transition: background 0.2s;
+    }
+
+    .save-form button:hover {
+        background: #1e8449;
+    }
+
+    /* ----- Backup lists ----- */
+    .backup-section {
+        margin-top: 30px;
+    }
+
+    .backup-section h2 {
+        margin-bottom: 10px;
+    }
+
+    .backup-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .backup-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 10px 16px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .backup-list li .file-name {
+        font-weight: 500;
+        word-break: break-all;
+        flex: 1 1 auto;
+    }
+
+    .backup-list li .actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .backup-list li .actions button {
+        height: 32px;
+        padding: 0 14px;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.85em;
+        cursor: pointer;
+        transition: background 0.2s;
+        white-space: nowrap;
+    }
+
+    .backup-list li .actions .load-btn {
+        background: #3498db;
+        color: white;
+    }
+    .backup-list li .actions .load-btn:hover {
+        background: #2980b9;
+    }
+
+    .backup-list li .actions .delete-btn {
+        background: #e74c3c;
+        color: white;
+    }
+    .backup-list li .actions .delete-btn:hover {
+        background: #c0392b;
+    }
+
+    /* Public backups have a slight background */
+    .backup-list.public li {
+        background: #fef9e7;
+    }
+
+    /* ----- Danger zone ----- */
+    .danger-zone {
+        margin-top: 40px;
+        border-top: 1px solid #ddd;
+        padding-top: 20px;
+    }
+
+    .danger-zone h2 {
+        color: #c0392b;
+    }
+
+    .danger-zone .warning-text {
+        color: #e67e22;
+        font-weight: bold;
+    }
+
+    .danger-zone .clear-btn {
+        height: 40px;
+        padding: 0 30px;
+        border: none;
+        border-radius: 4px;
+        font-size: 1.1em;
+        cursor: pointer;
+        background: #e74c3c;
+        color: white;
+        transition: background 0.2s;
+        margin-top: 10px;
+    }
+
+    .danger-zone .clear-btn:hover {
+        background: #c0392b;
+    }
+
+    /* ============================================================
+       RESPONSIVE ADJUSTMENTS
+       ============================================================ */
+
+    @media screen and (max-width: 640px) {
+        .config-container {
+            padding: 0 6px;
+        }
+
+        /* Save form stacks vertically */
+        .save-form {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .save-form label {
+            white-space: normal;
+            font-size: 1em;
+        }
+
+        .save-form input {
+            min-width: unset;
+            width: 100%;
+            height: 40px !important;
+            max-height: 40px !important;
+            min-height: 40px !important;
+            font-size: 16px;
+        }
+
+        .save-form button {
+            width: 100%;
+            justify-content: center;
+            height: 40px !important;
+        }
+
+        /* Backup items */
+        .backup-list li {
+            flex-direction: row;
+            align-items: center;
+            padding: 8px 12px;
+            gap: 6px;
+        }
+
+        .backup-list li .file-name {
+            flex: 1 1 100px;
+            word-break: break-all;
+        }
+
+        .backup-list li .actions {
+            flex: 0 1 auto;
+            gap: 4px;
+        }
+
+        .backup-list li .actions button {
+            height: 32px;
+            font-size: 0.8em;
+            padding: 0 12px;
+            flex: 0 1 auto;
+        }
+
+        /* Danger zone button full width */
+        .danger-zone .clear-btn {
+            width: 100%;
+            justify-content: center;
+            height: 40px;
+        }
+    }
+
+    @media screen and (max-width: 400px) {
+        .backup-list li .actions button {
+            font-size: 0.75em;
+            padding: 0 8px;
+            height: 28px;
+        }
+        .backup-list li {
+            padding: 6px 10px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-    <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 30px;">
-        <label for="backup-name" style="margin: 0; font-weight: bold; font-size: 1.3em; white-space: nowrap;">
-            Сохранить текущий конфиг как:
-        </label>
-        <input type="text" id="backup-name" placeholder="например, rfi_v1" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-        <button id="save-backup-btn" class="btn btn-success">💾 Сохранить</button>
+<div class="config-container">
+    <!-- ===== SAVE FORM ===== -->
+    <div class="save-form">
+        <label for="backup-name">Сохранить текущий конфиг как:</label>
+        <input type="text" id="backup-name" placeholder="например, rfi_v1">
+        <button id="save-backup-btn">💾 Сохранить</button>
     </div>
 
-    <h2 style="margin-top: 30px;">Мои конфиги</h2>
-    {% if personal_backups %}
-        <ul class="backup-list" id="backup-list" style="list-style: none; padding: 0;">
-            {% for file in personal_backups %}
-                <li style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 15px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                    <span>{{ file }}</span>
-                    <div>
-                        <button class="btn btn-primary load-btn" data-filename="{{ file }}">Загрузить</button>
-                        <button class="btn btn-danger delete-btn" data-filename="{{ file }}">Удалить</button>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>Нет личных конфигов</p>
-    {% endif %}
+    <!-- ===== PERSONAL BACKUPS ===== -->
+    <div class="backup-section">
+        <h2>Мои конфиги</h2>
+        {% if personal_backups %}
+            <ul class="backup-list" id="backup-list">
+                {% for file in personal_backups %}
+                    <li>
+                        <span class="file-name">{{ file }}</span>
+                        <div class="actions">
+                            <button class="load-btn" data-filename="{{ file }}">Загрузить</button>
+                            <button class="delete-btn" data-filename="{{ file }}">Удалить</button>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Нет личных конфигов</p>
+        {% endif %}
+    </div>
 
-    <h2 style="margin-top: 30px;">📂 Публичные конфиги (доступны всем)</h2>
-    {% if public_backups %}
-        <ul class="backup-list" id="public-backup-list" style="list-style: none; padding: 0;">
-            {% for file in public_backups %}
-                <li style="display: flex; justify-content: space-between; align-items: center; background: #fef9e7; padding: 10px 15px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                    <span>{{ file }}</span>
-                    <div>
-                        <button class="btn btn-primary load-btn" data-filename="{{ file }}">Загрузить</button>
-                        <!-- Кнопка удаления отсутствует -->
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>Нет публичных конфигов. Чтобы создать, поместите файл в saved_configs без префикса user_</p>
-    {% endif %}
+    <!-- ===== PUBLIC BACKUPS ===== -->
+    <div class="backup-section">
+        <h2>📂 Публичные конфиги (доступны всем)</h2>
+        {% if public_backups %}
+            <ul class="backup-list public" id="public-backup-list">
+                {% for file in public_backups %}
+                    <li>
+                        <span class="file-name">{{ file }}</span>
+                        <div class="actions">
+                            <button class="load-btn" data-filename="{{ file }}">Загрузить</button>
+                            <!-- no delete button for public configs -->
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Нет публичных конфигов. Чтобы создать, поместите файл в saved_configs без префикса user_</p>
+        {% endif %}
+    </div>
 
-    <div class="clear-section" style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px;">
+    <!-- ===== DANGER ZONE ===== -->
+    <div class="danger-zone">
         <h2>⚠️ Опасная зона</h2>
         <p>Очистить текущий конфиг – удалить все диапазоны, поддиапазоны, режимы и цвета</p>
         <p class="warning-text">Рекомендуется сначала сохранить текущий конфиг с помощью формы выше</p>
-        <button id="clear-config-btn" class="btn btn-danger" style="font-size: 1.1em; padding: 10px 24px;">🗑 Очистить конфиг</button>
+        <button id="clear-config-btn" class="clear-btn">🗑 Очистить конфиг</button>
     </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -92,7 +349,6 @@
             saveBackup(false);
         });
 
-        // Обработка кликов по кнопкам загрузки (работает для обоих списков)
         document.addEventListener('click', function(e) {
             const target = e.target;
             if (target.classList.contains('load-btn')) {
