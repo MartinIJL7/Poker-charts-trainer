@@ -8,6 +8,7 @@ import glob
 from datetime import datetime
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from flask import current_app
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm.attributes import flag_modified
@@ -83,6 +84,15 @@ with app.app_context():
 # -------------------------------------------------------------------
 # Helper functions
 # -------------------------------------------------------------------
+@app.context_processor
+def utility_processor():
+    def static_version(filename):
+        filepath = os.path.join(app.static_folder, filename)
+        if os.path.exists(filepath):
+            return int(os.path.getmtime(filepath))
+        return ''
+    return dict(static_version=static_version)
+
 def get_user_config(user_id):
     """Get or create a UserConfig for the given user."""
     config = UserConfig.query.filter_by(user_id=user_id).first()

@@ -2,7 +2,7 @@
 {% block title %}Работа с режимами{% endblock %}
 {% block header %}📋 Работа с режимами{% endblock %}
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='create_mode.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='create_mode.css') }}?v={{ static_version('create_mode.css') }}">
 {% endblock %}
 {% block content %}
 <div class="mode-management">
@@ -53,5 +53,5 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='create_mode.js') }}"></script>
+<script src="{{ url_for('static', filename='create_mode.js') }}?v={{ static_version('create_mode.js') }}"></script>
 {% endblock %}
