@@ -2,6 +2,80 @@
 {% block title %}Режим отладки{% endblock %}
 {% block header %}🐞 Режим отладки{% endblock %}
 {% block body_class %}narrow-page{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ============================================================
+       debug.css – responsive styles for debug page
+       ============================================================ */
+
+    /* ----- Mobile adjustments (up to 640px) ----- */
+    @media screen and (max-width: 640px) {
+        /* Override narrow-page max-width and padding */
+        body.narrow-page {
+            max-width: 100%;
+            padding: 0 12px;
+        }
+
+        /* Make form elements full-width and touch-friendly */
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        form select,
+        form input[type="text"] {
+            width: 100% !important;
+            height: 44px !important;
+            font-size: 16px !important;    /* prevents iOS zoom */
+            padding: 8px 12px !important;
+            box-sizing: border-box !important;
+            border: 1px solid #ccc !important;
+            border-radius: 4px !important;
+        }
+
+        form button[type="submit"] {
+            width: 100% !important;
+            height: 44px !important;
+            font-size: 16px !important;
+            padding: 0 20px !important;
+            align-self: stretch !important;
+            box-sizing: border-box !important;
+            margin-top: 4px;
+        }
+
+        /* Result box spacing */
+        .result-box {
+            padding: 12px !important;
+            margin-top: 15px !important;
+        }
+
+        .result-box p {
+            word-break: break-word;
+        }
+    }
+
+    /* Extra small screens (under 400px) – reduce font sizes */
+    @media screen and (max-width: 400px) {
+        body.narrow-page {
+            padding: 0 8px;
+        }
+
+        form select,
+        form input[type="text"] {
+            font-size: 14px !important;
+            height: 40px !important;
+        }
+
+        form button[type="submit"] {
+            font-size: 14px !important;
+            height: 40px !important;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
     <p style="margin-bottom: 20px;">Выберите диапазон и введите руку, чтобы узнать статус</p>
     <form method="post" style="display: flex; flex-direction: column; gap: 25px;">
