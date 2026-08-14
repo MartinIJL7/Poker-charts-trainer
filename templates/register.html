@@ -1,6 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Регистрация{% endblock %}
 {% block header %}📝 Регистрация{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media screen and (max-width: 640px) {
+        .auth-container input[type="text"],
+        .auth-container input[type="password"] {
+            height: 30px !important;
+            padding: 6px 10px !important;
+            font-size: 15px !important;
+        }
+        .auth-container button[type="submit"] {
+            height: 44px !important;
+            font-size: 16px !important;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="auth-container" style="max-width: 400px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
     <form method="post">
