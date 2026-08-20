@@ -421,6 +421,7 @@ def add_subrange():
     name = data.get('name', '').strip()
     hands = data.get('hands', [])
     color = data.get('color', '#3498db')
+    overwrite = data.get('overwrite', False)
 
     if not name or not hands:
         return jsonify({'status': 'error', 'message': 'Name or hands missing'}), 400
@@ -429,21 +430,35 @@ def add_subrange():
         if h not in ALL_HANDS:
             return jsonify({'status': 'error', 'message': f'Invalid hand: {h}'}), 400
 
-    if 'temp_subranges' not in session:
-        session['temp_subranges'] = []
+    temp = session.get('temp_subranges', [])
 
-    # Remove overlapping hands from other subranges
+    existing = None
+    for sub in temp:
+        if sub['name'].lower() == name.lower():
+            existing = sub
+            break
+
+    if existing and not overwrite:
+        return jsonify({
+            'status': 'exists',
+            'message': f'Поддиапазон "{name}" уже существует. Перезаписать?'
+        }), 409
+
+    if existing and overwrite:
+        temp = [sub for sub in temp if sub['name'].lower() != name.lower()]
+
     hands_set = set(hands)
-    for sub in session['temp_subranges']:
+    for sub in temp:
         sub['hands'] = [h for h in sub['hands'] if h not in hands_set]
 
     new_id = str(uuid.uuid4())
-    session['temp_subranges'].append({
+    temp.append({
         'id': new_id,
         'name': name,
         'hands': hands,
         'color': color
     })
+    session['temp_subranges'] = temp
     session.modified = True
     return jsonify({'status': 'ok', 'subranges': session['temp_subranges']})
 
@@ -612,6 +627,7 @@ def update_subrange():
     name = data.get('name', '').strip()
     hands = data.get('hands', [])
     color = data.get('color', '#3498db')
+    overwrite = data.get('overwrite', False)
 
     if not sub_id:
         return jsonify({'status': 'error', 'message': 'ID required'}), 400
@@ -621,23 +637,36 @@ def update_subrange():
         return jsonify({'status': 'error', 'message': 'At least one hand required'}), 400
 
     temp = session.get('temp_subranges', [])
-    found = False
+    found = None
+    existing = None
     for sub in temp:
-        if sub.get('id') == sub_id:
-            sub['name'] = name
-            sub['hands'] = hands
-            sub['color'] = color
-            found = True
-            break
+        if sub['id'] == sub_id:
+            found = sub
+        if sub['name'].lower() == name.lower() and sub['id'] != sub_id:
+            existing = sub
+
+    if existing and not overwrite:
+        return jsonify({
+            'status': 'exists',
+            'message': f'Поддиапазон с именем "{name}" уже существует. Перезаписать?'
+        }), 409
+
     if not found:
         return jsonify({'status': 'error', 'message': 'Subrange not found'}), 404
 
-    # Remove overlapping hands from other subranges
+    if existing and overwrite:
+        temp = [sub for sub in temp if sub['id'] != existing['id']]
+
+    found['name'] = name
+    found['hands'] = hands
+    found['color'] = color
+
     hands_set = set(hands)
     for sub in temp:
-        if sub.get('id') != sub_id:
+        if sub['id'] != sub_id:
             sub['hands'] = [h for h in sub['hands'] if h not in hands_set]
 
+    session['temp_subranges'] = temp
     session.modified = True
     return jsonify({'status': 'ok'})
 

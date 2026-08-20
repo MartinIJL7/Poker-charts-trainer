@@ -473,45 +473,45 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        if (editingId) {
-            fetch('/create/update_subrange', {
+        function doSave(overwrite = false) {
+            const payload = {
+                name: name,
+                hands: currentHands,
+                color: currentColor
+            };
+            let url = '/create/add_subrange';
+            if (editingId) {
+                url = '/create/update_subrange';
+                payload.id = editingId;
+            }
+            payload.overwrite = overwrite;
+
+            fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: editingId,
-                    name: name,
-                    hands: currentHands,
-                    color: currentColor
-                })
+                body: JSON.stringify(payload)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'ok') {
                     loadTempSubranges();
-                    cancelEditing();
-                } else {
-                    alert('Ошибка: ' + data.message);
-                }
-            })
-            .catch(err => alert('Ошибка сети: ' + err));
-        } else {
-            fetch('/create/add_subrange', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, hands: currentHands, color: currentColor })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'ok') {
-                    loadTempSubranges();
-                    clearCurrentSelection();
-                    document.getElementById('subname').value = '';
+                    if (editingId) {
+                        cancelEditing();
+                    } else {
+                        clearCurrentSelection();
+                        document.getElementById('subname').value = '';
+                    }
+                } else if (data.status === 'exists') {
+                    if (confirm(data.message)) {
+                        doSave(true);
+                    }
                 } else {
                     alert('Ошибка: ' + data.message);
                 }
             })
             .catch(err => alert('Ошибка сети: ' + err));
         }
+        doSave(false);
     });
 
     document.getElementById('cancel-edit-btn').addEventListener('click', function() {
