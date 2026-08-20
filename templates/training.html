@@ -118,6 +118,16 @@
             <p><strong>Рука:</strong> <span class="hand">{{ result.hand }}</span></p>
             <p><strong>Ваш ответ:</strong> {{ result.user_answer }}</p>
             <p><strong>Правильный ответ:</strong> <span class="correct-answer">{{ result.correct_answer }}</span></p>
+            {% if result.attempts is defined %}
+            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                <p><strong>Статистика по руке {{ result.hand }} в позиции {{ result.pos }}:</strong></p>
+                <p>Показана: {{ result.attempts }} раз</p>
+                <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
+                <p>Ошибок: {{ result.errors }}</p>
+                <p>Среднее время ответа: {{ result.avg_time_sec }} с</p>
+                <p>Текущее время: {{ result.current_time_sec }} с</p>
+            </div>
+            {% endif %}
 
             <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
                 <form action="{{ next_url }}" method="get">

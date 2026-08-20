@@ -422,12 +422,24 @@ def training(mode):
             # Update persistent hand statistics
             update_hand_stats(current_user.id, pos, hand, is_correct, elapsed_ms)
 
+            stats = get_or_create_hand_stats(current_user.id, pos, hand)
+            attempts = stats.attempts
+            errors = stats.errors
+            correct_count = attempts - errors
+            avg_time_sec = round(stats.total_time_ms / attempts / 1000, 2) if attempts > 0 else 0
+            current_time_sec = round(elapsed_ms / 1000, 2)
+
             session['last_result'] = {
                 'user_answer': answer,
                 'correct_answer': correct_text,
                 'was_correct': is_correct,
                 'hand': hand,
-                'pos': pos
+                'pos': pos,
+                'attempts': attempts,
+                'errors': errors,
+                'correct_count': correct_count,
+                'avg_time_sec': avg_time_sec,
+                'current_time_sec': current_time_sec
             }
             return redirect(url_for('training', mode=mode, show_result=1))
         return redirect(url_for('training', mode=mode))
