@@ -447,6 +447,11 @@ def training(mode):
 
     # ---- GET: show result or new question ----
     
+    # If user wants to reset start screen (from heatmap, etc.)
+    if request.args.get('reset_start') == '1':
+        session.pop('training_started', None)
+        return redirect(url_for('training', mode=mode))
+
     # If user clicked "Start", set flag and redirect
     if request.args.get('start') == '1':
         session['training_started'] = True
