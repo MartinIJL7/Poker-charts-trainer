@@ -1220,9 +1220,13 @@ def api_heatmap(mode, position):
     for hand in ALL_HANDS:
         stats = get_or_create_hand_stats(current_user.id, position, hand)
         w = calculate_weight(stats, avg_pos_time)
+        avg_time = round(stats.total_time_ms / stats.attempts / 1000, 2) if stats.attempts > 0 else None
         weights[hand] = {
             'weight': w,
-            'attempts': stats.attempts
+            'attempts': stats.attempts,
+            'errors': stats.errors,
+            'correct': stats.attempts - stats.errors,
+            'avg_time_sec': avg_time
         }
     return jsonify({'position': position, 'weights': weights})
 
