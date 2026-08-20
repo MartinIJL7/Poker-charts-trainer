@@ -1177,6 +1177,40 @@ def reset_draw_stats():
 
 
 # -------------------------------------------------------------------
+# Heatmap
+# -------------------------------------------------------------------
+@app.route('/heatmap/<mode>')
+@login_required
+def heatmap(mode):
+    config = get_user_config(current_user.id)
+    if mode not in config.modes:
+        return "Mode not found", 404
+    positions = config.modes[mode]
+    if not positions:
+        return "No positions in this mode", 400
+    return render_template('heatmap.html', mode=mode, positions=positions)
+
+
+@app.route('/api/heatmap/<mode>/<position>')
+@login_required
+def api_heatmap(mode, position):
+    config = get_user_config(current_user.id)
+    if mode not in config.modes or position not in config.modes[mode]:
+        return jsonify({'error': 'Invalid mode or position'}), 400
+
+    avg_pos_time = get_avg_time_for_position(current_user.id, position)
+    weights = {}
+    for hand in ALL_HANDS:
+        stats = get_or_create_hand_stats(current_user.id, position, hand)
+        w = calculate_weight(stats, avg_pos_time)
+        weights[hand] = {
+            'weight': w,
+            'attempts': stats.attempts
+        }
+    return jsonify({'position': position, 'weights': weights})
+
+
+# -------------------------------------------------------------------
 # Application entry point
 # -------------------------------------------------------------------
 if __name__ == '__main__':
