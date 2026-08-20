@@ -542,32 +542,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (!confirm(`Сохранить диапазон "${position}"?`)) return;
 
-        fetch('/create/save_range', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ position })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'ok') {
-                alert(data.message);
-                editingPosition = null;
-                fetch('/create/clear_temp', { method: 'POST' })
-                    .then(() => {
-                        tempSubranges = [];
-                        updateSubrangeListUI();
-                        renderAllSubranges();
-                        clearCurrentSelection();
-                        document.getElementById('position').value = '';
-                        document.getElementById('subname').value = '';
-                        cancelEditing();
-                        updatePositionsSelect(true);
-                    });
-            } else {
-                alert('Ошибка: ' + data.message);
-            }
-        })
-        .catch(err => alert('Ошибка сети: ' + err));
+        function doSave(overwrite = false) {
+            fetch('/create/save_range', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ position, overwrite })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    alert(data.message);
+                    editingPosition = null;
+                    fetch('/create/clear_temp', { method: 'POST' })
+                        .then(() => {
+                            tempSubranges = [];
+                            updateSubrangeListUI();
+                            renderAllSubranges();
+                            clearCurrentSelection();
+                            document.getElementById('position').value = '';
+                            document.getElementById('subname').value = '';
+                            cancelEditing();
+                            updatePositionsSelect(true);
+                        });
+                } else if (data.status === 'exists') {
+                    if (confirm(data.message)) {
+                        doSave(true);
+                    }
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(err => alert('Ошибка сети: ' + err));
+        }
+        doSave(false);
     });
 
     document.getElementById('load-range-select').addEventListener('change', function() {

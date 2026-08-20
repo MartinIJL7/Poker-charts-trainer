@@ -454,6 +454,7 @@ def save_range():
     config = get_user_config(current_user.id)
     data = request.get_json()
     position = data.get('position', '').strip().replace(' ', '_')
+    overwrite = data.get('overwrite', False)
     if not position:
         return jsonify({'status': 'error', 'message': 'Position name required'}), 400
 
@@ -461,39 +462,51 @@ def save_range():
     if not temp_subranges:
         return jsonify({'status': 'error', 'message': 'No subranges added'}), 400
 
-    # If editing an existing position, remove its old entries
-    editing_pos = session.pop('editing_position', None)
+    editing_pos = session.get('editing_position')
+    existing_positions = get_all_positions(config)
+
+    if position in existing_positions and editing_pos != position and not overwrite:
+        return jsonify({
+            'status': 'exists',
+            'message': f'Диапазон "{position}" уже существует. Перезаписать?'
+        }), 409
+
     if editing_pos:
         for subname in list(config.subranges.keys()):
             if editing_pos in config.subranges[subname]:
                 del config.subranges[subname][editing_pos]
                 if not config.subranges[subname]:
                     del config.subranges[subname]
-
-        # Update position name in modes if changed
         if editing_pos != position:
             for mode_name, positions in config.modes.items():
                 if editing_pos in positions:
                     idx = positions.index(editing_pos)
                     positions[idx] = position
             flag_modified(config, 'modes')
+        session.pop('editing_position', None)
+    elif overwrite and position in existing_positions:
+        for subname in list(config.subranges.keys()):
+            if position in config.subranges[subname]:
+                del config.subranges[subname][position]
+                if not config.subranges[subname]:
+                    del config.subranges[subname]
+        for mode_name in list(config.modes.keys()):
+            if position in config.modes[mode_name]:
+                config.modes[mode_name].remove(position)
+                if not config.modes[mode_name]:
+                    del config.modes[mode_name]
+        flag_modified(config, 'modes')
 
-    # Save each subrange
     for sub in temp_subranges:
         name = sub['name']
-        hands = sub['hands']  # already a list
-
+        hands = sub['hands']
         if name not in config.subranges:
             config.subranges[name] = {}
         config.subranges[name][position] = hands
-
         if name not in config.subrange_order:
             config.subrange_order.append(name)
+        config.subrange_colors[name] = sub.get('color', '#3498db')
 
-        color = sub.get('color', '#3498db')
-        config.subrange_colors[name] = color
-
-    # Update 'All' mode
     all_positions = get_all_positions(config)
     if all_positions:
         config.modes['All'] = all_positions
@@ -501,13 +514,12 @@ def save_range():
         config.modes.pop('All', None)
 
     ensure_lists_in_subranges(config)
-
     flag_modified(config, 'subranges')
     flag_modified(config, 'subrange_order')
     flag_modified(config, 'modes')
     flag_modified(config, 'subrange_colors')
-
     db.session.commit()
+
     session.pop('editing_position', None)
     return jsonify({'status': 'ok', 'message': f'Диапазон {position} сохранен'})
 
@@ -1029,4 +1041,4 @@ def reset_draw_stats():
 # Application entry point
 # -------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
