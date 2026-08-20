@@ -302,7 +302,7 @@
             (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
         </p>
         <p>
-            <a href="{{ url_for('reset_draw_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display:inline-block;">🔄 Сбросить статистику</a>
+            <a href="{{ url_for('reset_draw_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display:inline-block;">🔄 Сбросить статистику данной сессии браузера</a>
         </p>
     </div>
 </div>
