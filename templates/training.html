@@ -102,164 +102,177 @@
 {% endblock %}
 
 {% block content %}
-    {% if show_result and result %}
-        <div class="result-box">
-            <h2>
-                Результат:
-                <span class="result-status {% if result.was_correct %}correct{% else %}incorrect{% endif %}">
-                    {% if result.was_correct %}
-                        ✅ Верно!
-                    {% else %}
-                        ❌ Неверно!
-                    {% endif %}
-                </span>
-            </h2>
-            <p><strong>Диапазон:</strong> {{ result.pos }}</p>
-            <p><strong>Рука:</strong> <span class="hand">{{ result.hand }}</span></p>
-            <p><strong>Ваш ответ:</strong> {{ result.user_answer }}</p>
-            <p><strong>Правильный ответ:</strong> <span class="correct-answer">{{ result.correct_answer }}</span></p>
-            {% if result.attempts is defined %}
-            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-                <p><strong>Статистика по руке {{ result.hand }} в позиции {{ result.pos }}:</strong></p>
-                <p>Показана: {{ result.attempts }} раз</p>
-                <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
-                <p>Ошибок: {{ result.errors }}</p>
-                <p>Среднее время ответа: {{ result.avg_time_sec }} с</p>
-                <p>Текущее время: {{ result.current_time_sec }} с</p>
-            </div>
-            {% endif %}
-
-            <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                <form action="{{ next_url }}" method="get">
-                    <button type="submit" class="next-btn">➡️ Следующий вопрос</button>
-                </form>
-                <button id="show-range-btn" class="next-btn">Показать диапазон</button>
-            </div>
-
-            <div id="range-display" style="display: none; margin-top: 20px;">
-                <h3>Диапазон для позиции <span id="range-pos"></span></h3>
-                <div id="range-matrix"></div>
-                <ul id="range-subrange-list" class="range-subrange-list"></ul>
-            </div>
+    {% if show_start %}
+        <!-- START SCREEN -->
+        <div style="text-align: center; margin-top: 40px;">
+            <h2>Готовы начать тренировку?</h2>
+            <p style="margin: 20px 0; color: #555;">
+                Вам будут показываться руки для диапазонов из режима <strong>{{ mode }}</strong><br>
+                Отвечайте как можно быстрее и точнее
+            </p>
+            <a href="{{ url_for('training', mode=mode, start=1) }}" class="btn btn-success" style="font-size: 1.5em; padding: 15px 50px; text-decoration: none;">▶ Начать</a>
         </div>
-
-        <script>
-            (function() {
-                const currentPos = '{{ result.pos }}';
-                const currentHand = '{{ result.hand }}';
-                const showRangeBtn = document.getElementById('show-range-btn');
-                const rangeDisplay = document.getElementById('range-display');
-                const rangePosSpan = document.getElementById('range-pos');
-                const matrixContainer = document.getElementById('range-matrix');
-                const listContainer = document.getElementById('range-subrange-list');
-
-                let isVisible = false;
-
-                if (showRangeBtn) {
-                    showRangeBtn.addEventListener('click', function() {
-                        if (isVisible) {
-                            rangeDisplay.style.display = 'none';
-                            this.textContent = 'Показать диапазон';
-                            isVisible = false;
-                            return;
-                        }
-
-                        fetch('/api/range/' + encodeURIComponent(currentPos))
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error('HTTP ' + response.status + ': ' + response.statusText);
-                                }
-                                return response.json();
-                            })
-                            .then(data => {
-                                if (data.status === 'ok') {
-                                    rangePosSpan.textContent = currentPos;
-                                    renderRangeMatrix(data.subranges, data.colors, currentHand);
-                                    rangeDisplay.style.display = 'block';
-                                    showRangeBtn.textContent = 'Скрыть диапазон';
-                                    isVisible = true;
-                                } else {
-                                    alert('Ошибка: ' + data.message);
-                                }
-                            })
-                            .catch(err => {
-                                alert('Ошибка загрузки диапазона: ' + err.message + '\nПроверьте, что сервер запущен и сессия активна.');
-                                console.error(err);
-                            });
-                    });
-                }
-
-                function renderRangeMatrix(subranges, colors, highlightHand) {
-                    const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
-                    matrixContainer.innerHTML = '';
-
-                    const grid = document.createElement('div');
-                    grid.className = 'range-matrix-grid';
-
-                    ranks.forEach(rowRank => {
-                        ranks.forEach(colRank => {
-                            const cell = document.createElement('div');
-                            cell.className = 'range-matrix-cell';
-
-                            const i = ranks.indexOf(rowRank);
-                            const j = ranks.indexOf(colRank);
-                            let hand = '';
-                            if (i === j) hand = rowRank + colRank;
-                            else if (i < j) hand = rowRank + colRank + 's';
-                            else hand = colRank + rowRank + 'o';
-
-                            cell.textContent = hand;
-
-                            let color = '#d5d8dc';
-                            for (const [name, hands] of Object.entries(subranges)) {
-                                if (hands.includes(hand)) {
-                                    color = colors[name] || '#3498db';
-                                    break;
-                                }
-                            }
-                            cell.style.backgroundColor = color;
-
-                            if (hand === highlightHand) {
-                                cell.classList.add('current-hand');
-                            }
-
-                            grid.appendChild(cell);
-                        });
-                    });
-
-                    matrixContainer.appendChild(grid);
-
-                    listContainer.innerHTML = '';
-                    for (const [name, hands] of Object.entries(subranges)) {
-                        const li = document.createElement('li');
-                        const dot = document.createElement('span');
-                        dot.className = 'range-color-dot';
-                        dot.style.backgroundColor = colors[name] || '#3498db';
-                        li.appendChild(dot);
-                        const text = document.createTextNode(name);
-                        li.appendChild(text);
-                        listContainer.appendChild(li);
-                    }
-                }
-            })();
-        </script>
-
     {% else %}
-        <div class="question">
-            <p><strong>Диапазон:</strong> {{ pos }}</p>
-            <p><strong>Рука:</strong> <span class="hand">{{ hand }}</span></p>
-        </div>
+        <!-- NORMAL TRAINING (result or question) -->
+        {% if show_result and result %}
+            <div class="result-box">
+                <h2>
+                    Результат:
+                    <span class="result-status {% if result.was_correct %}correct{% else %}incorrect{% endif %}">
+                        {% if result.was_correct %}
+                            ✅ Верно!
+                        {% else %}
+                            ❌ Неверно!
+                        {% endif %}
+                    </span>
+                </h2>
+                <p><strong>Диапазон:</strong> {{ result.pos }}</p>
+                <p><strong>Рука:</strong> <span class="hand">{{ result.hand }}</span></p>
+                <p><strong>Ваш ответ:</strong> {{ result.user_answer }}</p>
+                <p><strong>Правильный ответ:</strong> <span class="correct-answer">{{ result.correct_answer }}</span></p>
+                {% if result.attempts is defined %}
+                <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                    <p><strong>Статистика по руке {{ result.hand }} в позиции {{ result.pos }}:</strong></p>
+                    <p>Показана: {{ result.attempts }} раз</p>
+                    <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
+                    <p>Ошибок: {{ result.errors }}</p>
+                    <p>Среднее время ответа: {{ result.avg_time_sec }} с</p>
+                    <p>Текущее время: {{ result.current_time_sec }} с</p>
+                </div>
+                {% endif %}
 
-        <form method="post" class="answer-form">
-            <p>Выберите ответ:</p>
-            <div class="button-group">
-                {% for ans in possible_answers %}
-                    <button type="submit" name="answer" value="{{ ans }}" class="answer-btn">
-                        {{ ans }}
-                    </button>
-                {% endfor %}
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <form action="{{ next_url }}" method="get">
+                        <button type="submit" class="next-btn">➡️ Следующий вопрос</button>
+                    </form>
+                    <button id="show-range-btn" class="next-btn">Показать диапазон</button>
+                </div>
+
+                <div id="range-display" style="display: none; margin-top: 20px;">
+                    <h3>Диапазон для позиции <span id="range-pos"></span></h3>
+                    <div id="range-matrix"></div>
+                    <ul id="range-subrange-list" class="range-subrange-list"></ul>
+                </div>
             </div>
-        </form>
+
+            <script>
+                (function() {
+                    const currentPos = '{{ result.pos }}';
+                    const currentHand = '{{ result.hand }}';
+                    const showRangeBtn = document.getElementById('show-range-btn');
+                    const rangeDisplay = document.getElementById('range-display');
+                    const rangePosSpan = document.getElementById('range-pos');
+                    const matrixContainer = document.getElementById('range-matrix');
+                    const listContainer = document.getElementById('range-subrange-list');
+
+                    let isVisible = false;
+
+                    if (showRangeBtn) {
+                        showRangeBtn.addEventListener('click', function() {
+                            if (isVisible) {
+                                rangeDisplay.style.display = 'none';
+                                this.textContent = 'Показать диапазон';
+                                isVisible = false;
+                                return;
+                            }
+
+                            fetch('/api/range/' + encodeURIComponent(currentPos))
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    if (data.status === 'ok') {
+                                        rangePosSpan.textContent = currentPos;
+                                        renderRangeMatrix(data.subranges, data.colors, currentHand);
+                                        rangeDisplay.style.display = 'block';
+                                        showRangeBtn.textContent = 'Скрыть диапазон';
+                                        isVisible = true;
+                                    } else {
+                                        alert('Ошибка: ' + data.message);
+                                    }
+                                })
+                                .catch(err => {
+                                    alert('Ошибка загрузки диапазона: ' + err.message + '\nПроверьте, что сервер запущен и сессия активна.');
+                                    console.error(err);
+                                });
+                        });
+                    }
+
+                    function renderRangeMatrix(subranges, colors, highlightHand) {
+                        const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+                        matrixContainer.innerHTML = '';
+
+                        const grid = document.createElement('div');
+                        grid.className = 'range-matrix-grid';
+
+                        ranks.forEach(rowRank => {
+                            ranks.forEach(colRank => {
+                                const cell = document.createElement('div');
+                                cell.className = 'range-matrix-cell';
+
+                                const i = ranks.indexOf(rowRank);
+                                const j = ranks.indexOf(colRank);
+                                let hand = '';
+                                if (i === j) hand = rowRank + colRank;
+                                else if (i < j) hand = rowRank + colRank + 's';
+                                else hand = colRank + rowRank + 'o';
+
+                                cell.textContent = hand;
+
+                                let color = '#d5d8dc';
+                                for (const [name, hands] of Object.entries(subranges)) {
+                                    if (hands.includes(hand)) {
+                                        color = colors[name] || '#3498db';
+                                        break;
+                                    }
+                                }
+                                cell.style.backgroundColor = color;
+
+                                if (hand === highlightHand) {
+                                    cell.classList.add('current-hand');
+                                }
+
+                                grid.appendChild(cell);
+                            });
+                        });
+
+                        matrixContainer.appendChild(grid);
+
+                        listContainer.innerHTML = '';
+                        for (const [name, hands] of Object.entries(subranges)) {
+                            const li = document.createElement('li');
+                            const dot = document.createElement('span');
+                            dot.className = 'range-color-dot';
+                            dot.style.backgroundColor = colors[name] || '#3498db';
+                            li.appendChild(dot);
+                            const text = document.createTextNode(name);
+                            li.appendChild(text);
+                            listContainer.appendChild(li);
+                        }
+                    }
+                })();
+            </script>
+
+        {% else %}
+            <div class="question">
+                <p><strong>Диапазон:</strong> {{ pos }}</p>
+                <p><strong>Рука:</strong> <span class="hand">{{ hand }}</span></p>
+            </div>
+
+            <form method="post" class="answer-form">
+                <p>Выберите ответ:</p>
+                <div class="button-group">
+                    {% for ans in possible_answers %}
+                        <button type="submit" name="answer" value="{{ ans }}" class="answer-btn">
+                            {{ ans }}
+                        </button>
+                    {% endfor %}
+                </div>
+            </form>
+        {% endif %}
     {% endif %}
 
     <div class="stats">

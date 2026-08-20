@@ -368,6 +368,7 @@ def logout():
 @app.route('/')
 @login_required
 def index():
+    session.pop('training_started', None)   # reset start flag
     config = get_user_config(current_user.id)
     if not config.modes:
         return render_template('index.html', modes={}, no_modes=True)
@@ -445,6 +446,17 @@ def training(mode):
         return redirect(url_for('training', mode=mode))
 
     # ---- GET: show result or new question ----
+    
+    # If user clicked "Start", set flag and redirect
+    if request.args.get('start') == '1':
+        session['training_started'] = True
+        return redirect(url_for('training', mode=mode))
+
+    # If training not started yet, show start screen
+    if not session.get('training_started', False):
+        stats = session['stats']
+        return render_template('training.html', mode=mode, show_start=True, stats=stats)
+    
     show_result = request.args.get('show_result') == '1'
     if show_result and 'last_result' in session:
         result = session['last_result']
