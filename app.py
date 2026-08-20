@@ -69,6 +69,17 @@ class UserConfig(db.Model):
 
     user = db.relationship('User', backref=db.backref('config', uselist=False))
 
+class HandStats(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    position = db.Column(db.String(50), nullable=False)
+    hand = db.Column(db.String(10), nullable=False)
+    attempts = db.Column(db.Integer, default=0)
+    errors = db.Column(db.Integer, default=0)
+    total_time_ms = db.Column(db.Integer, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'position', 'hand', name='_user_pos_hand_uc'),)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -126,6 +137,82 @@ def get_all_positions(config):
         positions.update(sub_dict.keys())
     return sorted(positions)
 
+def get_or_create_hand_stats(user_id, position, hand):
+    """Return HandStats record, create if missing."""
+    stats = HandStats.query.filter_by(user_id=user_id, position=position, hand=hand).first()
+    if not stats:
+        stats = HandStats(user_id=user_id, position=position, hand=hand)
+        db.session.add(stats)
+        db.session.commit()
+    return stats
+
+def update_hand_stats(user_id, position, hand, is_correct, time_ms):
+    """Update attempts, errors, and total time for a hand in a position."""
+    stats = get_or_create_hand_stats(user_id, position, hand)
+    stats.attempts += 1
+    if not is_correct:
+        stats.errors += 1
+    stats.total_time_ms += time_ms
+    db.session.commit()
+
+def get_avg_time_for_position(user_id, position):
+    """Return average response time (ms) for all hands in this position, or None."""
+    result = db.session.query(
+        db.func.sum(HandStats.total_time_ms).label('total'),
+        db.func.sum(HandStats.attempts).label('attempts')
+    ).filter(HandStats.user_id == user_id, HandStats.position == position).first()
+    if result and result.attempts and result.attempts > 0:
+        return result.total / result.attempts
+    return None
+
+def calculate_weight(stats, avg_pos_time):
+    """Compute weight for a hand based on error rate and speed relative to position average."""
+    if stats.attempts == 0:
+        error_score = 0.5
+        avg_hand_time = avg_pos_time if avg_pos_time is not None else 1000
+    else:
+        error_score = stats.errors / stats.attempts
+        avg_hand_time = stats.total_time_ms / stats.attempts
+
+    if avg_pos_time is not None and avg_pos_time > 0:
+        speed_ratio = avg_hand_time / avg_pos_time
+    else:
+        speed_ratio = 1.0
+
+    if speed_ratio <= 0.5:
+        speed_score = 0.0
+    elif speed_ratio >= 2.0:
+        speed_score = 1.0
+    else:
+        speed_score = (speed_ratio - 0.5) / 1.5
+
+    weight = error_score + speed_score
+    if weight < 0.1:
+        weight = 0.1
+    return weight
+
+def select_weighted_hand(user_id, position):
+    """Select a hand using weighted random choice based on difficulty."""
+    avg_pos_time = get_avg_time_for_position(user_id, position)
+    hands = []
+    weights = []
+    for hand in ALL_HANDS:
+        stats = get_or_create_hand_stats(user_id, position, hand)
+        w = calculate_weight(stats, avg_pos_time)
+        hands.append(hand)
+        weights.append(w)
+
+    total_weight = sum(weights)
+    if total_weight <= 0:
+        return random.choice(ALL_HANDS)
+
+    r = random.random() * total_weight
+    cum = 0.0
+    for i, w in enumerate(weights):
+        cum += w
+        if cum >= r:
+            return hands[i]
+    return hands[-1]
 
 def generate_all_hands():
     """Return a list of all 169 possible poker hands (e.g. 'AKs', '72o')."""
@@ -309,34 +396,43 @@ def training(mode):
     if 'stats' not in session:
         session['stats'] = {'total': 0, 'correct': 0, 'wrong': 0}
 
-    # Handle answer submission
+    # ---- POST: answer submission ----
     if request.method == 'POST':
+        start_time = session.pop('question_start_time', None)
+        elapsed_ms = 0
+        if start_time:
+            elapsed_ms = int((datetime.utcnow().timestamp() - start_time) * 1000)
+
         answer = request.form.get('answer', '').strip().lower()
         pos = session.get('pos')
         hand = session.get('hand')
         status = session.get('status')
         correct_text = session.get('correct_text')
+
         if pos and hand and status:
             stats = session['stats']
             stats['total'] += 1
-            user_correct = (answer == correct_text.lower())
-            if user_correct:
+            is_correct = (answer == correct_text.lower())
+            if is_correct:
                 stats['correct'] += 1
             else:
                 stats['wrong'] += 1
             session['stats'] = stats
 
+            # Update persistent hand statistics
+            update_hand_stats(current_user.id, pos, hand, is_correct, elapsed_ms)
+
             session['last_result'] = {
                 'user_answer': answer,
                 'correct_answer': correct_text,
-                'was_correct': user_correct,
+                'was_correct': is_correct,
                 'hand': hand,
                 'pos': pos
             }
             return redirect(url_for('training', mode=mode, show_result=1))
         return redirect(url_for('training', mode=mode))
 
-    # Show result if requested
+    # ---- GET: show result or new question ----
     show_result = request.args.get('show_result') == '1'
     if show_result and 'last_result' in session:
         result = session['last_result']
@@ -357,7 +453,7 @@ def training(mode):
         return "No positions in this mode", 400
 
     pos = random.choice(positions)
-    hand = random.choice(ALL_HANDS)
+    hand = select_weighted_hand(current_user.id, pos)   # <-- adaptive selection
     status = get_hand_status(hand, pos, config)
     correct_text = get_correct_answer_text(status)
 
@@ -366,6 +462,8 @@ def training(mode):
         get_correct_answer_text(st) for st in possible_statuses if get_correct_answer_text(st)
     ))
 
+    # Store question start time for response time measurement
+    session['question_start_time'] = datetime.utcnow().timestamp()
     session['pos'] = pos
     session['hand'] = hand
     session['status'] = status
