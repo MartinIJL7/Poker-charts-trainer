@@ -107,7 +107,7 @@
         <a href="{{ url_for('training', mode=mode, reset_start=1) }}" class="btn btn-secondary" style="text-decoration: none;">← Назад в тренировку</a>
     </div>
     <div style="text-align: center;">
-        <label for="position-select">Выберите позицию:</label>
+        <label for="position-select">Выберите диапазон:</label>
         <select id="position-select">
             {% for pos in positions %}
                 <option value="{{ pos }}">{{ pos }}</option>
@@ -118,6 +118,10 @@
         <span>Лёгкая (0.1)</span>
         <div class="legend-bar"></div>
         <span>Сложная (2.0)</span>
+    </div>
+
+    <div style="text-align: center; margin-top: 8px;">
+        <span style="font-size: 0.9em; color: #555;">Среднее время по диапазону: <span id="avg-position-time">—</span> с</span>
     </div>
 
     <p style="text-align: center; margin-top: 8px; font-size: 0.85em; color: #666;">
@@ -260,6 +264,12 @@
                     return;
                 }
                 buildMatrix(data.weights);
+                const avgSpan = document.getElementById('avg-position-time');
+                if (data.avg_time !== null && data.avg_time !== undefined) {
+                    avgSpan.textContent = (data.avg_time / 1000).toFixed(2);
+                } else {
+                    avgSpan.textContent = '—';
+                }
             })
             .catch(err => {
                 alert('Ошибка загрузки: ' + err.message);

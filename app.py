@@ -1228,7 +1228,11 @@ def api_heatmap(mode, position):
             'correct': stats.attempts - stats.errors,
             'avg_time_sec': avg_time
         }
-    return jsonify({'position': position, 'weights': weights})
+    return jsonify({
+        'position': position,
+        'weights': weights,
+        'avg_time': avg_pos_time
+    })
 
 
 # -------------------------------------------------------------------
