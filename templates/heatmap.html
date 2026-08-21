@@ -124,6 +124,10 @@
         <span style="font-size: 0.9em; color: #555;">Среднее время по диапазону: <span id="avg-position-time">—</span> с</span>
     </div>
 
+    <div style="text-align: center; margin-top: 4px;">
+        <span id="learned-status" style="font-weight: bold;"></span>
+    </div>
+
     <p style="text-align: center; margin-top: 8px; font-size: 0.85em; color: #666;">
         Цвета отражают вашу индивидуальную сложность рук, основанную на ошибках и времени ответа
     </p>
@@ -265,6 +269,14 @@
                 }
                 buildMatrix(data.weights);
                 const avgSpan = document.getElementById('avg-position-time');
+                const learnedSpan = document.getElementById('learned-status');
+                if (data.learned) {
+                    learnedSpan.innerHTML = '✅ Диапазон выучен!';
+                    learnedSpan.style.color = '#27ae60';
+                } else {
+                    learnedSpan.innerHTML = '🔄 Диапазон ещё не выучен';
+                    learnedSpan.style.color = '#e67e22';
+                }
                 if (data.avg_time !== null && data.avg_time !== undefined) {
                     avgSpan.textContent = (data.avg_time / 1000).toFixed(2);
                 } else {
