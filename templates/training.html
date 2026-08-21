@@ -132,7 +132,7 @@
                 <p><strong>Правильный ответ:</strong> <span class="correct-answer">{{ result.correct_answer }}</span></p>
                 {% if result.attempts is defined %}
                 <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-                    <p><strong>Статистика по руке {{ result.hand }} в позиции {{ result.pos }}:</strong></p>
+                    <p><strong>Статистика по руке {{ result.hand }} в диапазоне {{ result.pos }}:</strong></p>
                     <p>Показана: {{ result.attempts }} раз</p>
                     <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
                     <p>Ошибок: {{ result.errors }}</p>
@@ -149,7 +149,7 @@
                 </div>
 
                 <div id="range-display" style="display: none; margin-top: 20px;">
-                    <h3>Диапазон для позиции <span id="range-pos"></span></h3>
+                    <h3>Диапазон <span id="range-pos"></span></h3>
                     <div id="range-matrix"></div>
                     <ul id="range-subrange-list" class="range-subrange-list"></ul>
                 </div>
