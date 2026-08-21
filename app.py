@@ -148,16 +148,15 @@ def get_or_create_hand_stats(user_id, position, hand):
     return stats
 
 def update_hand_stats(user_id, position, hand, is_correct, time_ms):
-    """Update attempts, errors, and total time for a hand in a position."""
     stats = get_or_create_hand_stats(user_id, position, hand)
     stats.attempts += 1
     if not is_correct:
         stats.errors += 1
     stats.total_time_ms += time_ms
-    # Update last_results (store 1 for correct, 0 for error)
     stats.last_results.append(1 if is_correct else 0)
     if len(stats.last_results) > 3:
         stats.last_results.pop(0)
+    flag_modified(stats, 'last_results')
     db.session.commit()
 
 def get_avg_time_for_position(user_id, position):
@@ -170,17 +169,25 @@ def get_avg_time_for_position(user_id, position):
         return result.total / result.attempts
     return None
 
-def is_position_learned(user_id, position):
+def get_position_learning_status(user_id, position):
     avg_time = get_avg_time_for_position(user_id, position)
-    if avg_time is None or avg_time > 3000:  # > 3 seconds
-        return False
+    time_ok = avg_time is not None and avg_time <= 3000
+
+    attempts_ok = True
+    errors_ok = True
     for hand in ALL_HANDS:
         stats = get_or_create_hand_stats(user_id, position, hand)
         if stats.attempts < 3:
-            return False
+            attempts_ok = False
         if any(res == 0 for res in stats.last_results):
-            return False
-    return True
+            errors_ok = False
+    learned = attempts_ok and errors_ok and time_ok
+    return {
+        'learned': learned,
+        'attempts_ok': attempts_ok,
+        'errors_ok': errors_ok,
+        'time_ok': time_ok
+    }
 
 def calculate_weight(stats, avg_pos_time):
     """Compute weight for a hand based on error rate and speed relative to position average."""
@@ -1245,12 +1252,15 @@ def api_heatmap(mode, position):
             'correct': stats.attempts - stats.errors,
             'avg_time_sec': avg_time
         }
-    learned = is_position_learned(current_user.id, position)
+    status = get_position_learning_status(current_user.id, position)
     return jsonify({
         'position': position,
         'weights': weights,
         'avg_time': avg_pos_time,
-        'learned': learned
+        'learned': status['learned'],
+        'attempts_ok': status['attempts_ok'],
+        'errors_ok': status['errors_ok'],
+        'time_ok': status['time_ok']
     })
 
 

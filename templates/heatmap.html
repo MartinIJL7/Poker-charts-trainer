@@ -124,18 +124,25 @@
         <span style="font-size: 0.9em; color: #555;">Среднее время по диапазону: <span id="avg-position-time">—</span> с</span>
     </div>
 
-    <div style="text-align: center; margin-top: 4px;">
-        <span id="learned-status" style="font-weight: bold;"></span>
-    </div>
-
     <p style="text-align: center; margin-top: 8px; font-size: 0.85em; color: #666;">
         Цвета отражают вашу индивидуальную сложность рук, основанную на ошибках и времени ответа
     </p>
 
     <div id="hand-matrix"></div>
+
     <p style="text-align: center; margin-top: 15px; color: #888; font-size: 0.9em;">
         Серый цвет – рука ещё не встречалась
     </p>
+
+    <div id="learned-panel" style="margin-top: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; max-width: 415px; margin-left: auto; margin-right: auto;">
+        <div style="font-weight: bold; margin-bottom: 10px; text-align: center;">📊 Статус заучивания</div>
+        <div id="learned-status" style="font-weight: bold; margin-bottom: 8px; text-align: center;"></div>
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9em;">
+            <li id="li-attempts" style="margin-bottom: 4px;">🔹 Попыток на каждую руку >= 3: <span id="attempts-ok"></span></li>
+            <li id="li-errors" style="margin-bottom: 4px;">🔹 Ноль ошибок за последние 3 попытки на каждой руке: <span id="errors-ok"></span></li>
+            <li id="li-time" style="margin-bottom: 4px;">🔹 Среднее время диапазона <= 3 с: <span id="time-ok"></span></li>
+        </ul>
+    </div>
 
     <div id="info-panel" style="display:none; position:fixed; top:50%; right:20px; transform:translateY(-50%); background:white; border:1px solid #ccc; border-radius:8px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,0.15); min-width:200px; max-width:260px; z-index:1000; font-size:0.9em; pointer-events:auto;">
         <button id="close-panel" style="float:right; background:none; border:none; font-size:1.2em; cursor:pointer; padding:0 4px;">✕</button>
@@ -268,7 +275,14 @@
                     return;
                 }
                 buildMatrix(data.weights);
+
                 const avgSpan = document.getElementById('avg-position-time');
+                if (data.avg_time !== null && data.avg_time !== undefined) {
+                    avgSpan.textContent = (data.avg_time / 1000).toFixed(2);
+                } else {
+                    avgSpan.textContent = '—';
+                }
+
                 const learnedSpan = document.getElementById('learned-status');
                 if (data.learned) {
                     learnedSpan.innerHTML = '✅ Диапазон выучен!';
@@ -277,11 +291,10 @@
                     learnedSpan.innerHTML = '🔄 Диапазон ещё не выучен';
                     learnedSpan.style.color = '#e67e22';
                 }
-                if (data.avg_time !== null && data.avg_time !== undefined) {
-                    avgSpan.textContent = (data.avg_time / 1000).toFixed(2);
-                } else {
-                    avgSpan.textContent = '—';
-                }
+
+                document.getElementById('attempts-ok').innerHTML = data.attempts_ok ? '✅' : '❌';
+                document.getElementById('errors-ok').innerHTML = data.errors_ok ? '✅' : '❌';
+                document.getElementById('time-ok').innerHTML = data.time_ok ? '✅' : '❌';
             })
             .catch(err => {
                 alert('Ошибка загрузки: ' + err.message);
