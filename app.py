@@ -510,6 +510,13 @@ def training(mode):
             avg_time_sec = round(stats.total_time_ms / attempts / 1000, 2) if attempts > 0 else 0
             current_time_sec = round(elapsed_ms / 1000, 2)
 
+            # Compute hand status fields
+            review_interval_days = stats.review_interval_days
+            penalty_active = stats.penalty_active
+            days_since = (datetime.utcnow() - stats.updated_at).days if stats.updated_at else 0
+            is_due = (review_interval_days > 0 and not penalty_active and days_since >= review_interval_days)
+            errors_last_3 = sum(1 for res in stats.last_results if res == 0)
+
             session['last_result'] = {
                 'user_answer': answer,
                 'correct_answer': correct_text,
@@ -520,7 +527,13 @@ def training(mode):
                 'errors': errors,
                 'correct_count': correct_count,
                 'avg_time_sec': avg_time_sec,
-                'current_time_sec': current_time_sec
+                'current_time_sec': current_time_sec,
+                # New fields for visual status
+                'review_interval_days': review_interval_days,
+                'penalty_active': penalty_active,
+                'days_since_last_shown': days_since,
+                'is_due_for_review': is_due,
+                'errors_last_3': errors_last_3
             }
             return redirect(url_for('training', mode=mode, show_result=1))
         return redirect(url_for('training', mode=mode))
@@ -1301,6 +1314,10 @@ def api_heatmap(mode, position):
         stats = get_or_create_hand_stats(current_user.id, position, hand)
         w = calculate_weight(stats, avg_pos_time)
         avg_time = round(stats.total_time_ms / stats.attempts / 1000, 2) if stats.attempts > 0 else None
+        errors_last_3 = sum(1 for res in stats.last_results if res == 0)
+        days_since = (datetime.utcnow() - stats.updated_at).days if stats.updated_at else 0
+        is_due = (stats.review_interval_days > 0 and not stats.penalty_active and days_since >= stats.review_interval_days)
+
         weights[hand] = {
             'weight': w,
             'attempts': stats.attempts,
@@ -1309,7 +1326,9 @@ def api_heatmap(mode, position):
             'avg_time_sec': avg_time,
             'review_interval_days': stats.review_interval_days,
             'penalty_active': stats.penalty_active,
-            'last_updated': stats.updated_at.isoformat()
+            'days_since_last_shown': days_since,
+            'is_due_for_review': is_due,
+            'errors_last_3': errors_last_3
         }
     status = get_position_learning_status(current_user.id, position)
     return jsonify({

@@ -156,6 +156,44 @@
     const mode = '{{ mode }}';
     let currentPosition = document.getElementById('position-select').value;
 
+    function buildStatusHTML(data) {
+        const attempts = data.attempts || 0;
+        const avgTime = data.avg_time_sec !== null && data.avg_time_sec !== undefined ? data.avg_time_sec : 0;
+        const errorsLast3 = data.errors_last_3 !== undefined ? data.errors_last_3 : 0;
+        const reviewInterval = data.review_interval_days || 0;
+        const penaltyActive = data.penalty_active || false;
+        const daysSince = data.days_since_last_shown || 0;
+        const isDue = data.is_due_for_review || false;
+
+        let html = '';
+
+        if (penaltyActive) {
+            html += `<div style="color: #e74c3c; font-weight: bold;">🔴 Забыта</div>`;
+            html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Рука была выучена, но затем была допущена ошибка или среднее время руки превысило 3 секунды</div>`;
+            html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
+            html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
+            html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки<br>`;
+            html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки <= 3 с`;
+            html += `</div>`;
+        } else if (reviewInterval > 0 && isDue) {
+            html += `<div style="color: #e67e22; font-weight: bold;">🟠 Выучена, пора повторять!</div>`;
+            html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Вес повышен до максимума для планового повторения</div>`;
+            html += `<div style="font-size: 0.8em; margin-top: 4px;">Интервал: ${reviewInterval} дн. &nbsp;|&nbsp; Прошло: ${daysSince} дн.</div>`;
+        } else if (reviewInterval > 0) {
+            html += `<div style="color: #27ae60; font-weight: bold;">🟢 Выучена</div>`;
+            html += `<div style="font-size: 0.8em; margin-top: 4px;">Интервал: ${reviewInterval} дн. &nbsp;|&nbsp; Прошло: ${daysSince} дн.</div>`;
+        } else {
+            html += `<div style="color: #95a5a6; font-weight: bold;">⚪ Не выучена</div>`;
+            html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
+            html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
+            html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки<br>`;
+            html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки <= 3 с`;
+            html += `</div>`;
+        }
+
+        return html;
+    }
+
     function buildMatrix(weights) {
         const container = document.getElementById('hand-matrix');
         container.innerHTML = '';
@@ -206,6 +244,21 @@
                     cell.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
                     cell.style.color = (t > 0.6) ? 'white' : 'black';
 
+                    // Store status data in data attributes
+                    cell.dataset.attempts = data.attempts;
+                    cell.dataset.errors = data.errors;
+                    cell.dataset.correct = data.correct;
+                    cell.dataset.avgTime = data.avg_time_sec !== null ? data.avg_time_sec.toFixed(2) : '—';
+                    cell.dataset.weight = data.weight.toFixed(2);
+                    cell.dataset.hand = hand;
+
+                    // New status fields
+                    cell.dataset.reviewInterval = data.review_interval_days;
+                    cell.dataset.penaltyActive = data.penalty_active ? 'true' : 'false';
+                    cell.dataset.daysSince = data.days_since_last_shown;
+                    cell.dataset.isDue = data.is_due_for_review ? 'true' : 'false';
+                    cell.dataset.errorsLast3 = data.errors_last_3 !== undefined ? data.errors_last_3 : 0;
+
                     // Store stats in data attributes
                     cell.dataset.attempts = data.attempts;
                     cell.dataset.errors = data.errors;
@@ -217,15 +270,26 @@
                     // Tooltip events
                     if (!isTouchDevice) {
                         cell.addEventListener('mouseenter', function(e) {
-                            const stats = `
-                                <strong>${hand}</strong><br>
+                            const data = {
+                                attempts: parseInt(this.dataset.attempts) || 0,
+                                avg_time_sec: parseFloat(this.dataset.avgTime) || 0,
+                                errors_last_3: parseInt(this.dataset.errorsLast3) || 0,
+                                review_interval_days: parseInt(this.dataset.reviewInterval) || 0,
+                                penalty_active: this.dataset.penaltyActive === 'true',
+                                days_since_last_shown: parseInt(this.dataset.daysSince) || 0,
+                                is_due_for_review: this.dataset.isDue === 'true'
+                            };
+                            const statsHtml = buildStatusHTML(data);
+                            // Add old stats on top
+                            const oldStats = `
+                                <strong>${this.dataset.hand}</strong><br>
                                 Попыток: ${this.dataset.attempts}<br>
                                 Правильно: ${this.dataset.correct}<br>
                                 Ошибок: ${this.dataset.errors}<br>
                                 Среднее время: ${this.dataset.avgTime} с<br>
-                                Вес индивидуальной сложности: ${this.dataset.weight}
+                                Вес: ${this.dataset.weight}
                             `;
-                            tooltipContent.innerHTML = stats;
+                            tooltipContent.innerHTML = oldStats + '<hr>' + statsHtml;
                             tooltip.style.display = 'block';
                             // Position tooltip near cursor
                             const x = e.clientX + 15;
@@ -246,15 +310,31 @@
 
                     cell.addEventListener('click', function(e) {
                         e.stopPropagation();
-                        const stats = `
-                            <strong>${hand}</strong><br>
+
+                        // ---- Old stats (from the 'data' variable) ----
+                        const oldStats = `
+                            <strong>${data.hand}</strong><br>
                             Попыток: ${data.attempts}<br>
                             Правильно: ${data.correct}<br>
                             Ошибок: ${data.errors}<br>
-                            Среднее время: ${data.avg_time_sec !== null ? data.avg_time_sec.toFixed(2) : '—'} с<br>
+                            Среднее время: ${data.avg_time_sec !== null && data.avg_time_sec !== undefined ? data.avg_time_sec.toFixed(2) : '—'} с<br>
                             Вес индивидуальной сложности: ${data.weight.toFixed(2)}
                         `;
-                        document.getElementById('panel-content').innerHTML = stats;
+
+                        // ---- Status (use the same buildStatusHTML) ----
+                        const statusData = {
+                            attempts: data.attempts || 0,
+                            avg_time_sec: data.avg_time_sec !== null && data.avg_time_sec !== undefined ? data.avg_time_sec : 0,
+                            errors_last_3: data.errors_last_3 !== undefined ? data.errors_last_3 : 0,
+                            review_interval_days: data.review_interval_days || 0,
+                            penalty_active: data.penalty_active || false,
+                            days_since_last_shown: data.days_since_last_shown || 0,
+                            is_due_for_review: data.is_due_for_review || false
+                        };
+                        const statusHtml = buildStatusHTML(statusData);
+
+                        // ---- Combine ----
+                        document.getElementById('panel-content').innerHTML = oldStats + '<hr style="margin: 8px 0;">' + statusHtml;
                         document.getElementById('info-panel').style.display = 'block';
                     });
                 }
