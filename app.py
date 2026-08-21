@@ -79,6 +79,8 @@ class HandStats(db.Model):
     total_time_ms = db.Column(db.Integer, default=0)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_results = db.Column(db.JSON, default=list)
+    review_interval_days = db.Column(db.Integer, default=0)   # 0 = not in interval mode, >0 = learned, waiting for review
+    penalty_active = db.Column(db.Boolean, default=False)     # penalty bonus after mistake on a learned hand
 
     __table_args__ = (db.UniqueConstraint('user_id', 'position', 'hand', name='_user_pos_hand_uc'),)
 
@@ -147,6 +149,16 @@ def get_or_create_hand_stats(user_id, position, hand):
         db.session.commit()
     return stats
 
+FIBONACCI = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377]   # days
+
+def next_fibonacci(current):
+    """Return the next Fibonacci number after current, or last if current is at max."""
+    for i, val in enumerate(FIBONACCI):
+        if val == current:
+            return FIBONACCI[i + 1] if i + 1 < len(FIBONACCI) else FIBONACCI[-1]
+    # if not found (shouldn't happen), return first
+    return FIBONACCI[0]
+
 def update_hand_stats(user_id, position, hand, is_correct, time_ms):
     stats = get_or_create_hand_stats(user_id, position, hand)
     stats.attempts += 1
@@ -157,6 +169,41 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
     if len(stats.last_results) > 3:
         stats.last_results.pop(0)
     flag_modified(stats, 'last_results')
+
+    # --- Learning status check ---
+    avg_time_hand = stats.total_time_ms / stats.attempts if stats.attempts > 0 else 0
+    is_learned = (stats.attempts >= 3 and
+                  all(res == 1 for res in stats.last_results) and
+                  avg_time_hand <= 3000)
+
+    # If hand was in interval mode and now fails learning criteria -> penalty
+    if stats.review_interval_days > 0 and not is_learned:
+        stats.penalty_active = True
+        stats.review_interval_days = 0
+    # If hand becomes learned -> start interval mode
+    elif is_learned and stats.review_interval_days == 0:
+        stats.review_interval_days = 1
+        stats.penalty_active = False   # clear any penalty
+    # If already in interval mode and correctly answered after scheduled review
+    elif is_learned and stats.review_interval_days > 0 and is_correct:
+        days_since = (datetime.utcnow() - stats.updated_at).days
+        if days_since >= stats.review_interval_days:
+            # scheduled review – increase interval using Fibonacci
+            stats.review_interval_days = next_fibonacci(stats.review_interval_days)
+            stats.penalty_active = False
+        else:
+            # random early show, do not change interval, just clear penalty
+            stats.penalty_active = False
+
+    # If incorrect and hand was in interval mode -> penalty + drop from interval
+    if not is_correct and stats.review_interval_days > 0:
+        stats.penalty_active = True
+        stats.review_interval_days = 0
+
+    # Ensure we don't lose the penalty if already set and hand not learned
+    if stats.penalty_active and is_learned:
+        stats.penalty_active = False
+
     db.session.commit()
 
 def get_avg_time_for_position(user_id, position):
@@ -190,7 +237,6 @@ def get_position_learning_status(user_id, position):
     }
 
 def calculate_weight(stats, avg_pos_time):
-    """Compute weight for a hand based on error rate and speed relative to position average."""
     if stats.attempts == 0:
         error_score = 0.5
         avg_hand_time = avg_pos_time if avg_pos_time is not None else 1000
@@ -211,8 +257,18 @@ def calculate_weight(stats, avg_pos_time):
         speed_score = (speed_ratio - 0.5) / 1.5
 
     weight = error_score + speed_score
-    if weight < 0.1:
-        weight = 0.1
+    weight = max(0.1, min(2.0, weight))   # base weight clamped
+
+    # Penalty bonus
+    if stats.penalty_active:
+        weight = min(2.0, weight + 1.2)
+
+    # Interval review bonus (max out weight if review is due)
+    if stats.review_interval_days > 0:
+        days_since = (datetime.utcnow() - stats.updated_at).days
+        if days_since >= stats.review_interval_days:
+            weight = 2.0
+
     return weight
 
 def select_weighted_hand(user_id, position):
@@ -1250,7 +1306,10 @@ def api_heatmap(mode, position):
             'attempts': stats.attempts,
             'errors': stats.errors,
             'correct': stats.attempts - stats.errors,
-            'avg_time_sec': avg_time
+            'avg_time_sec': avg_time,
+            'review_interval_days': stats.review_interval_days,
+            'penalty_active': stats.penalty_active,
+            'last_updated': stats.updated_at.isoformat()
         }
     status = get_position_learning_status(current_user.id, position)
     return jsonify({
