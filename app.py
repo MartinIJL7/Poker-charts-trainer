@@ -1343,6 +1343,60 @@ def api_heatmap(mode, position):
 
 
 # -------------------------------------------------------------------
+# Stats
+# -------------------------------------------------------------------
+@app.route('/all_stats')
+@login_required
+def all_stats():
+    """Page showing heatmap for all positions (no mode)."""
+    config = get_user_config(current_user.id)
+    positions = get_all_positions(config)
+    return render_template('all_stats.html', positions=positions)
+
+
+@app.route('/api/all_heatmap/<position>')
+@login_required
+def api_all_heatmap(position):
+    """API endpoint for heatmap data for a specific position (no mode)."""
+    config = get_user_config(current_user.id)
+    if position not in get_all_positions(config):
+        return jsonify({'error': 'Position not found'}), 400
+
+    avg_pos_time = get_avg_time_for_position(current_user.id, position)
+    weights = {}
+    for hand in ALL_HANDS:
+        stats = get_or_create_hand_stats(current_user.id, position, hand)
+        w = calculate_weight(stats, avg_pos_time)
+        avg_time = round(stats.total_time_ms / stats.attempts / 1000, 2) if stats.attempts > 0 else None
+        errors_last_3 = sum(1 for res in stats.last_results if res == 0)
+        days_since = (datetime.utcnow() - stats.updated_at).days if stats.updated_at else 0
+        is_due = (stats.review_interval_days > 0 and not stats.penalty_active and days_since >= stats.review_interval_days)
+
+        weights[hand] = {
+            'weight': w,
+            'attempts': stats.attempts,
+            'errors': stats.errors,
+            'correct': stats.attempts - stats.errors,
+            'avg_time_sec': avg_time,
+            'review_interval_days': stats.review_interval_days,
+            'penalty_active': stats.penalty_active,
+            'days_since_last_shown': days_since,
+            'is_due_for_review': is_due,
+            'errors_last_3': errors_last_3
+        }
+    status = get_position_learning_status(current_user.id, position)
+    return jsonify({
+        'position': position,
+        'weights': weights,
+        'avg_time': avg_pos_time,
+        'learned': status['learned'],
+        'attempts_ok': status['attempts_ok'],
+        'errors_ok': status['errors_ok'],
+        'time_ok': status['time_ok']
+    })
+
+
+# -------------------------------------------------------------------
 # Application entry point
 # -------------------------------------------------------------------
 if __name__ == '__main__':

@@ -21,10 +21,11 @@
         </div>
     {% endif %}
 
-    <div class="action-links">
+    <div class="action-links" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
         <a href="{{ url_for('create_range') }}">📝 Работа с диапазонами</a>
         <a href="{{ url_for('create_mode') }}">📋 Работа с режимами</a>
         <a href="{{ url_for('config_management') }}">💾 Работа с конфигами</a>
+        <a href="{{ url_for('all_stats') }}">📊 Работа со статистикой</a>
     </div>
 
     <p style="font-size:0.8em; color:#999; margin-top:20px;">

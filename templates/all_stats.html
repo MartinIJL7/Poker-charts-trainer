@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Тепловая карта – {{ mode }}{% endblock %}
-{% block header %}🔥 Тепловая карта: {{ mode }}{% endblock %}
+{% block title %}Вся статистика по диапазонам{% endblock %}
+{% block header %}📊 Вся статистика по диапазонам{% endblock %}
 {% block body_class %}create-page{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='create_range.css') }}?v={{ static_version('create_range.css') }}">
@@ -103,9 +103,6 @@
     <div id="tooltip" style="display:none; position:fixed; background:#fff; border:1px solid #ccc; padding:10px 14px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); font-size:0.85em; pointer-events:none; z-index:1000; min-width:180px;">
         <div id="tooltip-content"></div>
     </div>
-    <div style="text-align: center; margin: 10px 0;">
-        <a href="{{ url_for('training', mode=mode, reset_start=1) }}" class="btn btn-secondary" style="text-decoration: none;">← Назад в тренировку</a>
-    </div>
     <div style="text-align: center;">
         <label for="position-select">Выберите диапазон:</label>
         <select id="position-select">
@@ -153,7 +150,6 @@
 <script>
     const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
     const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
-    const mode = '{{ mode }}';
     let currentPosition = document.getElementById('position-select').value;
 
     function buildStatusHTML(data) {
@@ -259,14 +255,6 @@
                     cell.dataset.isDue = data.is_due_for_review ? 'true' : 'false';
                     cell.dataset.errorsLast3 = data.errors_last_3 !== undefined ? data.errors_last_3 : 0;
 
-                    // Store stats in data attributes
-                    cell.dataset.attempts = data.attempts;
-                    cell.dataset.errors = data.errors;
-                    cell.dataset.correct = data.correct;
-                    cell.dataset.avgTime = data.avg_time_sec !== null ? data.avg_time_sec.toFixed(2) : '—';
-                    cell.dataset.weight = data.weight.toFixed(2);
-                    cell.dataset.hand = hand;
-
                     // Tooltip events
                     if (!isTouchDevice) {
                         cell.addEventListener('mouseenter', function(e) {
@@ -280,7 +268,6 @@
                                 is_due_for_review: this.dataset.isDue === 'true'
                             };
                             const statsHtml = buildStatusHTML(data);
-                            // Add old stats on top
                             const oldStats = `
                                 <strong>${this.dataset.hand}</strong><br>
                                 Попыток: ${this.dataset.attempts}<br>
@@ -291,10 +278,8 @@
                             `;
                             tooltipContent.innerHTML = oldStats + '<hr>' + statsHtml;
                             tooltip.style.display = 'block';
-                            // Position tooltip near cursor
                             const x = e.clientX + 15;
                             const y = e.clientY - 10;
-                            // Keep tooltip within viewport
                             const tw = tooltip.offsetWidth || 200;
                             const th = tooltip.offsetHeight || 120;
                             const left = Math.min(x, window.innerWidth - tw - 10);
@@ -311,7 +296,6 @@
                     cell.addEventListener('click', function(e) {
                         e.stopPropagation();
 
-                        // ---- Old stats (from the 'data' variable) ----
                         const oldStats = `
                             <strong>${hand}</strong><br>
                             Попыток: ${data.attempts}<br>
@@ -321,7 +305,6 @@
                             Вес индивидуальной сложности: ${data.weight.toFixed(2)}
                         `;
 
-                        // ---- Status (use the same buildStatusHTML) ----
                         const statusData = {
                             attempts: data.attempts || 0,
                             avg_time_sec: data.avg_time_sec !== null && data.avg_time_sec !== undefined ? data.avg_time_sec : 0,
@@ -333,7 +316,6 @@
                         };
                         const statusHtml = buildStatusHTML(statusData);
 
-                        // ---- Combine ----
                         document.getElementById('panel-content').innerHTML = oldStats + '<hr style="margin: 8px 0;">' + statusHtml;
                         document.getElementById('info-panel').style.display = 'block';
                     });
@@ -344,7 +326,7 @@
     }
 
     function loadPosition(position) {
-        fetch(`/api/heatmap/${mode}/${encodeURIComponent(position)}`)
+        fetch(`/api/all_heatmap/${encodeURIComponent(position)}`)
             .then(response => {
                 if (!response.ok) throw new Error('Failed to load');
                 return response.json();
