@@ -98,6 +98,20 @@
             font-size: 0.9em;
         }
     }
+
+    .key-hint {
+        font-size: 0.7em;
+        color: #888;
+        margin-right: 4px;
+        font-weight: normal;
+    }
+
+    .key-hint-light {
+        font-size: 0.7em;
+        color: #ffffff;
+        margin-right: 4px;
+        font-weight: normal;
+    }
 </style>
 {% endblock %}
 
@@ -146,9 +160,9 @@
 
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
                     <form action="{{ next_url }}" method="get">
-                        <button type="submit" class="next-btn">➡️ Следующий вопрос</button>
+                        <button type="submit" class="next-btn">➡️ Следующий вопрос <span class="key-hint-light">(Enter)</span></button>
                     </form>
-                    <button id="show-range-btn" class="next-btn">Показать диапазон</button>
+                    <button id="show-range-btn" class="next-btn">Показать диапазон <span class="key-hint-light">(+)</span></button>
                 </div>
 
                 <div id="range-display" style="display: none; margin-top: 20px;">
@@ -174,7 +188,7 @@
                         showRangeBtn.addEventListener('click', function() {
                             if (isVisible) {
                                 rangeDisplay.style.display = 'none';
-                                this.textContent = 'Показать диапазон';
+                                this.innerHTML = 'Показать диапазон <span class="key-hint-light">(+)</span>';
                                 isVisible = false;
                                 return;
                             }
@@ -191,14 +205,14 @@
                                         rangePosSpan.textContent = currentPos;
                                         renderRangeMatrix(data.subranges, data.colors, currentHand);
                                         rangeDisplay.style.display = 'block';
-                                        showRangeBtn.textContent = 'Скрыть диапазон';
+                                        this.innerHTML = 'Скрыть диапазон <span class="key-hint-light">(+)</span>';
                                         isVisible = true;
                                     } else {
                                         alert('Ошибка: ' + data.message);
                                     }
                                 })
                                 .catch(err => {
-                                    alert('Ошибка загрузки диапазона: ' + err.message + '\nПроверьте, что сервер запущен и сессия активна.');
+                                    alert('Ошибка загрузки диапазона: ' + err.message + '\nПроверьте, что сервер запущен и сессия активна');
                                     console.error(err);
                                 });
                         });
@@ -327,8 +341,8 @@
                 <p>Выберите ответ:</p>
                 <div class="button-group">
                     {% for ans in possible_answers %}
-                        <button type="submit" name="answer" value="{{ ans }}" class="answer-btn">
-                            {{ ans }}
+                        <button type="submit" name="answer" value="{{ ans }}" class="answer-btn" data-key="{{ loop.index }}">
+                            <span class="key-hint">{{ loop.index }}</span> {{ ans }}
                         </button>
                     {% endfor %}
                 </div>
@@ -337,7 +351,7 @@
     {% endif %}
 
     <div class="stats">
-        <h2>📈 Статистика данной сессии браузера</h2>
+        <h2>📈 Статистика</h2>
         <p>Всего ответов: <strong>{{ stats.total }}</strong></p>
         <p>✅ Верных: <strong>{{ stats.correct }}</strong>
             (<span id="stats-correct-pct">{{ "%.1f"|format(stats.correct / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
@@ -346,8 +360,51 @@
             (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
         </p>
         <p>
-            <a href="{{ url_for('reset_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display:inline-block;">🔄 Сбросить статистику данной сессии браузера</a>
+            <a href="{{ url_for('reset_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display:inline-block;">🔄 Сбросить статистику ответов из сесссии браузера</a>
             <a href="{{ url_for('heatmap', mode=mode) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display:inline-block;">🔥 Тепловая карта</a>
         </p>
     </div>
+
+    {% if not show_start %}
+    <script>
+        document.addEventListener('keydown', function(e) {
+            // Only if we are on a question page or result page
+            const isQuestionPage = document.querySelector('.answer-form') !== null;
+            const isResultPage = document.querySelector('.result-box') !== null;
+
+            // 1. Number keys 1-9 on question page
+            if (isQuestionPage) {
+                const key = parseInt(e.key);
+                if (key >= 1 && key <= 9) {
+                    const btn = document.querySelector(`.answer-btn[data-key="${key}"]`);
+                    if (btn) {
+                        e.preventDefault();
+                        btn.click();
+                        return;
+                    }
+                }
+            }
+
+            // 2. Enter on result page -> submit the "Next question" form
+            if (isResultPage && e.key === 'Enter') {
+                const form = document.querySelector('.result-box form');
+                if (form) {
+                    e.preventDefault();
+                    form.submit();
+                    return;
+                }
+            }
+
+            // 3. '+' on result page -> toggle range display
+            if (isResultPage && e.key === '+') {
+                const btn = document.getElementById('show-range-btn');
+                if (btn) {
+                    e.preventDefault();
+                    btn.click();
+                    return;
+                }
+            }
+        });
+    </script>
+    {% endif %}
 {% endblock %}
