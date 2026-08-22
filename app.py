@@ -1436,4 +1436,4 @@ def delete_all_stats():
 # Application entry point
 # -------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
