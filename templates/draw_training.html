@@ -293,8 +293,8 @@
     </div>
 
     <div class="stats">
-        <h2>📈 Статистика рисования данной сессии браузера</h2>
-        <p>Всего попыток: <strong id="stats-total">{{ stats.total }}</strong></p>
+        <h2>📈 Статистика рисования</h2>
+        <p>Счетчик ответов в сессии браузера: <strong id="stats-total">{{ stats.total }}</strong></p>
         <p>✅ Верных: <strong id="stats-correct">{{ stats.correct }}</strong>
             (<span id="stats-correct-pct">{{ "%.1f"|format(stats.correct / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
         </p>
@@ -302,7 +302,7 @@
             (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
         </p>
         <p>
-            <a href="{{ url_for('reset_draw_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display:inline-block;">🔄 Сбросить статистику данной сессии браузера</a>
+            <a href="{{ url_for('reset_draw_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display:inline-block;">🔄 Сбросить счетчик сессии браузера</a>
         </p>
     </div>
 </div>
