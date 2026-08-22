@@ -103,13 +103,17 @@
     <div id="tooltip" style="display:none; position:fixed; background:#fff; border:1px solid #ccc; padding:10px 14px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); font-size:0.85em; pointer-events:none; z-index:1000; min-width:180px;">
         <div id="tooltip-content"></div>
     </div>
-    <div style="text-align: center;">
-        <label for="position-select">Выберите диапазон:</label>
+    <div style="text-align: center; margin: 10px 0;">
+        <label for="position-select" style="margin-right: 8px;">Выберите диапазон:</label>
         <select id="position-select">
             {% for pos in positions %}
                 <option value="{{ pos }}">{{ pos }}</option>
             {% endfor %}
         </select>
+    </div>
+    <div style="text-align: center; margin: 10px 0; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        <button id="delete-position-btn" class="btn btn-danger" style="padding: 6px 14px;">🗑 Удалить статистику по диапазону</button>
+        <button id="delete-all-btn" class="btn btn-danger" style="padding: 6px 14px;">🗑 Удалить всю мою статистику</button>
     </div>
     <div class="legend">
         <span>Лёгкая (0.1)</span>
@@ -362,6 +366,48 @@
                 alert('Ошибка загрузки: ' + err.message);
             });
     }
+
+    // Delete statistics for current position
+    document.getElementById('delete-position-btn').addEventListener('click', function() {
+        const pos = document.getElementById('position-select').value;
+        if (!pos) return alert('Нет выбранного диапазона');
+        if (!confirm(`Удалить всю статистику по диапазону "${pos}"? Это действие необратимо`)) return;
+        fetch(`/api/delete_position_stats/${encodeURIComponent(pos)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                alert(data.message);
+                // Reload current position data
+                loadPosition(pos);
+            } else {
+                alert('Ошибка: ' + data.message);
+            }
+        })
+        .catch(err => alert('Ошибка сети: ' + err));
+    });
+
+    // Delete all statistics for user
+    document.getElementById('delete-all-btn').addEventListener('click', function() {
+        if (!confirm('Удалить ВСЮ вашу статистику по всем диапазонам? Это действие необратимо!')) return;
+        fetch('/api/delete_all_stats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                alert(data.message);
+                // Reload page to reset everything
+                location.reload();
+            } else {
+                alert('Ошибка: ' + data.message);
+            }
+        })
+        .catch(err => alert('Ошибка сети: ' + err));
+    });
 
     document.getElementById('position-select').addEventListener('change', function() {
         currentPosition = this.value;

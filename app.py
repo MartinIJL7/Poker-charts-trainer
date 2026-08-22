@@ -1396,6 +1396,32 @@ def api_all_heatmap(position):
     })
 
 
+@app.route('/api/delete_position_stats/<position>', methods=['POST'])
+@login_required
+def delete_position_stats(position):
+    """Delete all HandStats records for the current user and given position."""
+    try:
+        deleted = HandStats.query.filter_by(user_id=current_user.id, position=position).delete()
+        db.session.commit()
+        return jsonify({'status': 'ok', 'message': f'Удалено {deleted} записей для позиции "{position}"'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/delete_all_stats', methods=['POST'])
+@login_required
+def delete_all_stats():
+    """Delete all HandStats records for the current user."""
+    try:
+        deleted = HandStats.query.filter_by(user_id=current_user.id).delete()
+        db.session.commit()
+        return jsonify({'status': 'ok', 'message': f'Удалено {deleted} записей'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 # -------------------------------------------------------------------
 # Application entry point
 # -------------------------------------------------------------------
