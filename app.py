@@ -186,7 +186,8 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
         stats.penalty_active = False   # clear any penalty
     # If already in interval mode and correctly answered after scheduled review
     elif is_learned and stats.review_interval_days > 0 and is_correct:
-        days_since = (datetime.utcnow() - stats.updated_at).days
+        updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
+        days_since = (datetime.utcnow() - updated_naive).days
         if days_since >= stats.review_interval_days:
             # scheduled review – increase interval using Fibonacci
             stats.review_interval_days = next_fibonacci(stats.review_interval_days)
@@ -265,7 +266,8 @@ def calculate_weight(stats, avg_pos_time):
 
     # Interval review bonus (max out weight if review is due)
     if stats.review_interval_days > 0:
-        days_since = (datetime.utcnow() - stats.updated_at).days
+        updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
+        days_since = (datetime.utcnow() - updated_naive).days
         if days_since >= stats.review_interval_days:
             weight = 2.0
 
@@ -1315,7 +1317,11 @@ def api_heatmap(mode, position):
         w = calculate_weight(stats, avg_pos_time)
         avg_time = round(stats.total_time_ms / stats.attempts / 1000, 2) if stats.attempts > 0 else None
         errors_last_3 = sum(1 for res in stats.last_results if res == 0)
-        days_since = (datetime.utcnow() - stats.updated_at).days if stats.updated_at else 0
+        if stats.updated_at:
+            updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
+            days_since = (datetime.utcnow() - updated_naive).days
+        else:
+            days_since = 0
         is_due = (stats.review_interval_days > 0 and not stats.penalty_active and days_since >= stats.review_interval_days)
 
         weights[hand] = {
@@ -1369,7 +1375,11 @@ def api_all_heatmap(position):
         w = calculate_weight(stats, avg_pos_time)
         avg_time = round(stats.total_time_ms / stats.attempts / 1000, 2) if stats.attempts > 0 else None
         errors_last_3 = sum(1 for res in stats.last_results if res == 0)
-        days_since = (datetime.utcnow() - stats.updated_at).days if stats.updated_at else 0
+        if stats.updated_at:
+            updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
+            days_since = (datetime.utcnow() - updated_naive).days
+        else:
+            days_since = 0
         is_due = (stats.review_interval_days > 0 and not stats.penalty_active and days_since >= stats.review_interval_days)
 
         weights[hand] = {

@@ -147,11 +147,11 @@
                 {% if result.attempts is defined %}
                 <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
                     <p><strong>Статистика по руке {{ result.hand }} в диапазоне {{ result.pos }}:</strong></p>
-                    <p>Показана: {{ result.attempts }} раз</p>
+                    <p>Попыток: {{ result.attempts }} раз</p>
                     <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
                     <p>Ошибок: {{ result.errors }}</p>
                     <p>Среднее время ответа: {{ result.avg_time_sec }} с</p>
-                    <p>Текущее время: {{ result.current_time_sec }} с</p>
+                    <p>Текущее время ответа: {{ result.current_time_sec }} с</p>
 
                     <!-- Status block -->
                     <div id="hand-status" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;"></div>
@@ -300,7 +300,7 @@
                         html += `<div style="font-size: 0.8em; margin-top: 4px;">Интервал: ${reviewInterval} дн. &nbsp;|&nbsp; Прошло: ${daysSince} дн.</div>`;
                     } else if (reviewInterval > 0) {
                         html += `<div style="color: #27ae60; font-weight: bold;">🟢 Выучена</div>`;
-                        html += `<div style="font-size: 0.8em; margin-top: 4px;">Интервал: ${reviewInterval} дн. &nbsp;|&nbsp; Прошло: ${daysSince} дн.</div>`;
+                        html += `<div style="font-size: 0.8em; margin-top: 4px;">Время до следующего повторения: ${reviewInterval} дн.</div>`;
                     } else {
                         html += `<div style="color: #95a5a6; font-weight: bold;">⚪ Не выучена</div>`;
                         html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
