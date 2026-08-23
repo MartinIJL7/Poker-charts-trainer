@@ -383,6 +383,15 @@
                     var now = (window.performance && performance.now) ? performance.now() : Date.now();
                     var elapsed = (now - startTime) / 1000; // seconds
                     timerSpan.textContent = elapsed.toFixed(2);
+
+                    // Set color based on elapsed time (pastel shades)
+                    if (elapsed < 3) {
+                        timerSpan.style.color = '#27ae60';
+                    } else if (elapsed < 10) {
+                        timerSpan.style.color = '#f39c12';
+                    } else {
+                        timerSpan.style.color = '#e74c3c';
+                    }
                 }, 10);
             }
 
