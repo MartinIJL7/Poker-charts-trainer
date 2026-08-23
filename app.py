@@ -481,10 +481,19 @@ def training(mode):
 
     # ---- POST: answer submission ----
     if request.method == 'POST':
-        start_time = session.pop('question_start_time', None)
-        elapsed_ms = 0
-        if start_time:
-            elapsed_ms = int((datetime.utcnow().timestamp() - start_time) * 1000)
+        # --- Get client-side measured time ---
+        # The browser sends response_time_ms in the POST data (if available)
+        elapsed_ms = request.form.get('response_time_ms', type=int)
+        
+        # Fallback for older clients or direct API calls (server-side measurement)
+        if elapsed_ms is None:
+            start_time = session.pop('question_start_time', None)
+            if start_time:
+                elapsed_ms = int((datetime.utcnow().timestamp() - start_time) * 1000)
+            else:
+                elapsed_ms = 0
+        
+        # Use elapsed_ms for statistics update later
 
         answer = request.form.get('answer', '').strip().lower()
         pos = session.get('pos')

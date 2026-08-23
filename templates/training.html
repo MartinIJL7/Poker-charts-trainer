@@ -337,7 +337,7 @@
                 <p><strong>Рука:</strong> <span class="hand">{{ hand }}</span></p>
             </div>
 
-            <form method="post" class="answer-form">
+            <form method="post" class="answer-form" id="answer-form">
                 <p>Выберите ответ:</p>
                 <div class="button-group">
                     {% for ans in possible_answers %}
@@ -346,6 +346,8 @@
                         </button>
                     {% endfor %}
                 </div>
+                <!-- Hidden field to send client-side measured time -->
+                <input type="hidden" name="response_time_ms" id="response_time_ms" value="">
             </form>
         {% endif %}
     {% endif %}
@@ -407,4 +409,25 @@
         });
     </script>
     {% endif %}
+
+    <script>
+        (function() {
+            // Record the exact moment when the question page is fully loaded
+            // Use performance.now() for sub‑millisecond precision, fallback to Date.now()
+            var startTime = (window.performance && performance.now) ? performance.now() : Date.now();
+
+            var form = document.getElementById('answer-form');
+            if (form) {
+                form.addEventListener('submit', function() {
+                    // Calculate elapsed time in milliseconds (client side)
+                    var endTime = (window.performance && performance.now) ? performance.now() : Date.now();
+                    var elapsedMs = Math.round(endTime - startTime);
+                    // Write it into the hidden field so it travels with the form
+                    document.getElementById('response_time_ms').value = elapsedMs;
+                    // Optionally, you could also send it via AJAX, but this is simpler
+                });
+            }
+        })();
+    </script>
+
 {% endblock %}
