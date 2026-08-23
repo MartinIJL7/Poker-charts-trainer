@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Тренировка – {{ mode }}{% endblock %}
-{% block header %}Режим: {{ mode }}{% endblock %}
+{% block header %}
+<div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+    <span>Режим: {{ mode }}</span>
+    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.65em; font-weight: normal; cursor: pointer; user-select: none;">
+        <input type="checkbox" id="timer-toggle" checked> Показывать время
+    </label>
+</div>
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -371,42 +378,87 @@
     {% if not show_start %}
     <script>
         (function() {
-            // ----- Timer and response time measurement -----
-            var startTime = (window.performance && performance.now) ? performance.now() : Date.now();
-            var form = document.getElementById('answer-form');
-            var timerSpan = document.getElementById('timer');
-            var timerInterval = null;
+                // ----- Timer and response time measurement -----
+                var startTime = (window.performance && performance.now) ? performance.now() : Date.now();
+                var form = document.getElementById('answer-form');
+                var timerSpan = document.getElementById('timer');
+                var toggleCheckbox = document.getElementById('timer-toggle');
+                var timerInterval = null;
 
-            // Update timer every 10ms
-            if (timerSpan) {
-                timerInterval = setInterval(function() {
+                // Load saved preference from localStorage
+                var showTimer = true;
+                if (localStorage.getItem('showTimer') !== null) {
+                    showTimer = localStorage.getItem('showTimer') === 'true';
+                }
+                if (toggleCheckbox) {
+                    toggleCheckbox.checked = showTimer;
+                }
+
+                // Function to update timer display and color
+                function updateTimer() {
                     var now = (window.performance && performance.now) ? performance.now() : Date.now();
                     var elapsed = (now - startTime) / 1000; // seconds
-                    timerSpan.textContent = elapsed.toFixed(2);
+                    if (timerSpan) {
+                        timerSpan.textContent = elapsed.toFixed(2);
+                        // Set color based on elapsed time
+                        if (elapsed < 3) {
+                            timerSpan.style.color = '#27ae60';
+                        } else if (elapsed < 10) {
+                            timerSpan.style.color = '#f39c12';
+                        } else {
+                            timerSpan.style.color = '#e74c3c';
+                        }
+                    }
+                }
 
-                    // Set color based on elapsed time (pastel shades)
-                    if (elapsed < 3) {
-                        timerSpan.style.color = '#27ae60';
-                    } else if (elapsed < 10) {
-                        timerSpan.style.color = '#f39c12';
+                // Start or stop timer based on checkbox state
+                function toggleTimer(show) {
+                    if (show) {
+                        // Show timer and start interval
+                        if (timerSpan) {
+                            timerSpan.style.display = 'inline';
+                        }
+                        if (!timerInterval) {
+                            timerInterval = setInterval(updateTimer, 10);
+                        }
+                        // Immediately update once
+                        updateTimer();
                     } else {
-                        timerSpan.style.color = '#e74c3c';
+                        // Hide timer and clear interval
+                        if (timerSpan) {
+                            timerSpan.style.display = 'none';
+                        }
+                        if (timerInterval) {
+                            clearInterval(timerInterval);
+                            timerInterval = null;
+                        }
                     }
-                }, 10);
-            }
+                }
 
-            // On form submit: stop timer, send elapsed time
-            if (form) {
-                form.addEventListener('submit', function() {
-                    if (timerInterval) {
-                        clearInterval(timerInterval);
-                        timerInterval = null;
-                    }
-                    var endTime = (window.performance && performance.now) ? performance.now() : Date.now();
-                    var elapsedMs = Math.round(endTime - startTime);
-                    document.getElementById('response_time_ms').value = elapsedMs;
-                });
-            }
+                // Apply initial state
+                toggleTimer(showTimer);
+
+                // Listen to checkbox changes
+                if (toggleCheckbox) {
+                    toggleCheckbox.addEventListener('change', function() {
+                        var show = this.checked;
+                        localStorage.setItem('showTimer', String(show));
+                        toggleTimer(show);
+                    });
+                }
+
+                // On form submit: stop timer, send elapsed time
+                if (form) {
+                    form.addEventListener('submit', function() {
+                        if (timerInterval) {
+                            clearInterval(timerInterval);
+                            timerInterval = null;
+                        }
+                        var endTime = (window.performance && performance.now) ? performance.now() : Date.now();
+                        var elapsedMs = Math.round(endTime - startTime);
+                        document.getElementById('response_time_ms').value = elapsedMs;
+                    });
+                }
 
             // ----- Keyboard shortcuts -----
             document.addEventListener('keydown', function(e) {
