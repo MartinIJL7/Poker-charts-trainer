@@ -335,6 +335,7 @@
             <div class="question">
                 <p><strong>Диапазон:</strong> {{ pos }}</p>
                 <p><strong>Рука:</strong> <span class="hand">{{ hand }}</span></p>
+                <p><strong>Время:</strong> <span id="timer">0.0</span> с</p>
             </div>
 
             <form method="post" class="answer-form" id="answer-form">
@@ -369,65 +370,72 @@
 
     {% if not show_start %}
     <script>
-        document.addEventListener('keydown', function(e) {
-            // Only if we are on a question page or result page
-            const isQuestionPage = document.querySelector('.answer-form') !== null;
-            const isResultPage = document.querySelector('.result-box') !== null;
+        (function() {
+            // ----- Timer and response time measurement -----
+            var startTime = (window.performance && performance.now) ? performance.now() : Date.now();
+            var form = document.getElementById('answer-form');
+            var timerSpan = document.getElementById('timer');
+            var timerInterval = null;
 
-            // 1. Number keys 1-9 on question page
-            if (isQuestionPage) {
-                const key = parseInt(e.key);
-                if (key >= 1 && key <= 9) {
-                    const btn = document.querySelector(`.answer-btn[data-key="${key}"]`);
+            // Update timer every 10ms
+            if (timerSpan) {
+                timerInterval = setInterval(function() {
+                    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+                    var elapsed = (now - startTime) / 1000; // seconds
+                    timerSpan.textContent = elapsed.toFixed(2);
+                }, 10);
+            }
+
+            // On form submit: stop timer, send elapsed time
+            if (form) {
+                form.addEventListener('submit', function() {
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                    }
+                    var endTime = (window.performance && performance.now) ? performance.now() : Date.now();
+                    var elapsedMs = Math.round(endTime - startTime);
+                    document.getElementById('response_time_ms').value = elapsedMs;
+                });
+            }
+
+            // ----- Keyboard shortcuts -----
+            document.addEventListener('keydown', function(e) {
+                const isQuestionPage = document.querySelector('.answer-form') !== null;
+                const isResultPage = document.querySelector('.result-box') !== null;
+
+                if (isQuestionPage) {
+                    const key = parseInt(e.key);
+                    if (key >= 1 && key <= 9) {
+                        const btn = document.querySelector(`.answer-btn[data-key="${key}"]`);
+                        if (btn) {
+                            e.preventDefault();
+                            btn.click();
+                            return;
+                        }
+                    }
+                }
+
+                if (isResultPage && e.key === 'Enter') {
+                    const form = document.querySelector('.result-box form');
+                    if (form) {
+                        e.preventDefault();
+                        form.submit();
+                        return;
+                    }
+                }
+
+                if (isResultPage && e.key === '+') {
+                    const btn = document.getElementById('show-range-btn');
                     if (btn) {
                         e.preventDefault();
                         btn.click();
                         return;
                     }
                 }
-            }
-
-            // 2. Enter on result page -> submit the "Next question" form
-            if (isResultPage && e.key === 'Enter') {
-                const form = document.querySelector('.result-box form');
-                if (form) {
-                    e.preventDefault();
-                    form.submit();
-                    return;
-                }
-            }
-
-            // 3. '+' on result page -> toggle range display
-            if (isResultPage && e.key === '+') {
-                const btn = document.getElementById('show-range-btn');
-                if (btn) {
-                    e.preventDefault();
-                    btn.click();
-                    return;
-                }
-            }
-        });
-    </script>
-    {% endif %}
-
-    <script>
-        (function() {
-            // Record the exact moment when the question page is fully loaded
-            // Use performance.now() for sub‑millisecond precision, fallback to Date.now()
-            var startTime = (window.performance && performance.now) ? performance.now() : Date.now();
-
-            var form = document.getElementById('answer-form');
-            if (form) {
-                form.addEventListener('submit', function() {
-                    // Calculate elapsed time in milliseconds (client side)
-                    var endTime = (window.performance && performance.now) ? performance.now() : Date.now();
-                    var elapsedMs = Math.round(endTime - startTime);
-                    // Write it into the hidden field so it travels with the form
-                    document.getElementById('response_time_ms').value = elapsedMs;
-                    // Optionally, you could also send it via AJAX, but this is simpler
-                });
-            }
+            });
         })();
     </script>
+    {% endif %}
 
 {% endblock %}
