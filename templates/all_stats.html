@@ -261,6 +261,7 @@
                     cell.dataset.errorsLast3 = data.errors_last_3 !== undefined ? data.errors_last_3 : 0;
 
                     cell.dataset.lastResultsDisplay = data.last_results_display || '';
+                    cell.dataset.lastTimesDisplay = data.last_times_display || '';
 
                     // Tooltip events
                     if (!isTouchDevice) {
@@ -273,7 +274,8 @@
                                 penalty_active: this.dataset.penaltyActive === 'true',
                                 days_since_last_shown: parseInt(this.dataset.daysSince) || 0,
                                 is_due_for_review: this.dataset.isDue === 'true',
-                                last_results_display: this.dataset.lastResultsDisplay || ''
+                                last_results_display: this.dataset.lastResultsDisplay || '',
+                                last_times_display: this.dataset.lastTimesDisplay || ''
                             };
                             const statsHtml = buildStatusHTML(data);
 
@@ -287,7 +289,8 @@
                                 Попыток: ${this.dataset.attempts}<br>
                                 Правильно: ${correct} (${pct}%)<br>
                                 Ошибок: ${this.dataset.errors}<br>
-                                Среднее время ответа за последние 3 попытки: ${this.dataset.avgTime} с<br>
+                                Среднее время ответа за последние 3 попытки: ${this.dataset.avgTime} с
+                                ${data.last_times_display ? ' (' + data.last_times_display + ' с)' : ''}<br>
                                 Вес индивидуальной сложности: ${this.dataset.weight}
                             `;
                             tooltipContent.innerHTML = oldStats + '<hr>' + statsHtml;
@@ -320,7 +323,8 @@
                             Попыток: ${data.attempts}<br>
                             Правильно: ${correct} (${pct}%)<br>
                             Ошибок: ${data.errors}<br>
-                            Среднее время ответа за последние 3 попытки: ${data.avg_time_sec !== null && data.avg_time_sec !== undefined ? data.avg_time_sec.toFixed(2) : '—'} с<br>
+                            Среднее время ответа за последние 3 попытки: ${this.dataset.avgTime} с
+                            ${data.last_times_display ? ' (' + data.last_times_display + ' с)' : ''}<br>
                             Вес индивидуальной сложности: ${data.weight.toFixed(2)}
                         `;
 
@@ -332,7 +336,8 @@
                             penalty_active: data.penalty_active || false,
                             days_since_last_shown: data.days_since_last_shown || 0,
                             is_due_for_review: data.is_due_for_review || false,
-                            last_results_display: data.last_results_display || ''
+                            last_results_display: data.last_results_display || '',
+                            last_times_display: data.last_times_display || ''
                         };
                         const statusHtml = buildStatusHTML(statusData);
 
