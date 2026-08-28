@@ -555,6 +555,7 @@ def training(mode):
             days_since = (datetime.utcnow() - stats.updated_at).days if stats.updated_at else 0
             is_due = (review_interval_days > 0 and not penalty_active and days_since >= review_interval_days)
             errors_last_3 = sum(1 for res in stats.last_results if res == 0)
+            last_results_display = ' '.join('✔' if res == 1 else '✘' for res in stats.last_results)
 
             session['last_result'] = {
                 'user_answer': answer,
@@ -572,7 +573,8 @@ def training(mode):
                 'penalty_active': penalty_active,
                 'days_since_last_shown': days_since,
                 'is_due_for_review': is_due,
-                'errors_last_3': errors_last_3
+                'errors_last_3': errors_last_3,
+                'last_results_display': last_results_display
             }
             return redirect(url_for('training', mode=mode, show_result=1))
         return redirect(url_for('training', mode=mode))
@@ -1354,6 +1356,7 @@ def api_heatmap(mode, position):
         w = calculate_weight(stats, avg_pos_time)
         avg_time = round(get_avg_hand_time(stats) / 1000, 2) if stats.attempts > 0 else None
         errors_last_3 = sum(1 for res in stats.last_results if res == 0)
+        last_results_display = ' '.join('✔' if res == 1 else '✘' for res in stats.last_results)
         if stats.updated_at:
             updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
             days_since = (datetime.utcnow() - updated_naive).days
@@ -1371,7 +1374,8 @@ def api_heatmap(mode, position):
             'penalty_active': stats.penalty_active,
             'days_since_last_shown': days_since,
             'is_due_for_review': is_due,
-            'errors_last_3': errors_last_3
+            'errors_last_3': errors_last_3,
+            'last_results_display': last_results_display
         }
     status = get_position_learning_status(current_user.id, position)
     return jsonify({
@@ -1412,6 +1416,7 @@ def api_all_heatmap(position):
         w = calculate_weight(stats, avg_pos_time)
         avg_time = round(get_avg_hand_time(stats) / 1000, 2) if stats.attempts > 0 else None
         errors_last_3 = sum(1 for res in stats.last_results if res == 0)
+        last_results_display = ' '.join('✔' if res == 1 else '✘' for res in stats.last_results)
         if stats.updated_at:
             updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
             days_since = (datetime.utcnow() - updated_naive).days
@@ -1429,7 +1434,8 @@ def api_all_heatmap(position):
             'penalty_active': stats.penalty_active,
             'days_since_last_shown': days_since,
             'is_due_for_review': is_due,
-            'errors_last_3': errors_last_3
+            'errors_last_3': errors_last_3,
+            'last_results_display': last_results_display
         }
     status = get_position_learning_status(current_user.id, position)
     return jsonify({

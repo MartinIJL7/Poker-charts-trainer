@@ -298,7 +298,7 @@
                         html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Рука была выучена, но затем была допущена ошибка или среднее время руки за последние 3 попытки превысило 3 секунды</div>`;
                         html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
                         html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
-                        html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки<br>`;
+                        html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки &nbsp; (${data.last_results_display})<br>`;
                         html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки за последние 3 попытки <= 3 с`;
                         html += `</div>`;
                     } else if (reviewInterval > 0 && isDue) {
@@ -312,7 +312,7 @@
                         html += `<div style="color: #95a5a6; font-weight: bold;">⚪ Не выучена</div>`;
                         html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
                         html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
-                        html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки<br>`;
+                        html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки &nbsp; (${data.last_results_display})<br>`;
                         html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки за последние 3 попытки <= 3 с`;
                         html += `</div>`;
                     }
@@ -332,7 +332,8 @@
                         review_interval_days: result.review_interval_days || 0,
                         penalty_active: result.penalty_active || false,
                         days_since_last_shown: result.days_since_last_shown || 0,
-                        is_due_for_review: result.is_due_for_review || false
+                        is_due_for_review: result.is_due_for_review || false,
+                        last_results_display: result.last_results_display || ''
                     };
                     statusDiv.innerHTML = buildStatusHTML(data);
                 })();

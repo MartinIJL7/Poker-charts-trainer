@@ -173,7 +173,7 @@
             html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Поэтому к весу добавлен бонус</div>`;
             html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
             html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
-            html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки<br>`;
+            html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки &nbsp; (${data.last_results_display})<br>`;
             html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки за последние 3 попытки <= 3 с`;
             html += `</div>`;
         } else if (reviewInterval > 0 && isDue) {
@@ -187,7 +187,7 @@
             html += `<div style="color: #95a5a6; font-weight: bold;">⚪ Не выучена</div>`;
             html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
             html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
-            html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки<br>`;
+            html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки &nbsp; (${data.last_results_display})<br>`;
             html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки за последние 3 попытки <= 3 с`;
             html += `</div>`;
         }
@@ -260,6 +260,8 @@
                     cell.dataset.isDue = data.is_due_for_review ? 'true' : 'false';
                     cell.dataset.errorsLast3 = data.errors_last_3 !== undefined ? data.errors_last_3 : 0;
 
+                    cell.dataset.lastResultsDisplay = data.last_results_display || '';
+
                     // Tooltip events
                     if (!isTouchDevice) {
                         cell.addEventListener('mouseenter', function(e) {
@@ -270,7 +272,8 @@
                                 review_interval_days: parseInt(this.dataset.reviewInterval) || 0,
                                 penalty_active: this.dataset.penaltyActive === 'true',
                                 days_since_last_shown: parseInt(this.dataset.daysSince) || 0,
-                                is_due_for_review: this.dataset.isDue === 'true'
+                                is_due_for_review: this.dataset.isDue === 'true',
+                                last_results_display: this.dataset.lastResultsDisplay || ''
                             };
                             const statsHtml = buildStatusHTML(data);
 
@@ -328,7 +331,8 @@
                             review_interval_days: data.review_interval_days || 0,
                             penalty_active: data.penalty_active || false,
                             days_since_last_shown: data.days_since_last_shown || 0,
-                            is_due_for_review: data.is_due_for_review || false
+                            is_due_for_review: data.is_due_for_review || false,
+                            last_results_display: data.last_results_display || ''
                         };
                         const statusHtml = buildStatusHTML(statusData);
 
