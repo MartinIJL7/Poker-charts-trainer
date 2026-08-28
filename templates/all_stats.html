@@ -169,7 +169,7 @@
 
         if (penaltyActive) {
             html += `<div style="color: #e74c3c; font-weight: bold;">🔴 Забыта</div>`;
-            html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Рука была выучена, но затем была допущена ошибка или среднее время руки превысило 3 секунды</div>`;
+            html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Рука была выучена, но затем была допущена ошибка или среднее время руки за последние 3 попытки превысило 3 секунды</div>`;
             html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Поэтому к весу добавлен бонус</div>`;
             html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
             html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
