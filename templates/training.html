@@ -157,7 +157,7 @@
                     <p>Попыток: {{ result.attempts }} раз</p>
                     <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
                     <p>Ошибок: {{ result.errors }}</p>
-                    <p>Среднее время ответа: {{ result.avg_time_sec }} с</p>
+                    <p>Среднее время ответа за последние 3 попытки: {{ result.avg_time_sec }} с</p>
                     <p>Текущее время ответа: {{ result.current_time_sec }} с</p>
 
                     <!-- Status block -->
@@ -299,7 +299,7 @@
                         html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
                         html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
                         html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки<br>`;
-                        html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки <= 3 с`;
+                        html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки за последние 3 попытки <= 3 с`;
                         html += `</div>`;
                     } else if (reviewInterval > 0 && isDue) {
                         html += `<div style="color: #e67e22; font-weight: bold;">🟠 Выучена, пора повторять!</div>`;
@@ -313,7 +313,7 @@
                         html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
                         html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
                         html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки<br>`;
-                        html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки <= 3 с`;
+                        html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки за последние 3 попытки <= 3 с`;
                         html += `</div>`;
                     }
 

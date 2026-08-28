@@ -81,6 +81,8 @@ class HandStats(db.Model):
     last_results = db.Column(db.JSON, default=list)
     review_interval_days = db.Column(db.Integer, default=0)   # 0 = not in interval mode, >0 = learned, waiting for review
     penalty_active = db.Column(db.Boolean, default=False)     # penalty bonus after mistake on a learned hand
+    # NEW: store up to 3 most recent response times (milliseconds)
+    last_times = db.Column(db.JSON, default=list)
 
     __table_args__ = (db.UniqueConstraint('user_id', 'position', 'hand', name='_user_pos_hand_uc'),)
 
@@ -170,11 +172,16 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
         stats.last_results.pop(0)
     flag_modified(stats, 'last_results')
 
+    stats.last_times.append(time_ms)
+    if len(stats.last_times) > 3:
+        stats.last_times.pop(0)
+    flag_modified(stats, 'last_times')   # required for SQLAlchemy to detect JSON changes
+
     # --- Learning status check ---
-    avg_time_hand = stats.total_time_ms / stats.attempts if stats.attempts > 0 else 0
+    avg_time_hand = get_avg_hand_time(stats)
     is_learned = (stats.attempts >= 3 and
-                  all(res == 1 for res in stats.last_results) and
-                  avg_time_hand <= 3000)
+                all(res == 1 for res in stats.last_results) and
+                avg_time_hand <= 3000)
 
     # If hand was in interval mode and now fails learning criteria -> penalty
     if stats.review_interval_days > 0 and not is_learned:
@@ -207,15 +214,34 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
 
     db.session.commit()
 
+def get_avg_hand_time(stats):
+    """
+    Return the average response time for a hand.
+    Prefers the average of the last 3 attempts if available,
+    otherwise falls back to the overall average.
+    For hands with zero attempts, returns 1000 ms (default).
+    """
+    # Safety: handle None from JSON column
+    times = stats.last_times or []
+    if len(times) >= 3:
+        return sum(times) / 3.0
+    elif stats.attempts > 0:
+        return stats.total_time_ms / stats.attempts
+    else:
+        return 1000.0   # default for untouched hands
+
 def get_avg_time_for_position(user_id, position):
-    """Return average response time (ms) for all hands in this position, or None."""
-    result = db.session.query(
-        db.func.sum(HandStats.total_time_ms).label('total'),
-        db.func.sum(HandStats.attempts).label('attempts')
-    ).filter(HandStats.user_id == user_id, HandStats.position == position).first()
-    if result and result.attempts and result.attempts > 0:
-        return result.total / result.attempts
-    return None
+    """Return average response time for the position (average of hand averages).
+    Only hands with at least one attempt are included."""
+    stats_list = HandStats.query.filter_by(user_id=user_id, position=position).all()
+    # Filter to hands that have been played at least once
+    played = [s for s in stats_list if s.attempts > 0]
+    if not played:
+        return None
+    total = 0.0
+    for stats in played:
+        total += get_avg_hand_time(stats)
+    return total / len(played)
 
 def get_position_learning_status(user_id, position):
     avg_time = get_avg_time_for_position(user_id, position)
@@ -240,10 +266,12 @@ def get_position_learning_status(user_id, position):
 def calculate_weight(stats, avg_pos_time):
     if stats.attempts == 0:
         error_score = 0.5
+        # Use position average if available, otherwise fallback to 1000 ms
         avg_hand_time = avg_pos_time if avg_pos_time is not None else 1000
     else:
         error_score = stats.errors / stats.attempts
-        avg_hand_time = stats.total_time_ms / stats.attempts
+        # Use the new sliding average (last 3 or overall)
+        avg_hand_time = get_avg_hand_time(stats)
 
     if avg_pos_time is not None and avg_pos_time > 0:
         speed_ratio = avg_hand_time / avg_pos_time
@@ -518,7 +546,7 @@ def training(mode):
             attempts = stats.attempts
             errors = stats.errors
             correct_count = attempts - errors
-            avg_time_sec = round(stats.total_time_ms / attempts / 1000, 2) if attempts > 0 else 0
+            avg_time_sec = round(get_avg_hand_time(stats) / 1000, 2) if attempts > 0 else 0
             current_time_sec = round(elapsed_ms / 1000, 2)
 
             # Compute hand status fields
@@ -1324,7 +1352,7 @@ def api_heatmap(mode, position):
     for hand in ALL_HANDS:
         stats = get_or_create_hand_stats(current_user.id, position, hand)
         w = calculate_weight(stats, avg_pos_time)
-        avg_time = round(stats.total_time_ms / stats.attempts / 1000, 2) if stats.attempts > 0 else None
+        avg_time = round(get_avg_hand_time(stats) / 1000, 2) if stats.attempts > 0 else None
         errors_last_3 = sum(1 for res in stats.last_results if res == 0)
         if stats.updated_at:
             updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
@@ -1382,7 +1410,7 @@ def api_all_heatmap(position):
     for hand in ALL_HANDS:
         stats = get_or_create_hand_stats(current_user.id, position, hand)
         w = calculate_weight(stats, avg_pos_time)
-        avg_time = round(stats.total_time_ms / stats.attempts / 1000, 2) if stats.attempts > 0 else None
+        avg_time = round(get_avg_hand_time(stats) / 1000, 2) if stats.attempts > 0 else None
         errors_last_3 = sum(1 for res in stats.last_results if res == 0)
         if stats.updated_at:
             updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
@@ -1445,4 +1473,4 @@ def delete_all_stats():
 # Application entry point
 # -------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)

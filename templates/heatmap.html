@@ -174,7 +174,7 @@
             html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
             html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
             html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки<br>`;
-            html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки <= 3 с`;
+            html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки за последние 3 попытки <= 3 с`;
             html += `</div>`;
         } else if (reviewInterval > 0 && isDue) {
             html += `<div style="color: #e67e22; font-weight: bold;">🟠 Выучена, пора повторять!</div>`;
@@ -188,7 +188,7 @@
             html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
             html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
             html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки<br>`;
-            html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки <= 3 с`;
+            html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки за последние 3 попытки <= 3 с`;
             html += `</div>`;
         }
 
@@ -292,7 +292,7 @@
                                 Попыток: ${this.dataset.attempts}<br>
                                 Правильно: ${correct} (${pct}%)<br>
                                 Ошибок: ${this.dataset.errors}<br>
-                                Среднее время ответа: ${this.dataset.avgTime} с<br>
+                                Среднее время ответа за последние 3 попытки: ${this.dataset.avgTime} с<br>
                                 Вес индивидуальной сложности: ${this.dataset.weight}
                             `;
                             tooltipContent.innerHTML = oldStats + '<hr>' + statsHtml;
@@ -327,7 +327,7 @@
                             Попыток: ${data.attempts}<br>
                             Правильно: ${correct} (${pct}%)<br>
                             Ошибок: ${data.errors}<br>
-                            Среднее время ответа: ${data.avg_time_sec !== null && data.avg_time_sec !== undefined ? data.avg_time_sec.toFixed(2) : '—'} с<br>
+                            Среднее время ответа за последние 3 попытки: ${data.avg_time_sec !== null && data.avg_time_sec !== undefined ? data.avg_time_sec.toFixed(2) : '—'} с<br>
                             Вес индивидуальной сложности: ${data.weight.toFixed(2)}
                         `;
 
