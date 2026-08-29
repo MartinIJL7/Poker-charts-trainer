@@ -179,9 +179,21 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
 
     # --- Learning status check ---
     avg_time_hand = get_avg_hand_time(stats)
-    is_learned = (stats.attempts >= 3 and
-                all(res == 1 for res in stats.last_results) and
-                avg_time_hand <= 3000)
+
+    # Calculate current weight for this hand (for additional condition)
+    avg_pos_time = get_avg_time_for_position(user_id, position)
+    weight = calculate_weight(stats, avg_pos_time)
+
+    # A hand is learned if:
+    #   1. It has >=3 attempts, no errors in last 3, and avg time <= 3s
+    #   2. OR its weight is <= 0.25 (very light hand, even with fewer attempts)
+    is_learned = (
+        (stats.attempts >= 3 and
+         all(res == 1 for res in stats.last_results) and
+         avg_time_hand <= 3000)
+        or
+        (weight <= 0.25)
+    )
 
     # If hand was in interval mode and now fails learning criteria -> penalty
     if stats.review_interval_days > 0 and not is_learned:
@@ -549,6 +561,10 @@ def training(mode):
             avg_time_sec = round(get_avg_hand_time(stats) / 1000, 2) if attempts > 0 else 0
             current_time_sec = round(elapsed_ms / 1000, 2)
 
+            avg_pos_time = get_avg_time_for_position(current_user.id, pos)
+            weight = calculate_weight(stats, avg_pos_time) if avg_pos_time is not None else 0
+            weight = round(weight, 2)
+
             # Compute hand status fields
             review_interval_days = stats.review_interval_days
             penalty_active = stats.penalty_active
@@ -559,6 +575,7 @@ def training(mode):
             last_times_display = ', '.join(f'{t/1000:.2f}' for t in stats.last_times) if stats.last_times else ''
 
             session['last_result'] = {
+                'weight': weight,
                 'user_answer': answer,
                 'correct_answer': correct_text,
                 'was_correct': is_correct,
@@ -618,6 +635,40 @@ def training(mode):
         return "No positions in this mode", 400
 
     pos = random.choice(positions)
+
+    # ----- TEST OVERRIDE -----
+    test_hand = request.args.get('hand')
+    test_pos = request.args.get('pos')
+    if test_hand and test_hand in ALL_HANDS:
+        if test_pos and test_pos in positions:
+            pos = test_pos
+        elif test_pos and test_pos not in positions:
+            return f"Position {test_pos} not in this mode", 400
+        # Если передан только hand, позиция уже выбрана случайно ранее
+        hand = test_hand
+        status = get_hand_status(hand, pos, config)
+        correct_text = get_correct_answer_text(status)
+        possible_statuses = get_possible_statuses(pos, config)
+        possible_answers = sorted(set(
+            get_correct_answer_text(st) for st in possible_statuses if get_correct_answer_text(st)
+        ))
+        session['question_start_time'] = datetime.utcnow().timestamp()
+        session['pos'] = pos
+        session['hand'] = hand
+        session['status'] = status
+        session['correct_text'] = correct_text
+        stats = session['stats']
+        return render_template(
+            'training.html',
+            mode=mode,
+            pos=pos,
+            hand=hand,
+            possible_answers=possible_answers,
+            stats=stats,
+            show_result=False
+        )
+    # ----- END TEST OVERRIDE -----
+
     hand = select_weighted_hand(current_user.id, pos)   # <-- adaptive selection
     status = get_hand_status(hand, pos, config)
     correct_text = get_correct_answer_text(status)
