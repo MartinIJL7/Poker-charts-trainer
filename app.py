@@ -256,24 +256,16 @@ def get_avg_time_for_position(user_id, position):
     return total / len(played)
 
 def get_position_learning_status(user_id, position):
-    avg_time = get_avg_time_for_position(user_id, position)
-    time_ok = avg_time is not None and avg_time <= 3000
-
-    attempts_ok = True
-    errors_ok = True
+    """
+    Return learning status for a position.
+    Position is learned if ALL hands have review_interval_days > 0
+    (i.e., they are either learned or due for review).
+    """
     for hand in ALL_HANDS:
         stats = get_or_create_hand_stats(user_id, position, hand)
-        if stats.attempts < 3:
-            attempts_ok = False
-        if any(res == 0 for res in stats.last_results):
-            errors_ok = False
-    learned = attempts_ok and errors_ok and time_ok
-    return {
-        'learned': learned,
-        'attempts_ok': attempts_ok,
-        'errors_ok': errors_ok,
-        'time_ok': time_ok
-    }
+        if stats.review_interval_days <= 0:
+            return {'learned': False}
+    return {'learned': True}
 
 def calculate_weight(stats, avg_pos_time):
     if stats.attempts == 0:
@@ -1438,9 +1430,6 @@ def api_heatmap(mode, position):
         'weights': weights,
         'avg_time': avg_pos_time,
         'learned': status['learned'],
-        'attempts_ok': status['attempts_ok'],
-        'errors_ok': status['errors_ok'],
-        'time_ok': status['time_ok']
     })
 
 
@@ -1500,9 +1489,6 @@ def api_all_heatmap(position):
         'weights': weights,
         'avg_time': avg_pos_time,
         'learned': status['learned'],
-        'attempts_ok': status['attempts_ok'],
-        'errors_ok': status['errors_ok'],
-        'time_ok': status['time_ok']
     })
 
 

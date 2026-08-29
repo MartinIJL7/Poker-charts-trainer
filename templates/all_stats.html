@@ -143,13 +143,11 @@
     </p>
 
     <div id="learned-panel" style="margin-top: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; max-width: 415px; margin-left: auto; margin-right: auto;">
-        <div style="font-weight: bold; margin-bottom: 10px; text-align: center;">📊 Статус заучивания</div>
+        <div style="font-weight: bold; margin-bottom: 10px; text-align: center;">📊 Статус заучивания диапазона</div>
         <div id="learned-status" style="font-weight: bold; margin-bottom: 8px; text-align: center;"></div>
-        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9em;">
-            <li id="li-attempts" style="margin-bottom: 4px;">🔹 Попыток на каждую руку >= 3: <span id="attempts-ok"></span></li>
-            <li id="li-errors" style="margin-bottom: 4px;">🔹 Ноль ошибок за последние 3 попытки на каждой руке: <span id="errors-ok"></span></li>
-            <li id="li-time" style="margin-bottom: 4px;">🔹 Среднее время по диапазону <= 3 с: <span id="time-ok"></span></li>
-        </ul>
+        <div style="font-size: 0.85em; color: #555; text-align: center;">
+            Диапазон считается выученным, если все руки выучены или находятся на повторении
+        </div>
     </div>
 
     <div id="category-stats" style="margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; max-width: 415px; margin-left: auto; margin-right: auto;">
@@ -478,10 +476,6 @@
                     learnedSpan.innerHTML = '🔄 Диапазон ещё не выучен';
                     learnedSpan.style.color = '#e67e22';
                 }
-
-                document.getElementById('attempts-ok').innerHTML = data.attempts_ok ? '✅' : '❌';
-                document.getElementById('errors-ok').innerHTML = data.errors_ok ? '✅' : '❌';
-                document.getElementById('time-ok').innerHTML = data.time_ok ? '✅' : '❌';
             })
             .catch(err => {
                 alert('Ошибка загрузки: ' + err.message);
