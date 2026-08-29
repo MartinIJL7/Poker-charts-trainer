@@ -54,6 +54,13 @@
     .legend span {
         font-size: 0.9em;
     }
+    .matrix-cell.highlighted-category {
+        outline: 3px solid #2c3e50;
+        outline-offset: -2px;
+        z-index: 1;
+        position: relative;
+        transition: outline 0.1s;
+    }
     @media screen and (max-width: 600px) {
         #hand-matrix {
             gap: 1px;
@@ -144,6 +151,24 @@
         </ul>
     </div>
 
+    <div id="category-stats" style="margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; max-width: 415px; margin-left: auto; margin-right: auto;">
+        <div style="font-weight: bold; margin-bottom: 10px; text-align: center;">📈 Распределение рук по статусам (можно нажать, чтобы подсветить)</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; font-size: 0.9em;">
+            <div class="category-item" data-category="learned" style="cursor:pointer;">
+                <span style="color: #27ae60;">🟢</span> Выучено: <span id="stat-learned">0</span>
+            </div>
+            <div class="category-item" data-category="due" style="cursor:pointer;">
+                <span style="color: #e67e22;">🟠</span> Пора повторять: <span id="stat-due">0</span>
+            </div>
+            <div class="category-item" data-category="forgotten" style="cursor:pointer;">
+                <span style="color: #e74c3c;">🔴</span> Забыто: <span id="stat-forgotten">0</span>
+            </div>
+            <div class="category-item" data-category="not-learned" style="cursor:pointer;">
+                <span style="color: #95a5a6;">⚪</span> Не выучено: <span id="stat-not-learned">0</span>
+            </div>
+        </div>
+    </div>
+
     <div id="info-panel" style="display:none; position:fixed; top:50%; right:20px; transform:translateY(-50%); background:white; border:1px solid #ccc; border-radius:8px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,0.15); min-width:200px; max-width:260px; z-index:1000; font-size:0.9em; pointer-events:auto;">
         <button id="close-panel" style="float:right; background:none; border:none; font-size:1.2em; cursor:pointer; padding:0 4px;">✕</button>
         <div id="panel-content"></div>
@@ -155,6 +180,34 @@
     const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
     const mode = '{{ mode }}';
     let currentPosition = document.getElementById('position-select').value;
+
+    // Track currently highlighted category (null = none)
+    let currentHighlightedCategory = null;
+
+    function highlightCategory(category) {
+        const cells = document.querySelectorAll('#hand-matrix .matrix-cell');
+        // If clicking the same category, toggle off
+        if (currentHighlightedCategory === category) {
+            cells.forEach(cell => cell.classList.remove('highlighted-category'));
+            currentHighlightedCategory = null;
+            return;
+        }
+        // Otherwise clear previous highlight and highlight new category
+        cells.forEach(cell => {
+            cell.classList.remove('highlighted-category');
+            if (cell.dataset.category === category) {
+                cell.classList.add('highlighted-category');
+            }
+        });
+        currentHighlightedCategory = category;
+    }
+
+    function categoryClickHandler(e) {
+        const item = e.target.closest('.category-item');
+        if (!item) return;
+        const category = item.dataset.category;
+        highlightCategory(category);
+    }
 
     function buildStatusHTML(data) {
         const attempts = data.attempts || 0;
@@ -277,6 +330,19 @@
                     cell.dataset.lastResultsDisplay = data.last_results_display || '';
                     cell.dataset.lastTimesDisplay = data.last_times_display || '';
 
+                    // Determine category for this hand
+                    let category = '';
+                    if (data.penalty_active) {
+                        category = 'forgotten';
+                    } else if (data.review_interval_days > 0 && data.is_due_for_review) {
+                        category = 'due';
+                    } else if (data.review_interval_days > 0) {
+                        category = 'learned';
+                    } else {
+                        category = 'not-learned';
+                    }
+                    cell.dataset.category = category;
+
                     // Tooltip events
                     if (!isTouchDevice) {
                         cell.addEventListener('mouseenter', function(e) {
@@ -370,6 +436,31 @@
         });
     }
 
+    function updateCategoryStats(weights) {
+        let learned = 0, due = 0, forgotten = 0, notLearned = 0;
+        for (const hand in weights) {
+            const data = weights[hand];
+            if (data.penalty_active) {
+                forgotten++;
+            } else if (data.review_interval_days > 0 && data.is_due_for_review) {
+                due++;
+            } else if (data.review_interval_days > 0) {
+                learned++;
+            } else {
+                notLearned++;
+            }
+        }
+        document.getElementById('stat-learned').textContent = learned;
+        document.getElementById('stat-due').textContent = due;
+        document.getElementById('stat-forgotten').textContent = forgotten;
+        document.getElementById('stat-not-learned').textContent = notLearned;
+
+        // Attach click handler (remove old to avoid duplicates)
+        const container = document.getElementById('category-stats');
+        container.removeEventListener('click', categoryClickHandler);
+        container.addEventListener('click', categoryClickHandler);
+    }
+
     function loadPosition(position) {
         fetch(`/api/heatmap/${mode}/${encodeURIComponent(position)}`)
             .then(response => {
@@ -382,6 +473,7 @@
                     return;
                 }
                 buildMatrix(data.weights);
+                updateCategoryStats(data.weights);
 
                 const avgSpan = document.getElementById('avg-position-time');
                 if (data.avg_time !== null && data.avg_time !== undefined) {
