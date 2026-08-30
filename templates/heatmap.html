@@ -328,6 +328,7 @@
 
                     cell.dataset.lastResultsDisplay = data.last_results_display || '';
                     cell.dataset.lastTimesDisplay = data.last_times_display || '';
+                    cell.dataset.subrange = data.subrange || '';
 
                     // Determine category for this hand
                     let category = '';
@@ -355,7 +356,8 @@
                                 days_since_last_shown: parseInt(this.dataset.daysSince) || 0,
                                 is_due_for_review: this.dataset.isDue === 'true',
                                 last_results_display: this.dataset.lastResultsDisplay || '',
-                                last_times_display: this.dataset.lastTimesDisplay || ''
+                                last_times_display: this.dataset.lastTimesDisplay || '',
+                                subrange: this.dataset.subrange || '',
                             };
                             const statsHtml = buildStatusHTML(data);
 
@@ -364,8 +366,9 @@
                             const pct = attempts > 0 ? (correct / attempts * 100).toFixed(1) : 0;
 
                             // Add old stats on top
+                            const subrangeText = data.subrange === 'not in a range' ? 'fold' : data.subrange;
                             const oldStats = `
-                                <strong>${this.dataset.hand}</strong><br>
+                                <strong>${this.dataset.hand} : ${subrangeText}</strong><br>
                                 Попыток: ${this.dataset.attempts}<br>
                                 Правильно: ${correct} (${pct}%)<br>
                                 Ошибок: ${this.dataset.errors}<br>
@@ -400,8 +403,9 @@
                         const pct = attempts > 0 ? (correct / attempts * 100).toFixed(1) : 0;
 
                         // ---- Old stats (from the 'data' variable) ----
+                        const subrangeText = data.subrange === 'not in a range' ? 'fold' : data.subrange;
                         const oldStats = `
-                            <strong>${hand}</strong><br>
+                            <strong>${hand} : ${subrangeText}</strong><br>
                             Попыток: ${data.attempts}<br>
                             Правильно: ${correct} (${pct}%)<br>
                             Ошибок: ${data.errors}<br>

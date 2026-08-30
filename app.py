@@ -1398,6 +1398,7 @@ def api_heatmap(mode, position):
     weights = {}
     for hand in ALL_HANDS:
         stats = get_or_create_hand_stats(current_user.id, position, hand)
+        subrange = get_hand_status(hand, position, config)
         w = calculate_weight(stats, avg_pos_time)
         avg_time = round(get_avg_hand_time(stats) / 1000, 2) if stats.attempts > 0 else None
         errors_last_3 = sum(1 for res in stats.last_results if res == 0)
@@ -1423,6 +1424,7 @@ def api_heatmap(mode, position):
             'errors_last_3': errors_last_3,
             'last_results_display': last_results_display,
             'last_times_display': last_times_display,
+            'subrange': subrange,
         }
     status = get_position_learning_status(current_user.id, position)
 
@@ -1465,6 +1467,7 @@ def api_all_heatmap(position):
     weights = {}
     for hand in ALL_HANDS:
         stats = get_or_create_hand_stats(current_user.id, position, hand)
+        subrange = get_hand_status(hand, position, config)
         w = calculate_weight(stats, avg_pos_time)
         avg_time = round(get_avg_hand_time(stats) / 1000, 2) if stats.attempts > 0 else None
         errors_last_3 = sum(1 for res in stats.last_results if res == 0)
@@ -1490,6 +1493,7 @@ def api_all_heatmap(position):
             'errors_last_3': errors_last_3,
             'last_results_display': last_results_display,
             'last_times_display': last_times_display,
+            'subrange': subrange,
         }
     status = get_position_learning_status(current_user.id, position)
 
