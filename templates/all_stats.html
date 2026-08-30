@@ -139,7 +139,7 @@
 
     <div id="hand-matrix"></div>
 
-    <p style="text-align: center; margin-top: 15px; color: #888; font-size: 0.9em;">
+    <p id="gray-hint" style="text-align: center; margin-top: 15px; color: #888; font-size: 0.9em;">
         Серый цвет – рука ещё не встречалась
     </p>
 
@@ -495,6 +495,13 @@
                 } else {
                     learnedSpan.innerHTML = '🔄 Диапазон ещё не выучен';
                     learnedSpan.style.color = '#e67e22';
+                }
+
+                // Show/hide gray hint based on whether any hand is unplayed
+                const hasNoData = document.querySelector('#hand-matrix .no-data');
+                const hint = document.getElementById('gray-hint');
+                if (hint) {
+                    hint.style.display = hasNoData ? 'block' : 'none';
                 }
             })
             .catch(err => {
