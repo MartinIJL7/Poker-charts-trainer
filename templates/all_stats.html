@@ -130,6 +130,7 @@
 
     <div style="text-align: center; margin-top: 8px;">
         <span style="font-size: 0.9em; color: #555;">Среднее время по диапазону: <span id="avg-position-time">—</span> с</span>
+        <span style="font-size: 0.9em; color: #555; margin-left: 20px;">Общее время: <span id="total-position-time">—</span></span>
     </div>
 
     <p style="text-align: center; margin-top: 8px; font-size: 0.85em; color: #666;">
@@ -466,6 +467,21 @@
                     avgSpan.textContent = (data.avg_time / 1000).toFixed(2);
                 } else {
                     avgSpan.textContent = '—';
+                }
+
+                const totalSpan = document.getElementById('total-position-time');
+                if (data.total_time_sec !== undefined && data.total_time_sec !== null) {
+                    const totalSec = data.total_time_sec;
+                    const hours = Math.floor(totalSec / 3600);
+                    const minutes = Math.floor((totalSec % 3600) / 60);
+                    const seconds = Math.floor(totalSec % 60);
+                    let display = '';
+                    if (hours > 0) display += `${hours} ч `;
+                    if (minutes > 0) display += `${minutes} мин `;
+                    display += `${seconds} с`;
+                    totalSpan.textContent = display;
+                } else {
+                    totalSpan.textContent = '—';
                 }
 
                 const learnedSpan = document.getElementById('learned-status');

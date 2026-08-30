@@ -1425,11 +1425,19 @@ def api_heatmap(mode, position):
             'last_times_display': last_times_display,
         }
     status = get_position_learning_status(current_user.id, position)
+
+    # Calculate total time spent on this position (all hands)
+    total_time_ms = db.session.query(db.func.sum(HandStats.total_time_ms))\
+        .filter(HandStats.user_id == current_user.id, HandStats.position == position)\
+        .scalar() or 0
+    total_time_sec = total_time_ms / 1000
+
     return jsonify({
         'position': position,
         'weights': weights,
         'avg_time': avg_pos_time,
         'learned': status['learned'],
+        'total_time_sec': round(total_time_sec, 0)
     })
 
 
@@ -1484,11 +1492,19 @@ def api_all_heatmap(position):
             'last_times_display': last_times_display,
         }
     status = get_position_learning_status(current_user.id, position)
+
+    # Calculate total time spent on this position (all hands)
+    total_time_ms = db.session.query(db.func.sum(HandStats.total_time_ms))\
+        .filter(HandStats.user_id == current_user.id, HandStats.position == position)\
+        .scalar() or 0
+    total_time_sec = total_time_ms / 1000
+
     return jsonify({
         'position': position,
         'weights': weights,
         'avg_time': avg_pos_time,
         'learned': status['learned'],
+        'total_time_sec': round(total_time_sec, 0)
     })
 
 
