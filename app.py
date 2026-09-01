@@ -1370,6 +1370,8 @@ def api_heatmap(mode, position):
         errors_last_3 = sum(1 for res in stats.last_results if res == 0)
         last_results_display = ' '.join('✔' if res == 1 else '✘' for res in stats.last_results)
         last_times_display = ', '.join(f'{t/1000:.2f}' for t in stats.last_times) if stats.last_times else ''
+        subrange = get_hand_status(hand, position, config)
+        subrange_color = config.subrange_colors.get(subrange, '#d5d8dc')
         if stats.updated_at:
             updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
             days_since = (datetime.utcnow() - updated_naive).days
@@ -1391,6 +1393,7 @@ def api_heatmap(mode, position):
             'last_results_display': last_results_display,
             'last_times_display': last_times_display,
             'subrange': subrange,
+            'subrange_color': subrange_color,
         }
     status = get_position_learning_status(current_user.id, position)
 
@@ -1439,6 +1442,8 @@ def api_all_heatmap(position):
         errors_last_3 = sum(1 for res in stats.last_results if res == 0)
         last_results_display = ' '.join('✔' if res == 1 else '✘' for res in stats.last_results)
         last_times_display = ', '.join(f'{t/1000:.2f}' for t in stats.last_times) if stats.last_times else ''
+        subrange = get_hand_status(hand, position, config)
+        subrange_color = config.subrange_colors.get(subrange, '#d5d8dc')
         if stats.updated_at:
             updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
             days_since = (datetime.utcnow() - updated_naive).days
@@ -1460,6 +1465,7 @@ def api_all_heatmap(position):
             'last_results_display': last_results_display,
             'last_times_display': last_times_display,
             'subrange': subrange,
+            'subrange_color': subrange_color,
         }
     status = get_position_learning_status(current_user.id, position)
 

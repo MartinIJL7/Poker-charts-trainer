@@ -61,6 +61,40 @@
         position: relative;
         transition: outline 0.1s;
     }
+    .subrange-hidden {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: opacity 0.15s ease;
+    }
+    #subrange-legend {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+    }
+    #subrange-legend.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .legend-wrapper {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        min-height: 40px;
+    }
+    #subrange-legend {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
     @media screen and (max-width: 600px) {
         #hand-matrix {
             gap: 1px;
@@ -122,10 +156,20 @@
         <button id="delete-position-btn" class="btn btn-danger" style="padding: 6px 14px;">🗑 Удалить статистику по диапазону</button>
         <button id="delete-all-btn" class="btn btn-danger" style="padding: 6px 14px;">🗑 Удалить всю мою статистику</button>
     </div>
-    <div class="legend">
-        <span>Лёгкая (0.1)</span>
-        <div class="legend-bar"></div>
-        <span>Сложная (2.0)</span>
+
+    <div class="legend-wrapper">
+        <div class="legend" id="main-legend">
+            <span>Лёгкая (0.1)</span>
+            <div class="legend-bar"></div>
+            <span>Сложная (2.0)</span>
+        </div>
+        <div id="subrange-legend"></div>
+    </div>
+
+    <div style="text-align: center; margin: 12px 0;">
+        <label style="cursor: pointer; user-select: none; font-size: 0.95em;">
+            <input type="checkbox" id="toggle-subrange-colors"> Раскрасить по поддиапазонам
+        </label>
     </div>
 
     <div style="text-align: center; margin-top: 8px;">
@@ -133,7 +177,7 @@
         <span style="font-size: 0.9em; color: #555; margin-left: 20px;">Общее время: <span id="total-position-time">—</span></span>
     </div>
 
-    <p style="text-align: center; margin-top: 8px; font-size: 0.85em; color: #666;">
+    <p id="color-hint" style="text-align: center; margin-top: 8px; font-size: 0.85em; color: #666;">
         Цвета отражают вашу индивидуальную сложность рук, основанную на ошибках и времени ответа
     </p>
 
@@ -179,9 +223,59 @@
     const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
     const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
     let currentPosition = document.getElementById('position-select').value;
+    let useSubrangeColors = false;
+    let currentWeights = null;
 
     // Track currently highlighted category (null = none)
     let currentHighlightedCategory = null;
+
+    function updateGrayHint() {
+        const grayHint = document.getElementById('gray-hint');
+        if (!grayHint) return;
+        if (useSubrangeColors) {
+            grayHint.classList.add('subrange-hidden');
+        } else {
+            const hasNoData = document.querySelector('#hand-matrix .no-data');
+            if (hasNoData) {
+                grayHint.classList.remove('subrange-hidden');
+            } else {
+                grayHint.classList.add('subrange-hidden');
+            }
+        }
+    }
+
+    function updateLegend(useSubrange, weights) {
+        const mainLegend = document.getElementById('main-legend');
+        const colorHint = document.getElementById('color-hint');
+        const subrangeLegend = document.getElementById('subrange-legend');
+
+        if (useSubrange) {
+            if (mainLegend) mainLegend.classList.add('subrange-hidden');
+            if (colorHint) colorHint.classList.add('subrange-hidden');
+            subrangeLegend.classList.add('visible');
+
+            const subrangeMap = {};
+            for (const hand in weights) {
+                const data = weights[hand];
+                if (data.subrange && data.subrange !== 'not in a range') {
+                    subrangeMap[data.subrange] = data.subrange_color;
+                }
+            }
+            let html = '';
+            for (const [name, color] of Object.entries(subrangeMap)) {
+                html += `<span style="display:inline-block; margin:0 10px;">
+                            <span style="display:inline-block; width:16px; height:16px; background:${color}; border-radius:3px; vertical-align:middle;"></span>
+                            ${name}
+                        </span>`;
+            }
+            subrangeLegend.innerHTML = html || 'Нет поддиапазонов для отображения';
+        } else {
+            if (mainLegend) mainLegend.classList.remove('subrange-hidden');
+            if (colorHint) colorHint.classList.remove('subrange-hidden');
+            subrangeLegend.classList.remove('visible');
+            subrangeLegend.innerHTML = '';
+        }
+    }
 
     function highlightCategory(category) {
         const cells = document.querySelectorAll('#hand-matrix .matrix-cell');
@@ -282,47 +376,68 @@
                 cell.textContent = hand;
 
                 const data = weights[hand];
-                if (!data || data.attempts === 0) {
-                    cell.classList.add('no-data');
+
+                // ----- Determine color -----
+                let color;
+                let textColor = '#000000';
+
+                if (useSubrangeColors) {
+                    // Mode: color by subrange (all hands, including unplayed)
+                    color = (data && data.subrange_color) ? data.subrange_color : '#d5d8dc';
+                    // For subrange mode, keep text black for readability (can be improved later)
+                    textColor = '#000000';
+                    // Remove any no-data class (we want color, not gray)
+                    cell.classList.remove('no-data');
                 } else {
-                    const w = data.weight;
-                    const clamped = Math.min(2.0, Math.max(0.1, w));
-                    const t = (clamped - 0.1) / 1.9;
-                    let r, g, b;
-                    if (t < 0.5) {
-                        const p = t / 0.5;
-                        r = Math.round(0 + p * 255);
-                        g = 200;
-                        b = Math.round(0 + (1 - p) * 0);
+                    // Mode: color by weight (only played hands)
+                    if (!data || data.attempts === 0) {
+                        cell.classList.add('no-data');
+                        // Background will be set by CSS for .no-data, so we don't set here
+                        color = null; // not used
                     } else {
-                        const p = (t - 0.5) / 0.5;
-                        r = 255;
-                        g = Math.round(200 - p * 200);
-                        b = 0;
+                        const w = data.weight;
+                        const clamped = Math.min(2.0, Math.max(0.1, w));
+                        const t = (clamped - 0.1) / 1.9;
+                        let r, g, b;
+                        if (t < 0.5) {
+                            const p = t / 0.5;
+                            r = Math.round(0 + p * 255);
+                            g = 200;
+                            b = Math.round(0 + (1 - p) * 0);
+                        } else {
+                            const p = (t - 0.5) / 0.5;
+                            r = 255;
+                            g = Math.round(200 - p * 200);
+                            b = 0;
+                        }
+                        color = `rgb(${r}, ${g}, ${b})`;
+                        textColor = (t > 0.6) ? 'white' : 'black';
                     }
-                    cell.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-                    cell.style.color = (t > 0.6) ? 'white' : 'black';
+                }
 
-                    // Store status data in data attributes
-                    cell.dataset.attempts = data.attempts;
-                    cell.dataset.errors = data.errors;
-                    cell.dataset.correct = data.correct;
+                // Apply background color (if color is set)
+                if (color) {
+                    cell.style.backgroundColor = color;
+                    cell.style.color = textColor;
+                }
+
+                // ----- Set dataset for all cells (for tooltips and click events) -----
+                if (data) {
+                    cell.dataset.attempts = data.attempts || 0;
+                    cell.dataset.errors = data.errors || 0;
+                    cell.dataset.correct = data.correct || 0;
                     cell.dataset.avgTime = data.avg_time_sec !== null ? data.avg_time_sec.toFixed(2) : '—';
-                    cell.dataset.weight = data.weight.toFixed(2);
+                    cell.dataset.weight = data.weight ? data.weight.toFixed(2) : '—';
                     cell.dataset.hand = hand;
-
-                    // New status fields
-                    cell.dataset.reviewInterval = data.review_interval_days;
+                    cell.dataset.reviewInterval = data.review_interval_days || 0;
                     cell.dataset.penaltyActive = data.penalty_active ? 'true' : 'false';
-                    cell.dataset.daysSince = data.days_since_last_shown;
+                    cell.dataset.daysSince = data.days_since_last_shown || 0;
                     cell.dataset.isDue = data.is_due_for_review ? 'true' : 'false';
                     cell.dataset.errorsLast3 = data.errors_last_3 !== undefined ? data.errors_last_3 : 0;
-
                     cell.dataset.lastResultsDisplay = data.last_results_display || '';
                     cell.dataset.lastTimesDisplay = data.last_times_display || '';
                     cell.dataset.subrange = data.subrange || '';
-
-                    // Determine category for this hand
+                    // Determine category
                     let category = '';
                     if (data.penalty_active) {
                         category = 'forgotten';
@@ -334,94 +449,109 @@
                         category = 'not-learned';
                     }
                     cell.dataset.category = category;
+                } else {
+                    // Fallback (should not happen, but just in case)
+                    cell.dataset.attempts = 0;
+                    cell.dataset.errors = 0;
+                    cell.dataset.correct = 0;
+                    cell.dataset.avgTime = '—';
+                    cell.dataset.weight = '—';
+                    cell.dataset.hand = hand;
+                    cell.dataset.reviewInterval = 0;
+                    cell.dataset.penaltyActive = 'false';
+                    cell.dataset.daysSince = 0;
+                    cell.dataset.isDue = 'false';
+                    cell.dataset.errorsLast3 = 0;
+                    cell.dataset.lastResultsDisplay = '';
+                    cell.dataset.lastTimesDisplay = '';
+                    cell.dataset.subrange = '';
+                    cell.dataset.category = 'not-learned';
+                }
 
-                    // Tooltip events
-                    if (!isTouchDevice) {
-                        cell.addEventListener('mouseenter', function(e) {
-                            const data = {
-                                weight: parseFloat(this.dataset.weight) || 0,
-                                attempts: parseInt(this.dataset.attempts) || 0,
-                                avg_time_sec: parseFloat(this.dataset.avgTime) || 0,
-                                errors_last_3: parseInt(this.dataset.errorsLast3) || 0,
-                                review_interval_days: parseInt(this.dataset.reviewInterval) || 0,
-                                penalty_active: this.dataset.penaltyActive === 'true',
-                                days_since_last_shown: parseInt(this.dataset.daysSince) || 0,
-                                is_due_for_review: this.dataset.isDue === 'true',
-                                last_results_display: this.dataset.lastResultsDisplay || '',
-                                last_times_display: this.dataset.lastTimesDisplay || '',
-                                subrange: this.dataset.subrange || '',
-                            };
-                            const statsHtml = buildStatusHTML(data);
+                // ----- Tooltip events (for all cells) -----
+                if (!isTouchDevice) {
+                    cell.addEventListener('mouseenter', function(e) {
+                        const data = {
+                            weight: parseFloat(this.dataset.weight) || 0,
+                            attempts: parseInt(this.dataset.attempts) || 0,
+                            avg_time_sec: parseFloat(this.dataset.avgTime) || 0,
+                            errors_last_3: parseInt(this.dataset.errorsLast3) || 0,
+                            review_interval_days: parseInt(this.dataset.reviewInterval) || 0,
+                            penalty_active: this.dataset.penaltyActive === 'true',
+                            days_since_last_shown: parseInt(this.dataset.daysSince) || 0,
+                            is_due_for_review: this.dataset.isDue === 'true',
+                            last_results_display: this.dataset.lastResultsDisplay || '',
+                            last_times_display: this.dataset.lastTimesDisplay || '',
+                            subrange: this.dataset.subrange || '',
+                        };
+                        const statsHtml = buildStatusHTML(data);
 
-                            const attempts = parseInt(this.dataset.attempts) || 0;
-                            const correct = parseInt(this.dataset.correct) || 0;
-                            const pct = attempts > 0 ? (correct / attempts * 100).toFixed(1) : 0;
-
-                            // Add old stats on top
-                            const subrangeText = data.subrange === 'not in a range' ? 'fold' : data.subrange;
-                            const oldStats = `
-                                <strong>${this.dataset.hand} : ${subrangeText}</strong><br>
-                                Попыток: ${this.dataset.attempts}<br>
-                                Правильно: ${correct} (${pct}%)<br>
-                                Ошибок: ${this.dataset.errors}<br>
-                                Среднее время ответа за последние 3 попытки: ${this.dataset.avgTime} с
-                                ${data.last_times_display ? ' (' + data.last_times_display + ' с)' : ''}<br>
-                                Вес индивидуальной сложности: ${this.dataset.weight}
-                            `;
-                            tooltipContent.innerHTML = oldStats + '<hr>' + statsHtml;
-                            tooltip.style.display = 'block';
-                            const x = e.clientX + 15;
-                            const y = e.clientY - 10;
-                            const tw = tooltip.offsetWidth || 200;
-                            const th = tooltip.offsetHeight || 120;
-                            const left = Math.min(x, window.innerWidth - tw - 10);
-                            const top = Math.min(y, window.innerHeight - th - 10);
-                            tooltip.style.left = left + 'px';
-                            tooltip.style.top = top + 'px';
-                        });
-                        
-                        cell.addEventListener('mouseleave', function() {
-                            tooltip.style.display = 'none';
-                        });
-                    }
-
-                    cell.addEventListener('click', function(e) {
-                        e.stopPropagation();
-
-                        const attempts = data.attempts || 0;
-                        const correct = data.correct || 0;
+                        const attempts = parseInt(this.dataset.attempts) || 0;
+                        const correct = parseInt(this.dataset.correct) || 0;
                         const pct = attempts > 0 ? (correct / attempts * 100).toFixed(1) : 0;
 
-                        // ---- Old stats (from the 'data' variable) ----
                         const subrangeText = data.subrange === 'not in a range' ? 'fold' : data.subrange;
                         const oldStats = `
-                            <strong>${hand} : ${subrangeText}</strong><br>
-                            Попыток: ${data.attempts}<br>
+                            <strong>${this.dataset.hand} : ${subrangeText}</strong><br>
+                            Попыток: ${this.dataset.attempts}<br>
                             Правильно: ${correct} (${pct}%)<br>
-                            Ошибок: ${data.errors}<br>
+                            Ошибок: ${this.dataset.errors}<br>
                             Среднее время ответа за последние 3 попытки: ${this.dataset.avgTime} с
                             ${data.last_times_display ? ' (' + data.last_times_display + ' с)' : ''}<br>
-                            Вес индивидуальной сложности: ${data.weight.toFixed(2)}
+                            Вес индивидуальной сложности: ${this.dataset.weight}
                         `;
-
-                        const statusData = {
-                            weight: data.weight || 0,
-                            attempts: data.attempts || 0,
-                            avg_time_sec: data.avg_time_sec !== null && data.avg_time_sec !== undefined ? data.avg_time_sec : 0,
-                            errors_last_3: data.errors_last_3 !== undefined ? data.errors_last_3 : 0,
-                            review_interval_days: data.review_interval_days || 0,
-                            penalty_active: data.penalty_active || false,
-                            days_since_last_shown: data.days_since_last_shown || 0,
-                            is_due_for_review: data.is_due_for_review || false,
-                            last_results_display: data.last_results_display || '',
-                            last_times_display: data.last_times_display || ''
-                        };
-                        const statusHtml = buildStatusHTML(statusData);
-
-                        document.getElementById('panel-content').innerHTML = oldStats + '<hr style="margin: 8px 0;">' + statusHtml;
-                        document.getElementById('info-panel').style.display = 'block';
+                        tooltipContent.innerHTML = oldStats + '<hr>' + statsHtml;
+                        tooltip.style.display = 'block';
+                        const x = e.clientX + 15;
+                        const y = e.clientY - 10;
+                        const tw = tooltip.offsetWidth || 200;
+                        const th = tooltip.offsetHeight || 120;
+                        const left = Math.min(x, window.innerWidth - tw - 10);
+                        const top = Math.min(y, window.innerHeight - th - 10);
+                        tooltip.style.left = left + 'px';
+                        tooltip.style.top = top + 'px';
+                    });
+                    cell.addEventListener('mouseleave', function() {
+                        tooltip.style.display = 'none';
                     });
                 }
+
+                // ----- Click event (for all cells) -----
+                cell.addEventListener('click', function(e) {
+                    e.stopPropagation();
+
+                    const attempts = parseInt(this.dataset.attempts) || 0;
+                    const correct = parseInt(this.dataset.correct) || 0;
+                    const pct = attempts > 0 ? (correct / attempts * 100).toFixed(1) : 0;
+
+                    const subrangeText = this.dataset.subrange === 'not in a range' ? 'fold' : this.dataset.subrange;
+                    const oldStats = `
+                        <strong>${this.dataset.hand} : ${subrangeText}</strong><br>
+                        Попыток: ${this.dataset.attempts}<br>
+                        Правильно: ${correct} (${pct}%)<br>
+                        Ошибок: ${this.dataset.errors}<br>
+                        Среднее время ответа за последние 3 попытки: ${this.dataset.avgTime} с
+                        ${this.dataset.lastTimesDisplay ? ' (' + this.dataset.lastTimesDisplay + ' с)' : ''}<br>
+                        Вес индивидуальной сложности: ${this.dataset.weight}
+                    `;
+
+                    const statusData = {
+                        weight: parseFloat(this.dataset.weight) || 0,
+                        attempts: parseInt(this.dataset.attempts) || 0,
+                        avg_time_sec: parseFloat(this.dataset.avgTime) || 0,
+                        errors_last_3: parseInt(this.dataset.errorsLast3) || 0,
+                        review_interval_days: parseInt(this.dataset.reviewInterval) || 0,
+                        penalty_active: this.dataset.penaltyActive === 'true',
+                        days_since_last_shown: parseInt(this.dataset.daysSince) || 0,
+                        is_due_for_review: this.dataset.isDue === 'true',
+                        last_results_display: this.dataset.lastResultsDisplay || '',
+                        last_times_display: this.dataset.lastTimesDisplay || ''
+                    };
+                    const statusHtml = buildStatusHTML(statusData);
+                    document.getElementById('panel-content').innerHTML = oldStats + '<hr style="margin: 8px 0;">' + statusHtml;
+                    document.getElementById('info-panel').style.display = 'block';
+                });
+
                 container.appendChild(cell);
             });
         });
@@ -463,8 +593,12 @@
                     alert(data.error);
                     return;
                 }
-                buildMatrix(data.weights);
-                updateCategoryStats(data.weights);
+                currentWeights = data.weights;
+                buildMatrix(currentWeights);
+                updateCategoryStats(currentWeights);
+                updateLegend(useSubrangeColors, currentWeights);
+
+                updateGrayHint();
 
                 const avgSpan = document.getElementById('avg-position-time');
                 if (data.avg_time !== null && data.avg_time !== undefined) {
@@ -497,17 +631,20 @@
                     learnedSpan.style.color = '#e67e22';
                 }
 
-                // Show/hide gray hint based on whether any hand is unplayed
-                const hasNoData = document.querySelector('#hand-matrix .no-data');
-                const hint = document.getElementById('gray-hint');
-                if (hint) {
-                    hint.style.display = hasNoData ? 'block' : 'none';
-                }
             })
             .catch(err => {
                 alert('Ошибка загрузки: ' + err.message);
             });
     }
+
+    document.getElementById('toggle-subrange-colors').addEventListener('change', function() {
+        useSubrangeColors = this.checked;
+        if (currentWeights) {
+            buildMatrix(currentWeights);
+            updateLegend(useSubrangeColors, currentWeights);
+            updateGrayHint();
+        }
+    });
 
     // Delete statistics for current position
     document.getElementById('delete-position-btn').addEventListener('click', function() {
