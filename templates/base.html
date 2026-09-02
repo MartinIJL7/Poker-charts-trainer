@@ -13,7 +13,7 @@
         <div style="display: flex; align-items: center; gap: 10px;">
             {% if current_user.is_authenticated %}
                 {% if request.endpoint != 'index' %}
-                    <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
+                    <a href="{{ url_for('index') }}" class="home-link">🏠</a>
                 {% endif %}
                 <span>👤 {{ current_user.username }}</span>
                 {% if request.endpoint == 'index' %}

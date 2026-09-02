@@ -421,18 +421,18 @@
     {% endif %}
 
     <div class="stats">
-        <h2>📈 Статистика</h2>
+        <h2>Статистика</h2>
         <p>Счетчик ответов в сессии браузера: <strong>{{ stats.total }}</strong></p>
-        <p>✅ Верных: <strong>{{ stats.correct }}</strong>
+        <p>✅  <strong>{{ stats.correct }}</strong>
             (<span id="stats-correct-pct">{{ "%.1f"|format(stats.correct / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
         </p>
-        <p>❌ Ошибок: <strong>{{ stats.wrong }}</strong>
+        <p>❌  <strong>{{ stats.wrong }}</strong>
             (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
         </p>
-        <p>
-            <a href="{{ url_for('reset_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display:inline-block;">🔄 Сбросить счетчик сессии браузера</a>
-            <a href="{{ url_for('heatmap', mode=mode) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display:inline-block;">🔥 Тепловая карта</a>
-        </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
+            <a href="{{ url_for('reset_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display: inline-block;">Сбросить счетчик сессии браузера</a>
+            <a href="{{ url_for('heatmap', mode=mode) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display: inline-block;">Тепловая карта</a>
+        </div>
     </div>
 
     {% if not show_start %}
