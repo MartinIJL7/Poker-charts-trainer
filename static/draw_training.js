@@ -570,6 +570,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }));
         updateSubrangeListUI();
         renderAllSubranges();
+        if (tempSubranges.length > 0) {
+            startEditing(tempSubranges[0].id);
+        }
     }
 
     document.getElementById('clear-selection-btn').addEventListener('click', function() {
@@ -622,6 +625,10 @@ document.addEventListener('DOMContentLoaded', function() {
             summary.innerHTML = `
                 <span style="margin-left: auto; font-size: 0.8em; color: #888;">(нажмите, чтобы развернуть/свернуть)</span>
             `;
+        }
+
+        if (tempSubranges.length > 0) {
+            startEditing(tempSubranges[0].id);
         }
     });
 
