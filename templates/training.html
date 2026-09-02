@@ -64,6 +64,36 @@
         flex-shrink: 0;
     }
 
+    .next-btn.blocked {
+        position: relative;
+        overflow: hidden;
+        pointer-events: none;
+        cursor: not-allowed;
+        opacity: 0.8;
+    }
+
+    .next-btn.blocked::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0%;
+        background: #3498db;
+        transition: width 3s linear;
+        z-index: 0;
+        border-radius: inherit;
+    }
+
+    .next-btn.blocked.animating::before {
+        width: 100%;
+    }
+
+    .next-btn.blocked span {
+        position: relative;
+        z-index: 1;
+    }
+
     @media screen and (max-width: 600px) {
         .range-matrix-grid {
             gap: 1px;
@@ -169,7 +199,9 @@
 
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
                     <form action="{{ next_url }}" method="get">
-                        <button type="submit" class="next-btn">➡️ Следующий вопрос <span class="key-hint-light">(Enter)</span></button>
+                        <button type="submit" class="next-btn" id="next-question-btn">
+                            <span>➡️ Следующий вопрос <span class="key-hint-light">(Enter)</span></span>
+                        </button>
                     </form>
                     <button id="show-range-btn" class="next-btn">Показать диапазон <span class="key-hint-light">(+)</span></button>
                 </div>
@@ -345,6 +377,22 @@
                         weight: result.weight || 0
                     };
                     statusDiv.innerHTML = buildStatusHTML(data);
+
+                    const btn = document.getElementById('next-question-btn');
+                    if (btn) {
+                        const shouldBlock = !result.was_correct || result.current_time_sec > 10 || result.just_became_penalty;
+                        if (shouldBlock) {
+                            btn.disabled = true;
+                            btn.classList.add('blocked');
+                            // Принудительный reflow, чтобы браузер зафиксировал width: 0%
+                            void btn.offsetWidth;
+                            btn.classList.add('animating');
+                            setTimeout(() => {
+                                btn.disabled = false;
+                                btn.classList.remove('blocked', 'animating');
+                            }, 3000);
+                        }
+                    }
                 })();
             </script>
 
@@ -488,6 +536,11 @@
                 }
 
                 if (isResultPage && e.key === 'Enter') {
+                    const nextBtn = document.getElementById('next-question-btn');
+                    if (nextBtn && nextBtn.disabled) {
+                        e.preventDefault();
+                        return;
+                    }
                     const form = document.querySelector('.result-box form');
                     if (form) {
                         e.preventDefault();

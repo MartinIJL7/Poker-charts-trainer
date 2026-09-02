@@ -543,10 +543,17 @@ def training(mode):
                 stats['wrong'] += 1
             session['stats'] = stats
 
+            # Get stats before update to detect penalty change
+            stats_before = get_or_create_hand_stats(current_user.id, pos, hand)
+            old_penalty = stats_before.penalty_active
+
             # Update persistent hand statistics
             update_hand_stats(current_user.id, pos, hand, is_correct, elapsed_ms)
 
+            # Get updated stats
             stats = get_or_create_hand_stats(current_user.id, pos, hand)
+            just_became_penalty = (not old_penalty and stats.penalty_active)
+
             attempts = stats.attempts
             errors = stats.errors
             correct_count = attempts - errors
@@ -578,7 +585,7 @@ def training(mode):
                 'correct_count': correct_count,
                 'avg_time_sec': avg_time_sec,
                 'current_time_sec': current_time_sec,
-                # New fields for visual status
+                'just_became_penalty': just_became_penalty,
                 'review_interval_days': review_interval_days,
                 'penalty_active': penalty_active,
                 'days_since_last_shown': days_since,
