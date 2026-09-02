@@ -332,10 +332,6 @@ function saveEdit() {
     if (!editingId) return;
     const sub = tempSubranges.find(s => s.id === editingId);
     if (!sub) return;
-    if (currentHands.length === 0) {
-        alert('Выберите хотя бы одну руку');
-        return;
-    }
     const handsSet = new Set(currentHands);
     tempSubranges = tempSubranges.map(s => {
         if (s.id !== editingId) {
