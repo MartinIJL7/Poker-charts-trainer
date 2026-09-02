@@ -17,6 +17,8 @@ let dragStartY = 0;
 let dragMode = 'select';
 const DRAG_THRESHOLD = 10;
 
+let editingLocked = false;
+
 const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 
 function generateHandMatrix() {
@@ -268,18 +270,20 @@ function updateSubrangeListUI() {
         nameSpan.textContent = sub.name;
         li.appendChild(nameSpan);
 
-        const editBtn = document.createElement('button');
-        editBtn.textContent = '✏️';
-        editBtn.className = 'edit-btn';
-        editBtn.title = 'Редактировать (добавить руки)';
-        editBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (editingId !== null) {
-                saveEdit();
-            }
-            startEditing(sub.id);
-        });
-        li.appendChild(editBtn);
+        if (!editingLocked) {
+            const editBtn = document.createElement('button');
+            editBtn.textContent = '✏️';
+            editBtn.className = 'edit-btn';
+            editBtn.title = 'Редактировать (добавить руки)';
+            editBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (editingId !== null) {
+                    saveEdit();
+                }
+                startEditing(sub.id);
+            });
+            li.appendChild(editBtn);
+        }
 
         ul.appendChild(li);
     });
@@ -423,6 +427,12 @@ function showResult(data) {
     const block = document.getElementById('result-block');
     const content = document.getElementById('result-content');
     block.style.display = 'block';
+
+    document.querySelectorAll('.edit-btn').forEach(btn => btn.style.display = 'none');
+    document.getElementById('clear-selection-btn').style.display = 'none';
+    document.getElementById('hand-matrix').style.pointerEvents = 'none';
+    editingLocked = true;
+    updateSubrangeListUI();
 
     let html = `<p><strong>Диапазон:</strong> ${data.position}</p>`;
 
@@ -615,6 +625,12 @@ document.addEventListener('DOMContentLoaded', function() {
         correctSubranges = null;
         userSubranges = null;
         showingCorrect = false;
+
+        document.querySelectorAll('.edit-btn').forEach(btn => btn.style.display = '');
+        document.getElementById('clear-selection-btn').style.display = '';
+        document.getElementById('hand-matrix').style.pointerEvents = '';
+        editingLocked = false;
+        updateSubrangeListUI();
 
         const summary = document.getElementById('result-summary');
         if (summary) {
