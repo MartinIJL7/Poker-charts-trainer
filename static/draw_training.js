@@ -274,6 +274,9 @@ function updateSubrangeListUI() {
         editBtn.title = 'Редактировать (добавить руки)';
         editBtn.addEventListener('click', function(e) {
             e.stopPropagation();
+            if (editingId !== null) {
+                saveEdit();
+            }
             startEditing(sub.id);
         });
         li.appendChild(editBtn);
@@ -576,15 +579,14 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.quick-select-btn').forEach(b => b.classList.remove('active'));
     });
 
-    document.getElementById('save-edit-btn').addEventListener('click', function() {
-        saveEdit();
-    });
-
     document.getElementById('cancel-edit-btn').addEventListener('click', function() {
         cancelEditing();
     });
 
     document.getElementById('check-btn').addEventListener('click', function() {
+        if (editingId !== null) {
+            saveEdit();
+        }
         checkAnswer();
     });
 
