@@ -56,5 +56,19 @@
         </div>
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const allPositions = {{ all_positions|tojson }};
+            if (allPositions.length === 0) {
+                const userConfirmed = confirm(
+                    'Возможно, вы хотите загрузить уже существующий конфиг?'
+                );
+                if (userConfirmed) {
+                    window.location.href = "{{ url_for('config_management') }}";
+                }
+            }
+        });
+    </script>
+
     <script src="{{ url_for('static', filename='create_range.js') }}?v={{ static_version('create_range.js') }}"></script>
 {% endblock %}
