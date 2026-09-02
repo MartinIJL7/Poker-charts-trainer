@@ -583,6 +583,20 @@
     }
 
     function loadPosition(position) {
+
+        if (!position) {
+            alert('Нет доступных диапазонов для отображения статистики');
+            document.getElementById('hand-matrix').innerHTML = '';
+            document.getElementById('avg-position-time').textContent = '—';
+            document.getElementById('total-position-time').textContent = '—';
+            document.getElementById('learned-status').textContent = 'Нет данных';
+            document.getElementById('stat-learned').textContent = '0';
+            document.getElementById('stat-due').textContent = '0';
+            document.getElementById('stat-forgotten').textContent = '0';
+            document.getElementById('stat-not-learned').textContent = '0';
+            return;
+        }
+
         fetch(`/api/all_heatmap/${encodeURIComponent(position)}`)
             .then(response => {
                 if (!response.ok) throw new Error('Failed to load');
@@ -590,7 +604,8 @@
             })
             .then(data => {
                 if (data.error) {
-                    alert(data.error);
+                    const container = document.getElementById('hand-matrix');
+                    container.innerHTML = '<p style="text-align:center; color:#c0392b; margin-top:20px;">❌ ' + data.error + '</p>';
                     return;
                 }
                 currentWeights = data.weights;
@@ -633,7 +648,15 @@
 
             })
             .catch(err => {
-                alert('Ошибка загрузки: ' + err.message);
+                const container = document.getElementById('hand-matrix');
+                container.innerHTML = '<p style="text-align:center; color:#c0392b; margin-top:20px;">❌ Ошибка загрузки статистики</p>';
+                document.getElementById('avg-position-time').textContent = '—';
+                document.getElementById('total-position-time').textContent = '—';
+                document.getElementById('learned-status').textContent = 'Нет данных';
+                document.getElementById('stat-learned').textContent = '0';
+                document.getElementById('stat-due').textContent = '0';
+                document.getElementById('stat-forgotten').textContent = '0';
+                document.getElementById('stat-not-learned').textContent = '0';
             });
     }
 
@@ -707,7 +730,11 @@
             }
         }
     });    
+    
     // initial load
-    loadPosition(currentPosition);
+    document.addEventListener('DOMContentLoaded', function() {
+        loadPosition(currentPosition);
+    });
+
 </script>
 {% endblock %}
