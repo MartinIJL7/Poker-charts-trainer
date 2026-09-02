@@ -432,6 +432,16 @@ function showResult(data) {
 
     const hasErrors = data.missing.length > 0 || data.extra_hands.length > 0 || data.wrong_names.length > 0;
 
+    const summary = document.getElementById('result-summary');
+    if (summary) {
+        const statusText = hasErrors ? '❌ НЕВЕРНО' : '✅ ВЕРНО';
+        const color = hasErrors ? '#e74c3c' : '#27ae60';
+        summary.innerHTML = `
+            <span style="color: ${color};">${statusText}</span>
+            <span style="margin-left: auto; font-size: 0.8em; color: #888;">(нажмите, чтобы развернуть/свернуть)</span>
+        `;
+    }
+
     if (!hasErrors) {
         html += `<p style="color: #27ae60; font-size: 1.2em;">✅ Отлично! Все поддиапазоны нарисованы верно</p>`;
     } else {
@@ -606,6 +616,13 @@ document.addEventListener('DOMContentLoaded', function() {
         correctSubranges = null;
         userSubranges = null;
         showingCorrect = false;
+
+        const summary = document.getElementById('result-summary');
+        if (summary) {
+            summary.innerHTML = `
+                <span style="margin-left: auto; font-size: 0.8em; color: #888;">(нажмите, чтобы развернуть/свернуть)</span>
+            `;
+        }
     });
 
     document.querySelectorAll('.quick-select-btn').forEach(btn => {

@@ -283,8 +283,12 @@
     </div>
 
     <div id="result-block" class="result-block">
-        <h3>📊 Результат проверки</h3>
-        <div id="result-content"></div>
+        <details>
+            <summary id="result-summary" style="cursor: pointer; font-weight: bold; font-size: 1.2em; display: flex; align-items: center;">
+                <span style="margin-left: auto; font-size: 0.8em; color: #888;">(нажмите, чтобы развернуть/свернуть)</span>
+            </summary>
+            <div id="result-content" style="margin-top: 10px;"></div>
+        </details>
         <div class="result-actions">
             <button id="retry-btn" class="btn btn-secondary">🔄 Попробовать снова</button>
             <button id="new-after-check-btn" class="btn btn-primary">Новый диапазон</button>
