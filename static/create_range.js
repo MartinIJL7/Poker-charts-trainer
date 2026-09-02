@@ -383,7 +383,7 @@ function cancelEditing() {
     document.getElementById('color-picker').value = '#3498db';
     currentColor = '#3498db';
     document.getElementById('cancel-edit-btn').style.display = 'none';
-    document.getElementById('save-subrange-btn').textContent = '✅ Добавить поддиапазон';
+    document.getElementById('save-subrange-btn').textContent = 'Добавить поддиапазон';
     const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
     cells.forEach(cell => {
         cell.dataset.selected = 'false';
