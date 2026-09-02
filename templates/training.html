@@ -182,19 +182,21 @@
                 <p><strong>Ваш ответ:</strong> {{ result.user_answer }}</p>
                 <p><strong>Правильный ответ:</strong> <span class="correct-answer">{{ result.correct_answer }}</span></p>
                 {% if result.attempts is defined %}
-                <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-                    <p><strong>Статистика по руке {{ result.hand }} в диапазоне {{ result.pos }}:</strong></p>
-                    <p>Попыток: {{ result.attempts }} раз</p>
-                    <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
-                    <p>Ошибок: {{ result.errors }}</p>
-                    <p>Среднее время ответа за последние 3 попытки: {{ result.avg_time_sec }} с
-                    {% if result.last_times_display %} ({{ result.last_times_display }} с){% endif %}
-                    </p>
-                    <p>Текущее время ответа: {{ result.current_time_sec }} с</p>
-
-                    <!-- Status block -->
-                    <div id="hand-status" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;"></div>
-                </div>
+                <details style="margin-top: 15px; background: #f8f9fa; border-radius: 6px; padding: 10px;">
+                    <summary style="font-weight: bold; cursor: pointer; user-select: none; outline: none;">
+                        Статистика по руке {{ result.hand }} в диапазоне {{ result.pos }}
+                    </summary>
+                    <div style="margin-top: 10px;">
+                        <p>Попыток: {{ result.attempts }} раз</p>
+                        <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
+                        <p>Ошибок: {{ result.errors }}</p>
+                        <p>Среднее время ответа за последние 3 попытки: {{ result.avg_time_sec }} с
+                        {% if result.last_times_display %} ({{ result.last_times_display }} с){% endif %}
+                        </p>
+                        <p>Текущее время ответа: {{ result.current_time_sec }} с</p>
+                        <div id="hand-status" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;"></div>
+                    </div>
+                </details>
                 {% endif %}
 
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
