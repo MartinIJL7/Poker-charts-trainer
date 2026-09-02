@@ -16,7 +16,9 @@
                     <a href="{{ url_for('index') }}" class="home-link">🏠 На главную</a>
                 {% endif %}
                 <span>👤 {{ current_user.username }}</span>
-                <a href="{{ url_for('logout') }}" class="home-link" style="background: #e74c3c;">Выйти</a>
+                {% if request.endpoint == 'index' %}
+                    <a href="{{ url_for('logout') }}" class="home-link" style="background: #e74c3c;">Выйти</a>
+                {% endif %}
             {% else %}
                 <a href="{{ url_for('login') }}" class="home-link">Войти</a>
                 <a href="{{ url_for('register') }}" class="home-link" style="background: #27ae60;">Регистрация</a>
