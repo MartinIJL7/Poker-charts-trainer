@@ -28,9 +28,11 @@
         <a href="{{ url_for('all_stats') }}">📊 Работа со статистикой</a>
     </div>
 
-    <p style="font-size:0.8em; color:#999; margin-top:20px;">
-        <a href="{{ url_for('debug') }}" style="color:#999; text-decoration:none;">🐞 Отладка</a>
-    </p>
+    {% if current_user.username == 'MartinIJL' %}
+        <p style="font-size:0.8em; color:#999; margin-top:20px;">
+            <a href="{{ url_for('debug') }}" style="color:#999; text-decoration:none;">🐞 Отладка</a>
+        </p>
+    {% endif %}
 </div>
 
 <script>

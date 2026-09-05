@@ -6,6 +6,7 @@ import random
 import uuid
 import glob
 from datetime import datetime
+from flask import abort
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from flask import current_app
@@ -1090,6 +1091,8 @@ def delete_mode(mode_name):
 @app.route('/debug', methods=['GET', 'POST'])
 @login_required
 def debug():
+    if current_user.username != 'MartinIJL':
+        abort(403)
     config = get_user_config(current_user.id)
     all_positions = get_all_positions(config)
     result = None
