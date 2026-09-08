@@ -564,7 +564,6 @@ def training(mode):
 
             avg_pos_time = get_avg_time_for_position(current_user.id, pos)
             weight = calculate_weight(stats, avg_pos_time) if avg_pos_time is not None else 0
-            weight = round(weight, 2)
 
             # Compute hand status fields
             review_interval_days = stats.review_interval_days
