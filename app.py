@@ -184,6 +184,7 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
     # Calculate current weight for this hand (for additional condition)
     avg_pos_time = get_avg_time_for_position(user_id, position)
     weight = calculate_weight(stats, avg_pos_time)
+    weight_for_learning = calculate_weight(stats, avg_pos_time, for_learning=True)
 
     # A hand is learned if:
     #   1. It has >=3 attempts, no errors in last 3, and avg time <= 3s
@@ -193,7 +194,7 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
          all(res == 1 for res in stats.last_results) and
          avg_time_hand <= 3000)
         or
-        (weight <= 0.25)
+        (weight_for_learning <= 0.25)
     )
 
     # If hand was in interval mode and now fails learning criteria -> penalty
@@ -268,7 +269,7 @@ def get_position_learning_status(user_id, position):
             return {'learned': False}
     return {'learned': True}
 
-def calculate_weight(stats, avg_pos_time):
+def calculate_weight(stats, avg_pos_time, for_learning=False):
     if stats.attempts == 0:
         error_score = 0.5
         # Use position average if available, otherwise fallback to 1000 ms
@@ -298,7 +299,7 @@ def calculate_weight(stats, avg_pos_time):
         weight = min(2.0, weight + 1.2)
 
     # Interval review bonus (max out weight if review is due)
-    if stats.review_interval_days > 0:
+    if not for_learning and stats.review_interval_days > 0:
         updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
         days_since = (datetime.utcnow() - updated_naive).days
         if days_since >= stats.review_interval_days:
