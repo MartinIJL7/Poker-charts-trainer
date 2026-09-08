@@ -164,6 +164,7 @@ def next_fibonacci(current):
 
 def update_hand_stats(user_id, position, hand, is_correct, time_ms):
     stats = get_or_create_hand_stats(user_id, position, hand)
+    old_updated_at = stats.updated_at
     stats.attempts += 1
     if not is_correct:
         stats.errors += 1
@@ -207,8 +208,11 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
         stats.penalty_active = False   # clear any penalty
     # If already in interval mode and correctly answered after scheduled review
     elif is_learned and stats.review_interval_days > 0 and is_correct:
-        updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
-        days_since = (datetime.utcnow() - updated_naive).days
+        if old_updated_at:
+            updated_naive = old_updated_at.replace(tzinfo=None) if old_updated_at.tzinfo else old_updated_at
+            days_since = (datetime.utcnow() - updated_naive).days
+        else:
+            days_since = 0  # fallback
         if days_since >= stats.review_interval_days:
             # scheduled review – increase interval using Fibonacci
             stats.review_interval_days = next_fibonacci(stats.review_interval_days)
