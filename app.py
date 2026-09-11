@@ -195,7 +195,7 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
          all(res == 1 for res in stats.last_results) and
          avg_time_hand <= 3000)
         or
-        (weight_for_learning <= 0.25)
+        (weight_for_learning <= 0.25 and is_correct)
     )
 
     # If hand was in interval mode and now fails learning criteria -> penalty
@@ -207,7 +207,7 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
         stats.review_interval_days = 1
         stats.penalty_active = False   # clear any penalty
     # If already in interval mode and correctly answered after scheduled review
-    elif is_learned and stats.review_interval_days > 0 and is_correct:
+    elif is_learned and stats.review_interval_days > 0:
         if old_updated_at:
             updated_naive = old_updated_at.replace(tzinfo=None) if old_updated_at.tzinfo else old_updated_at
             days_since = (datetime.utcnow() - updated_naive).days
@@ -221,14 +221,6 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
             # random early show, do not change interval, just clear penalty
             stats.penalty_active = False
 
-    # If incorrect and hand was in interval mode -> penalty + drop from interval
-    if not is_correct and stats.review_interval_days > 0:
-        stats.penalty_active = True
-        stats.review_interval_days = 0
-
-    # Ensure we don't lose the penalty if already set and hand not learned
-    if stats.penalty_active and is_learned:
-        stats.penalty_active = False
 
     db.session.commit()
 
