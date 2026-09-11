@@ -444,6 +444,7 @@
                 var timerSpan = document.getElementById('timer');
                 var toggleCheckbox = document.getElementById('timer-toggle');
                 var timerInterval = null;
+                var answerSubmitted = false;   // NEW: prevent double submission
 
                 // Load saved preference from localStorage
                 var showTimer = true;
@@ -509,7 +510,23 @@
 
                 // On form submit: stop timer, send elapsed time
                 if (form) {
-                    form.addEventListener('submit', function() {
+                    form.addEventListener('submit', function(e) {
+                        // NEW: ignore any submit after the first one
+                        if (answerSubmitted) {
+                            e.preventDefault();
+                            return;
+                        }
+                        answerSubmitted = true;
+
+                        // NEW: visually disable all answer buttons.
+                        // We avoid the `disabled` attribute because a disabled
+                        // submit button would not send its name/value to the server.
+                        form.querySelectorAll('.answer-btn').forEach(function(btn) {
+                            btn.style.pointerEvents = 'none';
+                            btn.style.opacity = '0.5';
+                            btn.style.cursor = 'default';
+                        });
+
                         if (timerInterval) {
                             clearInterval(timerInterval);
                             timerInterval = null;
@@ -526,6 +543,8 @@
                 const isResultPage = document.querySelector('.result-box') !== null;
 
                 if (isQuestionPage) {
+                    // NEW: block keyboard input after an answer has been submitted
+                    if (answerSubmitted) return;
                     const key = parseInt(e.key);
                     if (key >= 1 && key <= 9) {
                         const btn = document.querySelector(`.answer-btn[data-key="${key}"]`);
