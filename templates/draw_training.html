@@ -5,6 +5,12 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='create_range.css') }}?v={{ static_version('create_range.css') }}">
     <style>
+        #subrange-list-ul li.clickable {
+            cursor: pointer;
+        }
+        #subrange-list-ul li.clickable:hover {
+            background: #f1f3f5;
+        }
         .result-block {
             margin-top: 20px;
             padding: 15px;

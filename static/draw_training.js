@@ -271,18 +271,14 @@ function updateSubrangeListUI() {
         li.appendChild(nameSpan);
 
         if (!editingLocked) {
-            const editBtn = document.createElement('button');
-            editBtn.textContent = '✏️';
-            editBtn.className = 'edit-btn';
-            editBtn.title = 'Редактировать (добавить руки)';
-            editBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
+            li.classList.add('clickable');
+            li.title = 'Редактировать (добавить руки)';
+            li.addEventListener('click', function() {
                 if (editingId !== null) {
                     saveEdit();
                 }
                 startEditing(sub.id);
             });
-            li.appendChild(editBtn);
         }
 
         ul.appendChild(li);
