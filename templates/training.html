@@ -202,7 +202,7 @@
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
                     <form action="{{ next_url }}" method="get">
                         <button type="submit" class="next-btn" id="next-question-btn">
-                            <span>➡️ Следующий вопрос <span class="key-hint-light">(Enter)</span></span>
+                            <span>➡️ Следующий вопрос <span class="key-hint-light">(Enter / Space)</span></span>
                         </button>
                     </form>
                     <button id="show-range-btn" class="next-btn">Показать диапазон <span class="key-hint-light">(+)</span></button>
@@ -556,7 +556,7 @@
                     }
                 }
 
-                if (isResultPage && e.key === 'Enter') {
+                if (isResultPage && (e.key === 'Enter' || e.key === ' ')) {
                     const nextBtn = document.getElementById('next-question-btn');
                     if (nextBtn && nextBtn.disabled) {
                         e.preventDefault();
