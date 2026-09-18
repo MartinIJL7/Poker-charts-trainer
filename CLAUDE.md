@@ -107,6 +107,9 @@ Weight calculation in `calculate_weight()`:
 - **Commits**: Conventional commits (feat/fix/style/chore/refactor)
   - Include 2–3 sentence description of what changed and why
   - Example: `fix(training): prevent double submission of answer. Lock submit button during request. Fixes race condition on slow networks.`
+  - Do not add "Co-Authored-By: Claude" or similar attribution lines
+- **Static files**: Any new or modified CSS/JS file must be referenced via the `static_version()` filter in templates (cache busting based on file mtime)
+- **JSON columns**: After mutating a JSON column in place (e.g. `stats.last_results.append(...)`), call `flag_modified(obj, 'field_name')` — SQLAlchemy won't detect the change otherwise and it won't persist
 
 ## File Organization
 
