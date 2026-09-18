@@ -6,50 +6,52 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='create_range.css') }}?v={{ static_version('create_range.css') }}">
 {% endblock %}
 {% block content %}
-    <div class="create-container">
-        <div class="top-row">
-            <div class="form-group">
-                <div class="position-input-wrapper">
-                    <select id="load-range-select">
-                        <option value="">📂 Выберите диапазон для загрузки</option>
-                        {% for pos in all_positions %}
-                            <option value="{{ pos }}">{{ pos }}</option>
-                        {% endfor %}
-                    </select>
-                    <button id="delete-range-btn" class="btn-danger">🗑 Удалить</button>
-                    <input type="text" id="position" placeholder="Название диапазона" value="{{ position }}">
-                    <button id="save-range-btn" class="btn-success">Сохранить диапазон</button>
-                    <button id="new-range-btn" class="btn-secondary">Очистить</button>
-                </div>
+    <div class="cr-shell">
+        <div class="cr-toolbar">
+            <div class="position-input-wrapper">
+                <select id="load-range-select" class="cr-select">
+                    <option value="">Выберите диапазон для загрузки</option>
+                    {% for pos in all_positions %}
+                        <option value="{{ pos }}">{{ pos }}</option>
+                    {% endfor %}
+                </select>
+                <button id="delete-range-btn" class="cr-btn cr-btn--danger-ghost"><svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg> Удалить</button>
+                <input type="text" id="position" class="cr-input" placeholder="Название диапазона" value="{{ position }}">
+                <button id="save-range-btn" class="cr-btn cr-btn--primary">Сохранить диапазон</button>
+                <button id="new-range-btn" class="cr-btn cr-btn--ghost">Очистить</button>
             </div>
         </div>
 
-        <div class="two-columns">
-            <div class="left-column">
-                <h3>Матрица рук</h3>
-                <div id="hand-matrix"></div>
-                <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
-                    <label for="color-picker" style="margin: 0;">Цвет:</label>
-                    <input type="color" id="color-picker" value="#3498db">
-                    <button id="clear-selection-btn" class="btn-secondary">Убрать всё выделение поддиапазона</button>
+        <div class="cr-columns">
+            <div class="cr-col-matrix">
+                <div class="cr-card cr-card--matrix">
+                    <h3 class="cr-card-title">Матрица рук</h3>
+                    <div id="hand-matrix" class="cr-matrix"></div>
+                    <div class="cr-matrix-toolbar">
+                        <label for="color-picker" class="cr-color-label">Цвет</label>
+                        <input type="color" id="color-picker" class="cr-color-picker" value="#3498db">
+                        <button id="clear-selection-btn" class="cr-btn cr-btn--ghost">Убрать всё выделение поддиапазона</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="right-column">
-                <h3>Поддиапазоны</h3>
-                <p id="empty-message" style="color: #888; font-style: italic;">Пока нет поддиапазонов</p>
-                <ul id="subrange-list-ul"></ul>
+            <div class="cr-col-subranges">
+                <div class="cr-card cr-card--subranges">
+                    <h3 class="cr-card-title">Поддиапазоны</h3>
+                    <p id="empty-message" class="cr-empty-message">Пока нет поддиапазонов</p>
+                    <ul id="subrange-list-ul" class="cr-subrange-list"></ul>
 
-                <div class="subrange-add-area">
-                    <input type="text" id="subname" placeholder="Название поддиапазона (например, 100% RFI)" style="width: 100%; padding: 6px; box-sizing: border-box; margin-bottom: 6px;">
-                    <div class="subrange-actions">
-                        <button id="save-subrange-btn" class="btn-success">Добавить поддиапазон</button>
-                        <button id="cancel-edit-btn" class="btn-secondary" style="display: none;">Отменить изменения</button>
+                    <div class="subrange-add-area">
+                        <input type="text" id="subname" class="cr-input cr-input--full" placeholder="Название поддиапазона">
+                        <div class="subrange-actions">
+                            <button id="save-subrange-btn" class="cr-btn cr-btn--primary">Добавить поддиапазон</button>
+                            <button id="cancel-edit-btn" class="cr-btn cr-btn--ghost" style="display: none;">Отменить изменения</button>
+                        </div>
                     </div>
-                </div>
 
-                <div style="margin-top: 10px;">
-                    <button id="clear-all-btn" class="btn-danger" style="width: 100%;">🗑 Очистить всё</button>
+                    <div class="cr-danger-zone">
+                        <button id="clear-all-btn" class="cr-btn cr-btn--danger-ghost cr-btn--full"><svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg> Очистить всё</button>
+                    </div>
                 </div>
             </div>
         </div>

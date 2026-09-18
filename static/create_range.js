@@ -26,6 +26,28 @@ function showNetworkError(err) {
     alert('Ошибка сети: ' + err);
 }
 
+// Pick black or white text so hand labels stay readable against any
+// user-chosen subrange color, from pale pastels to dark saturated hues.
+function getContrastingTextColor(hexColor) {
+    let hex = hexColor.replace('#', '');
+    if (hex.length === 3) {
+        hex = hex.split('').map(c => c + c).join('');
+    }
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.6 ? '#24313f' : '#ffffff';
+}
+
+// Set a matrix cell's background and an automatically-contrasting text
+// color together. Passing an empty color clears both, so the cell falls
+// back to its default (unselected) styling from CSS.
+function setCellColor(cell, color) {
+    cell.style.backgroundColor = color;
+    cell.style.color = color ? getContrastingTextColor(color) : '';
+}
+
 // POST JSON to url. If the server reports a name collision (status
 // 'exists'), ask the user to confirm and retry with overwrite=true.
 function postJson(url, payload, onSuccess) {
@@ -114,6 +136,7 @@ function generateHandMatrix() {
         if (!dragData.started && distance > DRAG_THRESHOLD) {
             dragData.started = true;
             dragData.dragMode = dragData.initialSelected ? 'deselect' : 'select';
+            container.classList.add('cr-matrix--dragging');
             applyAction(cell);
         }
 
@@ -132,14 +155,14 @@ function generateHandMatrix() {
         if (dragData.dragMode === 'select') {
             if (cell.dataset.selected !== 'true') {
                 cell.dataset.selected = 'true';
-                cell.style.backgroundColor = currentColor;
+                setCellColor(cell, currentColor);
                 if (!currentHands.includes(hand)) currentHands.push(hand);
                 if (editingId && !editingHands.includes(hand)) editingHands.push(hand);
             }
         } else if (dragData.dragMode === 'deselect') {
             if (cell.dataset.selected === 'true') {
                 cell.dataset.selected = 'false';
-                cell.style.backgroundColor = '';
+                setCellColor(cell, '');
                 const idx = currentHands.indexOf(hand);
                 if (idx > -1) currentHands.splice(idx, 1);
                 if (editingId) {
@@ -157,6 +180,7 @@ function generateHandMatrix() {
         if (!dragData.started) {
             toggleCell(cell);
         }
+        container.classList.remove('cr-matrix--dragging');
         cell.releasePointerCapture(e.pointerId);
         document.removeEventListener('pointermove', handlePointerMove);
         document.removeEventListener('pointerup', handlePointerUp);
@@ -189,7 +213,7 @@ function toggleCell(cell) {
         if (editingId) {
             if (!editingHands.includes(hand)) editingHands.push(hand);
         }
-        cell.style.backgroundColor = currentColor;
+        setCellColor(cell, currentColor);
     }
 }
 
@@ -216,11 +240,11 @@ function renderCell(cell) {
         }
     }
     if (cell.dataset.selected === 'true' && editingId && editingHands.includes(hand)) {
-        cell.style.backgroundColor = currentColor;
+        setCellColor(cell, currentColor);
     } else if (foundColor) {
-        cell.style.backgroundColor = foundColor;
+        setCellColor(cell, foundColor);
     } else {
-        cell.style.backgroundColor = '';
+        setCellColor(cell, '');
     }
 }
 
@@ -282,6 +306,7 @@ function updateSubrangeListUI() {
     tempSubranges.forEach(sub => {
         const li = document.createElement('li');
         li.dataset.id = sub.id;
+        li.classList.add('cr-fade-in');
 
         const dot = document.createElement('span');
         dot.className = 'color-dot';
@@ -294,7 +319,7 @@ function updateSubrangeListUI() {
         li.appendChild(nameSpan);
 
         const editBtn = document.createElement('button');
-        editBtn.textContent = '✏️';
+        editBtn.innerHTML = '<svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5l3 3L6 17l-4 1 1-4L13.5 3.5z"/></svg>';
         editBtn.className = 'edit-btn';
         editBtn.title = 'Edit';
         editBtn.addEventListener('click', function(e) {
@@ -304,7 +329,7 @@ function updateSubrangeListUI() {
         li.appendChild(editBtn);
 
         const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = '🗑️';
+        deleteBtn.innerHTML = '<svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>';
         deleteBtn.className = 'delete-btn';
         deleteBtn.title = 'Delete';
         deleteBtn.addEventListener('click', function(e) {
@@ -349,13 +374,13 @@ function startEditing(id) {
     dom.subnameInput.value = sub.name;
     dom.colorPicker.value = sub.color;
     dom.cancelEditBtn.style.display = 'inline-block';
-    dom.saveSubrangeBtn.textContent = '💾 Обновить поддиапазон';
+    dom.saveSubrangeBtn.innerHTML = '<svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h10l3 3v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M7 3v5h6V3"/><path d="M6 12h8v6H6z"/></svg> Обновить поддиапазон';
 
     matrixCells.forEach(cell => {
         const hand = cell.dataset.hand;
         if (editingHands.includes(hand)) {
             cell.dataset.selected = 'true';
-            cell.style.backgroundColor = currentColor;
+            setCellColor(cell, currentColor);
         } else {
             cell.dataset.selected = 'false';
             renderCell(cell);
@@ -405,7 +430,7 @@ function updatePositionsSelect(reset = false) {
         .then(data => {
             const select = dom.loadRangeSelect;
             const currentValue = reset ? '' : select.value;
-            select.innerHTML = '<option value="">📂 Выберите диапазон для загрузки</option>';
+            select.innerHTML = '<option value="">Выберите диапазон для загрузки</option>';
             data.positions.forEach(pos => {
                 const option = document.createElement('option');
                 option.value = pos;
@@ -439,7 +464,7 @@ document.addEventListener('DOMContentLoaded', function() {
         currentColor = this.value;
         matrixCells.forEach(cell => {
             if (cell.dataset.selected === 'true') {
-                cell.style.backgroundColor = currentColor;
+                setCellColor(cell, currentColor);
             }
         });
     });
@@ -447,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('clear-selection-btn').addEventListener('click', function() {
         matrixCells.forEach(cell => {
             cell.dataset.selected = 'false';
-            cell.style.backgroundColor = '';
+            setCellColor(cell, '');
         });
         currentHands = [];
         if (editingId) editingHands = [];

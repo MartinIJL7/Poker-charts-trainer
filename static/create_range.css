@@ -443,3 +443,585 @@ body.create-page {
         justify-content: center;
     }
 }
+
+/* ==========================================================================
+   Visual redesign (create_range.html only)
+   --------------------------------------------------------------------------
+   draw_training.html also loads this stylesheet and shares several of the
+   same IDs/classes (#hand-matrix, .matrix-cell, #subrange-list-ul,
+   .color-dot, .sub-name, .edit-btn, .editing-subrange, #clear-selection-btn,
+   .right-column, .two-columns, .left-column, .top-row, .create-container).
+   Everything above this point is untouched on purpose so that page keeps
+   rendering exactly as before. The new markup in create_range.html uses
+   fresh class names (.cr-shell, .cr-columns, .cr-col-matrix, .cr-toolbar,
+   etc.) and every rule below is scoped under .cr-shell, so it only ever
+   matches elements on the range editor page.
+   ========================================================================== */
+
+:root {
+    --cr-color-bg: #f4f9fc;
+    --cr-color-surface: #ffffff;
+    --cr-color-text: #24313f;
+    --cr-color-text-muted: #8a99a8;
+    --cr-color-border: #e2ecf3;
+    --cr-color-primary: #2bb3e8;
+    --cr-color-primary-hover: #1c9cd0;
+    --cr-color-primary-soft: #e7f6fd;
+    --cr-color-danger: #ef6f6f;
+    --cr-color-danger-hover: #e35555;
+    --cr-color-danger-soft: #fdedec;
+    --cr-color-success: #46c193;
+    --cr-color-success-hover: #35a87d;
+    --cr-color-cell: #eef3f7;
+    --cr-color-cell-border: #e2ecf3;
+
+    --cr-radius-sm: 6px;
+    --cr-radius-md: 12px;
+    --cr-radius-lg: 18px;
+
+    --cr-shadow-soft: 0 2px 10px rgba(45, 90, 130, 0.06);
+    --cr-shadow-medium: 0 8px 24px rgba(45, 90, 130, 0.10);
+
+    --cr-space-xs: 4px;
+    --cr-space-sm: 8px;
+    --cr-space-md: 16px;
+    --cr-space-lg: 24px;
+    --cr-space-xl: 32px;
+
+    --cr-transition-fast: 150ms ease;
+    --cr-transition-base: 200ms ease;
+}
+
+.cr-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--cr-space-lg) 0 60px;
+    box-sizing: border-box;
+}
+
+/* ---- Toolbar ---- */
+.cr-shell .cr-toolbar {
+    background: var(--cr-color-surface);
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-lg);
+    box-shadow: var(--cr-shadow-soft);
+    padding: var(--cr-space-md) var(--cr-space-lg);
+    margin-bottom: var(--cr-space-lg);
+    box-sizing: border-box;
+}
+
+.cr-shell .position-input-wrapper {
+    display: flex;
+    align-items: stretch;
+    gap: var(--cr-space-sm);
+    width: 100%;
+    max-width: 100%;
+    flex-wrap: wrap;
+}
+
+.cr-shell .position-input-wrapper > * {
+    height: 44px;
+    box-sizing: border-box;
+}
+
+.cr-shell #position {
+    flex: 2 1 200px;
+    min-width: 180px;
+    margin: 0;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-md);
+    line-height: normal;
+}
+
+/* ---- Columns ---- */
+.cr-shell .cr-columns {
+    display: flex;
+    gap: var(--cr-space-lg);
+    flex-wrap: nowrap;
+    align-items: flex-start;
+}
+
+.cr-shell .cr-col-matrix {
+    flex: 2 1 60%;
+    min-width: 400px;
+}
+
+.cr-shell .cr-col-subranges {
+    flex: 1 1 30%;
+    min-width: 280px;
+}
+
+/* ---- Cards ---- */
+.cr-shell .cr-card {
+    background: var(--cr-color-surface);
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-lg);
+    box-shadow: var(--cr-shadow-soft);
+    padding: var(--cr-space-lg);
+    box-sizing: border-box;
+}
+
+.cr-shell .cr-card-title {
+    margin: 0 0 var(--cr-space-md);
+    font-size: 1.05em;
+    font-weight: 600;
+    color: var(--cr-color-text);
+}
+
+.cr-shell .cr-card--matrix .cr-card-title {
+    text-align: center;
+}
+
+.cr-shell .cr-card--subranges {
+    display: flex;
+    flex-direction: column;
+    max-height: 700px;
+}
+
+/* ---- Hand matrix ---- */
+.cr-shell #hand-matrix {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    gap: 3px;
+    max-width: 650px;
+    margin: 0 auto;
+}
+
+.cr-shell .matrix-cell {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    background: var(--cr-color-cell);
+    text-align: center;
+    font-size: 0.7em;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color var(--cr-transition-fast), transform var(--cr-transition-fast), filter var(--cr-transition-fast);
+    border: 1px solid var(--cr-color-cell-border);
+    border-radius: 3px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    color: var(--cr-color-text-muted);
+}
+
+.cr-shell .matrix-cell:hover {
+    opacity: 1;
+    filter: brightness(0.96);
+    transform: scale(1.05);
+}
+
+.cr-shell #hand-matrix.cr-matrix--dragging .matrix-cell {
+    transition: background-color 60ms ease;
+}
+
+.cr-shell .cr-matrix-toolbar {
+    margin-top: var(--cr-space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--cr-space-sm);
+    flex-wrap: wrap;
+}
+
+.cr-shell .cr-color-label {
+    color: var(--cr-color-text-muted);
+    font-size: 0.9em;
+}
+
+.cr-shell .cr-color-picker {
+    width: 40px;
+    height: 40px;
+    padding: 2px;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-sm);
+    cursor: pointer;
+    background: var(--cr-color-surface);
+}
+
+/* ---- Subrange list ---- */
+.cr-shell .cr-subrange-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--cr-space-md);
+    flex: 1;
+    overflow-y: auto;
+}
+
+.cr-shell #subrange-list-ul li {
+    display: flex;
+    align-items: center;
+    background: var(--cr-color-bg);
+    border: 1px solid transparent;
+    padding: 10px 14px;
+    margin-bottom: var(--cr-space-sm);
+    border-radius: var(--cr-radius-md);
+    transition: background var(--cr-transition-fast), border-color var(--cr-transition-fast);
+}
+
+.cr-shell #subrange-list-ul li:hover {
+    background: #eef5fa;
+}
+
+.cr-shell #subrange-list-ul li.editing-subrange {
+    background: var(--cr-color-primary-soft);
+    border-color: var(--cr-color-primary);
+    box-shadow: none;
+}
+
+.cr-shell #subrange-list-ul li .color-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6);
+}
+
+.cr-shell #subrange-list-ul li .sub-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--cr-color-text);
+}
+
+.cr-shell #subrange-list-ul li .edit-btn,
+.cr-shell #subrange-list-ul li .delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: var(--cr-radius-sm);
+    color: var(--cr-color-text-muted);
+    opacity: 0.7;
+    transition: opacity var(--cr-transition-fast), background var(--cr-transition-fast), color var(--cr-transition-fast);
+}
+
+.cr-shell #subrange-list-ul li .edit-btn:hover {
+    opacity: 1;
+    color: var(--cr-color-primary);
+    background: rgba(43, 179, 232, 0.08);
+}
+
+.cr-shell #subrange-list-ul li .delete-btn:hover {
+    opacity: 1;
+    color: var(--cr-color-danger);
+    background: var(--cr-color-danger-soft);
+}
+
+@keyframes cr-fade-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.cr-shell .cr-fade-in {
+    animation: cr-fade-in var(--cr-transition-base);
+}
+
+.cr-shell #empty-message {
+    margin: var(--cr-space-sm) 0 var(--cr-space-md);
+    color: var(--cr-color-text-muted);
+    font-size: 0.95em;
+    font-style: normal;
+    text-align: center;
+    padding: var(--cr-space-md) 0;
+}
+
+/* ---- Subrange add area ---- */
+.cr-shell .subrange-add-area {
+    margin-top: var(--cr-space-xs);
+}
+
+.cr-shell .subrange-actions {
+    display: flex;
+    gap: var(--cr-space-sm);
+}
+
+.cr-shell .subrange-actions .cr-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    height: auto;
+    min-height: 44px;
+    padding: 10px 12px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.cr-shell .cr-danger-zone {
+    margin-top: var(--cr-space-md);
+}
+
+/* ---- Inputs / select ---- */
+.cr-shell .cr-input {
+    height: 44px;
+    box-sizing: border-box;
+    padding: 0 14px;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-md);
+    font-size: 1em;
+    background: var(--cr-color-bg);
+    color: var(--cr-color-text);
+    transition: border-color var(--cr-transition-fast), background var(--cr-transition-fast), box-shadow var(--cr-transition-fast);
+}
+
+.cr-shell #subname {
+    height: 44px;
+    box-sizing: border-box;
+    padding: 0 14px;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-md);
+}
+
+.cr-shell .cr-input::placeholder {
+    color: var(--cr-color-text-muted);
+}
+
+.cr-shell .cr-input:focus {
+    outline: none;
+    border-color: var(--cr-color-primary);
+    background: var(--cr-color-surface);
+    box-shadow: 0 0 0 3px rgba(43, 179, 232, 0.15);
+}
+
+.cr-shell .cr-input--full {
+    width: 100%;
+    margin-bottom: var(--cr-space-sm);
+}
+
+.cr-shell .cr-select {
+    height: 44px;
+    flex: 1 1 180px;
+    min-width: 160px;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-md);
+    background: var(--cr-color-bg);
+    padding: 0 14px;
+    font-size: 1em;
+    color: var(--cr-color-text);
+    cursor: pointer;
+    transition: border-color var(--cr-transition-fast), background var(--cr-transition-fast);
+}
+
+.cr-shell .cr-select:hover {
+    border-color: var(--cr-color-primary);
+}
+
+.cr-shell .cr-select:focus {
+    outline: none;
+    border-color: var(--cr-color-primary);
+    box-shadow: 0 0 0 3px rgba(43, 179, 232, 0.15);
+}
+
+/* ---- Icons ----
+   Shared sizing for the inline SVG icons used inside buttons (edit/delete
+   in the subrange list, and the toolbar's delete/save/clear icons). One
+   place to tune size so they stay legible and consistent. */
+.cr-shell .cr-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* ---- Buttons ---- */
+.cr-shell .cr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 20px;
+    border: none;
+    border-radius: var(--cr-radius-md);
+    font-size: 0.95em;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--cr-transition-fast), color var(--cr-transition-fast), transform var(--cr-transition-fast), box-shadow var(--cr-transition-fast);
+    box-sizing: border-box;
+}
+
+.cr-shell .cr-btn:active {
+    transform: scale(0.98);
+}
+
+.cr-shell .cr-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cr-shell .cr-btn--full {
+    width: 100%;
+}
+
+.cr-shell .cr-btn--primary {
+    background: var(--cr-color-primary);
+    color: white;
+    box-shadow: var(--cr-shadow-soft);
+}
+
+.cr-shell .cr-btn--primary:hover {
+    background: var(--cr-color-primary-hover);
+    box-shadow: var(--cr-shadow-medium);
+}
+
+.cr-shell .cr-btn--ghost {
+    background: var(--cr-color-bg);
+    color: var(--cr-color-text-muted);
+    border: 1px solid var(--cr-color-border);
+}
+
+.cr-shell .cr-btn--ghost:hover {
+    background: #eef3f7;
+    color: var(--cr-color-text);
+}
+
+.cr-shell .cr-btn--danger-ghost {
+    background: var(--cr-color-danger-soft);
+    color: var(--cr-color-danger);
+}
+
+.cr-shell .cr-btn--danger-ghost:hover {
+    background: var(--cr-color-danger);
+    color: white;
+}
+
+/* These two buttons kept their original IDs (unchanged per the hard
+   constraint), and those IDs carry old bare-ID rules preserved above for
+   draw_training.html. An ID always outranks classes, so the .cr-btn
+   classes alone can't win here — pair the ID with .cr-shell to override. */
+.cr-shell #clear-all-btn {
+    height: 44px;
+    border-radius: var(--cr-radius-md);
+    font-size: 0.95em;
+    transition: background var(--cr-transition-fast), color var(--cr-transition-fast), transform var(--cr-transition-fast), box-shadow var(--cr-transition-fast);
+}
+
+.cr-shell #clear-selection-btn {
+    height: 44px;
+    padding: 0 20px;
+    border-radius: var(--cr-radius-md);
+    font-size: 0.95em;
+    background: var(--cr-color-bg);
+    color: var(--cr-color-text-muted);
+    transition: background var(--cr-transition-fast), color var(--cr-transition-fast), transform var(--cr-transition-fast), box-shadow var(--cr-transition-fast);
+}
+
+.cr-shell #clear-selection-btn:hover {
+    background: #eef3f7;
+    color: var(--cr-color-text);
+}
+
+/* ---- Focus states ----
+   Replace the browser/OS default focus ring (which can pick up the
+   system accent color) with a consistent on-brand outline. */
+.cr-shell button:focus,
+.cr-shell input:focus,
+.cr-shell select:focus {
+    outline: 2px solid var(--cr-color-primary);
+    outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Responsive (.cr-shell only)
+   ========================================================================== */
+@media (max-width: 1000px) {
+    .cr-shell .cr-columns {
+        flex-wrap: wrap;
+    }
+    .cr-shell .cr-col-matrix,
+    .cr-shell .cr-col-subranges {
+        flex: 1 1 100%;
+        min-width: unset;
+    }
+    .cr-shell .cr-card--subranges {
+        max-height: none;
+    }
+    .cr-shell {
+        padding: var(--cr-space-md) 0 60px;
+    }
+    .cr-shell .position-input-wrapper > * {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .cr-shell .cr-toolbar,
+    .cr-shell .cr-card {
+        border-radius: var(--cr-radius-md);
+        padding: var(--cr-space-md);
+    }
+    .cr-shell .position-input-wrapper {
+        flex-wrap: wrap;
+        gap: var(--cr-space-sm);
+    }
+    .cr-shell .position-input-wrapper > * {
+        height: 46px !important;
+        font-size: 16px;
+        flex: 1 1 100%;
+        min-width: 100%;
+    }
+    .cr-shell #hand-matrix {
+        gap: 2px !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    .cr-shell .matrix-cell {
+        font-size: 0.6rem !important;
+        min-height: 28px !important;
+        min-width: 28px !important;
+        padding: 0 !important;
+        border-width: 1px !important;
+        border-radius: 2px;
+    }
+    .cr-shell .subrange-actions .cr-btn,
+    .cr-shell #clear-all-btn,
+    .cr-shell #clear-selection-btn,
+    .cr-shell #subname {
+        height: 46px !important;
+        font-size: 16px;
+    }
+    .cr-shell #subrange-list-ul li {
+        padding: 8px 10px;
+    }
+    .cr-shell #subrange-list-ul li .edit-btn,
+    .cr-shell #subrange-list-ul li .delete-btn {
+        font-size: 1.1em;
+        padding: 6px 8px;
+    }
+}
+
+@media screen and (max-width: 400px) {
+    .cr-shell #hand-matrix {
+        grid-template-columns: repeat(13, 1fr) !important;
+        gap: 1px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+    .cr-shell .matrix-cell {
+        font-size: 0.5rem !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        border-width: 0.5px !important;
+        aspect-ratio: 1 / 1 !important;
+        line-height: 1 !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cr-shell * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
