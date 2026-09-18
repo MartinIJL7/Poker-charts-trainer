@@ -48,6 +48,12 @@ function setCellColor(cell, color) {
     cell.style.color = color ? getContrastingTextColor(color) : '';
 }
 
+// Show "Убрать всё выделение поддиапазона" only while something is
+// actually selected on the matrix.
+function updateClearSelectionVisibility() {
+    dom.clearSelectionBtn.style.display = currentHands.length > 0 ? 'inline-flex' : 'none';
+}
+
 // POST JSON to url. If the server reports a name collision (status
 // 'exists'), ask the user to confirm and retry with overwrite=true.
 function postJson(url, payload, onSuccess) {
@@ -172,6 +178,7 @@ function generateHandMatrix() {
                 renderCell(cell);
             }
         }
+        updateClearSelectionVisibility();
     }
 
     function handlePointerUp(e) {
@@ -215,6 +222,7 @@ function toggleCell(cell) {
         }
         setCellColor(cell, currentColor);
     }
+    updateClearSelectionVisibility();
 }
 
 function renderCell(cell) {
@@ -259,6 +267,7 @@ function clearCurrentSelection() {
     currentHands = [];
     if (editingId) editingHands = [];
     renderAllSubranges();
+    updateClearSelectionVisibility();
 }
 
 function highlightEditingSubrange() {
@@ -296,6 +305,7 @@ function loadTempSubranges() {
                 updateSubrangeListUI();
                 highlightEditingSubrange();
                 renderAllSubranges();
+                updateClearSelectionVisibility();
             }
         })
         .catch(err => console.error('Error loading subranges:', err));
@@ -387,6 +397,7 @@ function startEditing(id) {
         }
     });
     highlightEditingSubrange();
+    updateClearSelectionVisibility();
 }
 
 function cancelEditing() {
@@ -403,6 +414,7 @@ function cancelEditing() {
     });
     renderAllSubranges();
     highlightEditingSubrange();
+    updateClearSelectionVisibility();
 }
 
 function loadRange(position) {
@@ -454,11 +466,13 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelEditBtn: document.getElementById('cancel-edit-btn'),
         saveSubrangeBtn: document.getElementById('save-subrange-btn'),
         subrangeListUl: document.getElementById('subrange-list-ul'),
-        emptyMessage: document.getElementById('empty-message')
+        emptyMessage: document.getElementById('empty-message'),
+        clearSelectionBtn: document.getElementById('clear-selection-btn')
     };
 
     generateHandMatrix();
     loadTempSubranges();
+    updateClearSelectionVisibility();
 
     dom.colorPicker.addEventListener('input', function() {
         currentColor = this.value;
@@ -469,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    document.getElementById('clear-selection-btn').addEventListener('click', function() {
+    dom.clearSelectionBtn.addEventListener('click', function() {
         matrixCells.forEach(cell => {
             cell.dataset.selected = 'false';
             setCellColor(cell, '');
@@ -477,6 +491,7 @@ document.addEventListener('DOMContentLoaded', function() {
         currentHands = [];
         if (editingId) editingHands = [];
         renderAllSubranges();
+        updateClearSelectionVisibility();
     });
 
     dom.saveSubrangeBtn.addEventListener('click', function() {
