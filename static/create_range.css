@@ -644,6 +644,25 @@ body.create-page {
     background: var(--cr-color-surface);
 }
 
+/* The browser's default color-swatch has its own inset border that
+   ignores the input's border-radius, giving it a mismatched, "raw"
+   look. Strip that so the swatch fills the rounded container cleanly. */
+.cr-shell .cr-color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: calc(var(--cr-radius-sm) - 3px);
+    overflow: hidden;
+}
+
+.cr-shell .cr-color-picker::-webkit-color-swatch {
+    border: none;
+    border-radius: calc(var(--cr-radius-sm) - 3px);
+}
+
+.cr-shell .cr-color-picker::-moz-color-swatch {
+    border: none;
+    border-radius: calc(var(--cr-radius-sm) - 3px);
+}
+
 /* ---- Subrange list ---- */
 .cr-shell .cr-subrange-list {
     list-style: none;
@@ -651,6 +670,25 @@ body.create-page {
     margin: 0 0 var(--cr-space-md);
     flex: 1;
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cr-color-border) transparent;
+}
+
+.cr-shell .cr-subrange-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.cr-shell .cr-subrange-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.cr-shell .cr-subrange-list::-webkit-scrollbar-thumb {
+    background: var(--cr-color-border);
+    border-radius: var(--cr-radius-sm);
+}
+
+.cr-shell .cr-subrange-list::-webkit-scrollbar-thumb:hover {
+    background: #a7b3c0;
 }
 
 .cr-shell #subrange-list-ul li {
