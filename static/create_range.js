@@ -1,25 +1,61 @@
 // create_range.js
 'use strict';
 
+const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+const DRAG_THRESHOLD = 10;
+
 let currentColor = '#3498db';
 let currentHands = [];
 let tempSubranges = [];
 let editingId = null;
 let editingHands = [];
-let editingPosition = null;
 
-let isDragging = false;
-let dragStartX = 0;
-let dragStartY = 0;
-let dragMode = 'select';
-const DRAG_THRESHOLD = 10;
+// All 169 hand-matrix cell elements, captured once after the grid is built.
+// The grid is generated exactly once on load, so this stays valid for the
+// lifetime of the page and avoids re-querying the DOM on every render.
+let matrixCells = [];
 
-const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+// Frequently-accessed elements, cached once the DOM is ready.
+let dom = {};
+
+function showError(message) {
+    alert('Ошибка: ' + message);
+}
+
+function showNetworkError(err) {
+    alert('Ошибка сети: ' + err);
+}
+
+// POST JSON to url. If the server reports a name collision (status
+// 'exists'), ask the user to confirm and retry with overwrite=true.
+function postJson(url, payload, onSuccess) {
+    function attempt(overwrite) {
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.assign({}, payload, { overwrite: overwrite }))
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                onSuccess(data);
+            } else if (data.status === 'exists') {
+                if (confirm(data.message)) {
+                    attempt(true);
+                }
+            } else {
+                showError(data.message);
+            }
+        })
+        .catch(showNetworkError);
+    }
+    attempt(false);
+}
 
 function generateHandMatrix() {
     const container = document.getElementById('hand-matrix');
     container.innerHTML = '';
-    const matrixCells = [];
+    matrixCells = [];
 
     ranks.forEach((rowRank, i) => {
         ranks.forEach((colRank, j) => {
@@ -54,7 +90,6 @@ function generateHandMatrix() {
     function handlePointerDown(e) {
         const cell = e.currentTarget;
         e.preventDefault();
-        const rect = cell.getBoundingClientRect();
         dragData = {
             cell: cell,
             startX: e.clientX,
@@ -126,7 +161,6 @@ function generateHandMatrix() {
         document.removeEventListener('pointermove', handlePointerMove);
         document.removeEventListener('pointerup', handlePointerUp);
         dragData = null;
-        isDragging = false;
         e.preventDefault();
     }
 
@@ -159,46 +193,12 @@ function toggleCell(cell) {
     }
 }
 
-function toggleCellForDrag(cell) {
-    const hand = cell.dataset.hand;
-    if (cell.dataset.selected === 'true') return;
-    cell.dataset.selected = 'true';
-    cell.style.backgroundColor = currentColor;
-    if (!currentHands.includes(hand)) currentHands.push(hand);
-    if (editingId) {
-        if (!editingHands.includes(hand)) editingHands.push(hand);
-    }
-}
-
-function untoggleCellForDrag(cell) {
-    const hand = cell.dataset.hand;
-    if (cell.dataset.selected === 'false') return;
-    cell.dataset.selected = 'false';
-    cell.style.backgroundColor = '';
-    const index = currentHands.indexOf(hand);
-    if (index > -1) currentHands.splice(index, 1);
-    if (editingId) {
-        const idx = editingHands.indexOf(hand);
-        if (idx > -1) editingHands.splice(idx, 1);
-    }
-    renderCell(cell);
-}
-
 function renderCell(cell) {
     const hand = cell.dataset.hand;
     let foundColor = null;
     if (editingId) {
-        if (editingHands.includes(hand)) {
-            if (cell.dataset.selected === 'true') {
-                foundColor = currentColor;
-            } else {
-                for (let sub of tempSubranges) {
-                    if (sub.id !== editingId && sub.hands.includes(hand)) {
-                        foundColor = sub.color;
-                        break;
-                    }
-                }
-            }
+        if (editingHands.includes(hand) && cell.dataset.selected === 'true') {
+            foundColor = currentColor;
         } else {
             for (let sub of tempSubranges) {
                 if (sub.id !== editingId && sub.hands.includes(hand)) {
@@ -225,13 +225,11 @@ function renderCell(cell) {
 }
 
 function renderAllSubranges() {
-    const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
-    cells.forEach(cell => renderCell(cell));
+    matrixCells.forEach(cell => renderCell(cell));
 }
 
 function clearCurrentSelection() {
-    const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
-    cells.forEach(cell => {
+    matrixCells.forEach(cell => {
         cell.dataset.selected = 'false';
     });
     currentHands = [];
@@ -263,14 +261,9 @@ function loadTempSubranges() {
                     if (sub) {
                         editingHands = sub.hands.slice();
                         currentHands = editingHands.slice();
-                        const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
-                        cells.forEach(cell => {
+                        matrixCells.forEach(cell => {
                             const hand = cell.dataset.hand;
-                            if (editingHands.includes(hand)) {
-                                cell.dataset.selected = 'true';
-                            } else {
-                                cell.dataset.selected = 'false';
-                            }
+                            cell.dataset.selected = editingHands.includes(hand) ? 'true' : 'false';
                         });
                     } else {
                         cancelEditing();
@@ -285,8 +278,7 @@ function loadTempSubranges() {
 }
 
 function updateSubrangeListUI() {
-    const ul = document.getElementById('subrange-list-ul');
-    ul.innerHTML = '';
+    dom.subrangeListUl.innerHTML = '';
     tempSubranges.forEach(sub => {
         const li = document.createElement('li');
         li.dataset.id = sub.id;
@@ -323,10 +315,9 @@ function updateSubrangeListUI() {
         });
         li.appendChild(deleteBtn);
 
-        ul.appendChild(li);
+        dom.subrangeListUl.appendChild(li);
     });
-    const emptyMsg = document.getElementById('empty-message');
-    emptyMsg.style.display = tempSubranges.length === 0 ? 'block' : 'none';
+    dom.emptyMessage.style.display = tempSubranges.length === 0 ? 'block' : 'none';
 }
 
 function deleteSubrange(id) {
@@ -341,10 +332,10 @@ function deleteSubrange(id) {
             loadTempSubranges();
             if (editingId === id) cancelEditing();
         } else {
-            alert('Ошибка: ' + data.message);
+            showError(data.message);
         }
     })
-    .catch(err => alert('Ошибка сети: ' + err));
+    .catch(showNetworkError);
 }
 
 function startEditing(id) {
@@ -355,13 +346,12 @@ function startEditing(id) {
     currentHands = editingHands.slice();
     currentColor = sub.color;
 
-    document.getElementById('subname').value = sub.name;
-    document.getElementById('color-picker').value = sub.color;
-    document.getElementById('cancel-edit-btn').style.display = 'inline-block';
-    document.getElementById('save-subrange-btn').textContent = '💾 Обновить поддиапазон';
+    dom.subnameInput.value = sub.name;
+    dom.colorPicker.value = sub.color;
+    dom.cancelEditBtn.style.display = 'inline-block';
+    dom.saveSubrangeBtn.textContent = '💾 Обновить поддиапазон';
 
-    const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
-    cells.forEach(cell => {
+    matrixCells.forEach(cell => {
         const hand = cell.dataset.hand;
         if (editingHands.includes(hand)) {
             cell.dataset.selected = 'true';
@@ -378,14 +368,12 @@ function cancelEditing() {
     editingId = null;
     editingHands = [];
     currentHands = [];
-    document.getElementById('edit-id').value = '';
-    document.getElementById('subname').value = '';
-    document.getElementById('color-picker').value = '#3498db';
+    dom.subnameInput.value = '';
+    dom.colorPicker.value = '#3498db';
     currentColor = '#3498db';
-    document.getElementById('cancel-edit-btn').style.display = 'none';
-    document.getElementById('save-subrange-btn').textContent = 'Добавить поддиапазон';
-    const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
-    cells.forEach(cell => {
+    dom.cancelEditBtn.style.display = 'none';
+    dom.saveSubrangeBtn.textContent = 'Добавить поддиапазон';
+    matrixCells.forEach(cell => {
         cell.dataset.selected = 'false';
     });
     renderAllSubranges();
@@ -401,22 +389,21 @@ function loadRange(position) {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'ok') {
-            document.getElementById('position').value = data.position;
-            editingPosition = data.position;
+            dom.positionInput.value = data.position;
             loadTempSubranges();
             cancelEditing();
         } else {
-            alert('Ошибка: ' + data.message);
+            showError(data.message);
         }
     })
-    .catch(err => alert('Ошибка сети: ' + err));
+    .catch(showNetworkError);
 }
 
 function updatePositionsSelect(reset = false) {
     fetch('/create/get_positions')
         .then(response => response.json())
         .then(data => {
-            const select = document.getElementById('load-range-select');
+            const select = dom.loadRangeSelect;
             const currentValue = reset ? '' : select.value;
             select.innerHTML = '<option value="">📂 Выберите диапазон для загрузки</option>';
             data.positions.forEach(pos => {
@@ -425,11 +412,7 @@ function updatePositionsSelect(reset = false) {
                 option.textContent = pos;
                 select.appendChild(option);
             });
-            if (!reset && data.positions.includes(currentValue)) {
-                select.value = currentValue;
-            } else {
-                select.value = '';
-            }
+            select.value = (!reset && data.positions.includes(currentValue)) ? currentValue : '';
         })
         .catch(err => console.error('Error updating positions list:', err));
 }
@@ -438,13 +421,23 @@ function updatePositionsSelect(reset = false) {
 // DOM ready
 // -------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
+    dom = {
+        positionInput: document.getElementById('position'),
+        subnameInput: document.getElementById('subname'),
+        loadRangeSelect: document.getElementById('load-range-select'),
+        colorPicker: document.getElementById('color-picker'),
+        cancelEditBtn: document.getElementById('cancel-edit-btn'),
+        saveSubrangeBtn: document.getElementById('save-subrange-btn'),
+        subrangeListUl: document.getElementById('subrange-list-ul'),
+        emptyMessage: document.getElementById('empty-message')
+    };
+
     generateHandMatrix();
     loadTempSubranges();
 
-    document.getElementById('color-picker').addEventListener('input', function() {
+    dom.colorPicker.addEventListener('input', function() {
         currentColor = this.value;
-        const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
-        cells.forEach(cell => {
+        matrixCells.forEach(cell => {
             if (cell.dataset.selected === 'true') {
                 cell.style.backgroundColor = currentColor;
             }
@@ -452,8 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('clear-selection-btn').addEventListener('click', function() {
-        const cells = document.querySelectorAll('#hand-matrix .matrix-cell:not(.matrix-header)');
-        cells.forEach(cell => {
+        matrixCells.forEach(cell => {
             cell.dataset.selected = 'false';
             cell.style.backgroundColor = '';
         });
@@ -462,8 +454,8 @@ document.addEventListener('DOMContentLoaded', function() {
         renderAllSubranges();
     });
 
-    document.getElementById('save-subrange-btn').addEventListener('click', function() {
-        const name = document.getElementById('subname').value.trim();
+    dom.saveSubrangeBtn.addEventListener('click', function() {
+        const name = dom.subnameInput.value.trim();
         if (!name) {
             alert('Введите имя поддиапазона');
             return;
@@ -473,48 +465,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        function doSave(overwrite = false) {
-            const payload = {
-                name: name,
-                hands: currentHands,
-                color: currentColor
-            };
-            let url = '/create/add_subrange';
-            if (editingId) {
-                url = '/create/update_subrange';
-                payload.id = editingId;
-            }
-            payload.overwrite = overwrite;
-
-            fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'ok') {
-                    loadTempSubranges();
-                    if (editingId) {
-                        cancelEditing();
-                    } else {
-                        clearCurrentSelection();
-                        document.getElementById('subname').value = '';
-                    }
-                } else if (data.status === 'exists') {
-                    if (confirm(data.message)) {
-                        doSave(true);
-                    }
-                } else {
-                    alert('Ошибка: ' + data.message);
-                }
-            })
-            .catch(err => alert('Ошибка сети: ' + err));
+        const payload = { name: name, hands: currentHands, color: currentColor };
+        let url = '/create/add_subrange';
+        if (editingId) {
+            url = '/create/update_subrange';
+            payload.id = editingId;
         }
-        doSave(false);
+
+        postJson(url, payload, function() {
+            loadTempSubranges();
+            if (editingId) {
+                cancelEditing();
+            } else {
+                clearCurrentSelection();
+                dom.subnameInput.value = '';
+            }
+        });
     });
 
-    document.getElementById('cancel-edit-btn').addEventListener('click', function() {
+    dom.cancelEditBtn.addEventListener('click', function() {
         cancelEditing();
     });
 
@@ -524,14 +493,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(() => {
                     loadTempSubranges();
                     clearCurrentSelection();
-                    document.getElementById('subname').value = '';
+                    dom.subnameInput.value = '';
                     cancelEditing();
                 });
         }
     });
 
     document.getElementById('save-range-btn').addEventListener('click', function() {
-        const position = document.getElementById('position').value.trim();
+        const position = dom.positionInput.value.trim();
         if (!position) {
             alert('Введите имя диапазона');
             return;
@@ -542,42 +511,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (!confirm(`Сохранить диапазон "${position}"?`)) return;
 
-        function doSave(overwrite = false) {
-            fetch('/create/save_range', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ position, overwrite })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'ok') {
-                    alert(data.message);
-                    editingPosition = null;
-                    fetch('/create/clear_temp', { method: 'POST' })
-                        .then(() => {
-                            tempSubranges = [];
-                            updateSubrangeListUI();
-                            renderAllSubranges();
-                            clearCurrentSelection();
-                            document.getElementById('position').value = '';
-                            document.getElementById('subname').value = '';
-                            cancelEditing();
-                            updatePositionsSelect(true);
-                        });
-                } else if (data.status === 'exists') {
-                    if (confirm(data.message)) {
-                        doSave(true);
-                    }
-                } else {
-                    alert('Ошибка: ' + data.message);
-                }
-            })
-            .catch(err => alert('Ошибка сети: ' + err));
-        }
-        doSave(false);
+        postJson('/create/save_range', { position: position }, function(data) {
+            alert(data.message);
+            fetch('/create/clear_temp', { method: 'POST' })
+                .then(() => {
+                    tempSubranges = [];
+                    updateSubrangeListUI();
+                    renderAllSubranges();
+                    clearCurrentSelection();
+                    dom.positionInput.value = '';
+                    dom.subnameInput.value = '';
+                    cancelEditing();
+                    updatePositionsSelect(true);
+                });
+        });
     });
 
-    document.getElementById('load-range-select').addEventListener('change', function() {
+    dom.loadRangeSelect.addEventListener('change', function() {
         const pos = this.value;
         if (!pos) return;
         if (!confirm(`Загрузить диапазон "${pos}"? Текущие изменения будут потеряны`)) {
@@ -591,21 +541,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!confirm('Начать новый диапазон? Текущие изменения будут потеряны')) return;
         fetch('/create/reset', { method: 'POST' })
             .then(() => {
-                editingPosition = null;
-                document.getElementById('position').value = '';
-                document.getElementById('load-range-select').value = '';
+                dom.positionInput.value = '';
+                dom.loadRangeSelect.value = '';
                 tempSubranges = [];
                 updateSubrangeListUI();
                 renderAllSubranges();
                 clearCurrentSelection();
-                document.getElementById('subname').value = '';
+                dom.subnameInput.value = '';
                 cancelEditing();
             });
     });
 
     document.getElementById('delete-range-btn').addEventListener('click', function() {
-        const select = document.getElementById('load-range-select');
-        const pos = select.value;
+        const pos = dom.loadRangeSelect.value;
         if (!pos) {
             alert('Выберите диапазон для удаления');
             return;
@@ -623,20 +571,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert(data.message);
                 fetch('/create/clear_temp', { method: 'POST' })
                     .then(() => {
-                        editingPosition = null;
-                        document.getElementById('position').value = '';
+                        dom.positionInput.value = '';
                         tempSubranges = [];
                         updateSubrangeListUI();
                         renderAllSubranges();
                         clearCurrentSelection();
-                        document.getElementById('subname').value = '';
+                        dom.subnameInput.value = '';
                         cancelEditing();
                         updatePositionsSelect(true);
                     });
             } else {
-                alert('Ошибка: ' + data.message);
+                showError(data.message);
             }
         })
-        .catch(err => alert('Ошибка сети: ' + err));
+        .catch(showNetworkError);
     });
 });

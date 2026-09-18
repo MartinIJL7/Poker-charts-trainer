@@ -38,13 +38,6 @@ body.create-page {
     line-height: 1.4;
 }
 
-.top-row small {
-    display: block;
-    font-size: 0.7em;
-    color: #666;
-    margin-top: 4px;
-}
-
 /* ---- Two-column layout ---- */
 .two-columns {
     display: flex;
@@ -239,10 +232,6 @@ body.create-page {
 
 .matrix-cell:hover {
     opacity: 0.8;
-}
-
-.matrix-cell.selected {
-    border: 2px solid #2c3e50;
 }
 
 /* ---- Editing highlight ---- */
