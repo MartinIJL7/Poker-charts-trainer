@@ -21,7 +21,7 @@
             <div class="position-input-wrapper">
                 <div id="edit-picker-group" class="cr-edit-picker-group">
                     <select id="load-range-select" class="cr-select">
-                        <option value="" disabled>Выберите диапазон</option>
+                        <option value="" disabled{% if not position %} selected{% endif %}>Выберите диапазон</option>
                         {% for pos in all_positions %}
                             <option value="{{ pos }}"{% if pos == position %} selected{% endif %}>{{ pos }}</option>
                         {% endfor %}

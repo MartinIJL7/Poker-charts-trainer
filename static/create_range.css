@@ -676,6 +676,14 @@ body.create-page {
     transition: background-color 60ms ease;
 }
 
+/* Nothing to select into yet while browsing the edit tab with no range
+   picked - block interaction instead of letting hands pile up with no
+   range to save them under. */
+.cr-shell #hand-matrix.cr-matrix--locked {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
 .cr-shell .cr-matrix-toolbar {
     margin-top: var(--cr-space-md);
     display: flex;
@@ -697,6 +705,11 @@ body.create-page {
     border-radius: var(--cr-radius-sm);
     cursor: pointer;
     background: var(--cr-color-surface);
+}
+
+.cr-shell .cr-color-picker:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* The browser's default color-swatch has its own inset border that

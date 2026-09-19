@@ -118,12 +118,19 @@ function hasUnsavedChanges() {
     return nameChanged || subrangesChanged;
 }
 
-// Single source of truth for whether the position field / Save / Cancel
-// are usable: disabled while browsing the edit tab with nothing picked,
-// gated by real changes while editing, always enabled while creating new.
-function updateSaveButtonState() {
+// Single source of truth for what's usable right now. While browsing the
+// edit tab with nothing picked yet, there's no range for a subrange to
+// belong to - so this locks the whole editing surface (position field,
+// matrix, subrange name/save), not just the range-level Save/Cancel.
+// Once a range is loaded (or we're creating new), Save/Cancel are gated
+// by whether there are actual changes to act on.
+function updateEditingControlsState() {
     const browsingWithNothingLoaded = activePanel === 'edit' && loadedRangeName === null;
     dom.positionInput.disabled = browsingWithNothingLoaded;
+    dom.subnameInput.disabled = browsingWithNothingLoaded;
+    dom.saveSubrangeBtn.disabled = browsingWithNothingLoaded;
+    dom.colorPicker.disabled = browsingWithNothingLoaded;
+    dom.handMatrix.classList.toggle('cr-matrix--locked', browsingWithNothingLoaded);
 
     if (browsingWithNothingLoaded) {
         dom.saveRangeBtn.disabled = true;
@@ -151,7 +158,7 @@ function setActivePanel(panel) {
     dom.tabNewBtn.classList.toggle('cr-mode-tab--active', !isEdit);
     dom.tabEditBtn.classList.toggle('cr-mode-tab--active', isEdit);
     dom.editPickerGroup.classList.toggle('cr-hidden', !isEdit);
-    updateSaveButtonState();
+    updateEditingControlsState();
 }
 
 // Reflect whether we're creating a new range or editing a loaded one:
@@ -183,7 +190,7 @@ function establishSavedBaseline(position) {
                     hands: data.subranges[name]
                 }));
                 savedSnapshot = snapshotSubranges(subs);
-                updateSaveButtonState();
+                updateEditingControlsState();
             }
         })
         .catch(err => console.error('Error fetching saved baseline:', err));
@@ -491,7 +498,7 @@ function loadTempSubranges() {
                 highlightEditingSubrange();
                 renderAllSubranges();
                 updateClearSelectionVisibility();
-                updateSaveButtonState();
+                updateEditingControlsState();
             }
         })
         .catch(err => console.error('Error loading subranges:', err));
@@ -652,6 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
     dom = {
         positionInput: document.getElementById('position'),
         subnameInput: document.getElementById('subname'),
+        handMatrix: document.getElementById('hand-matrix'),
         loadRangeSelect: document.getElementById('load-range-select'),
         colorPicker: document.getElementById('color-picker'),
         cancelEditBtn: document.getElementById('cancel-edit-btn'),
@@ -697,7 +705,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     dom.positionInput.addEventListener('input', function() {
-        updateSaveButtonState();
+        updateEditingControlsState();
     });
 
     dom.clearSelectionBtn.addEventListener('click', function() {
