@@ -113,6 +113,11 @@ Weight calculation in `calculate_weight()`:
 - **UI text**: All user-facing text (labels, buttons, messages, alerts, placeholders) must be in Russian — no exceptions
 - **UI text**: Do not end the last sentence of a UI text block with a period ("."). Mid-block sentences still get periods; only the trailing one is dropped
 
+## Redesign Notes
+
+- **Toasts over alert()**: When redesigning a page's UI, replace one-way informational `alert()` calls (errors, success messages, validation nudges) with a small auto-dismissing toast instead of the blocking native dialog. A working implementation exists in `static/create_range.js` (`showToast(message, type)`, types `'success'`/`'error'`) and `static/create_range.css` (`.cr-toast*` classes) — adapt the same pattern rather than reinventing it.
+- **Keep confirm() native**: Do not try to replace `confirm()` (yes/no decisions) with a toast — a toast can't pause and wait for an answer. Destructive/blocking confirmations stay as native `confirm()`.
+
 ## File Organization
 
 - `app.py` — All routes, models, business logic (single file, ~1500 lines)

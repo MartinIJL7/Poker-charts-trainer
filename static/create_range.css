@@ -1018,6 +1018,58 @@ body.create-page {
     outline-offset: 2px;
 }
 
+/* A blue ring on a destructive action reads as "safe/primary", which is
+   backwards - match the outline to the button's own danger semantics. */
+.cr-shell .cr-btn--danger-ghost:focus,
+.cr-shell #subrange-list-ul li .delete-btn:focus {
+    outline-color: var(--cr-color-danger);
+}
+
+/* ---- Toasts (replace alert() for info/success/error messages) ---- */
+.cr-shell .cr-toast-container {
+    position: fixed;
+    top: var(--cr-space-lg);
+    right: var(--cr-space-lg);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-sm);
+    width: min(360px, calc(100vw - 2 * var(--cr-space-lg)));
+    pointer-events: none;
+}
+
+.cr-shell .cr-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--cr-space-sm);
+    padding: 12px 16px;
+    border-radius: var(--cr-radius-md);
+    border-left: 3px solid var(--cr-color-border);
+    background: var(--cr-color-surface);
+    box-shadow: var(--cr-shadow-medium);
+    font-size: 0.9em;
+    line-height: 1.35;
+    color: var(--cr-color-text);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity var(--cr-transition-base), transform var(--cr-transition-base);
+}
+
+.cr-shell .cr-toast--visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.cr-shell .cr-toast--success {
+    border-left-color: var(--cr-color-success);
+}
+
+.cr-shell .cr-toast--error {
+    border-left-color: var(--cr-color-danger);
+}
+
 /* ==========================================================================
    Responsive (.cr-shell only)
    ========================================================================== */
@@ -1066,6 +1118,12 @@ body.create-page {
     .cr-shell .cr-card {
         border-radius: var(--cr-radius-md);
         padding: var(--cr-space-md);
+    }
+    .cr-shell .cr-toast-container {
+        top: var(--cr-space-sm);
+        right: var(--cr-space-sm);
+        left: var(--cr-space-sm);
+        width: auto;
     }
     .cr-shell .position-input-wrapper {
         flex-wrap: wrap;

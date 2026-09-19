@@ -34,11 +34,43 @@ let matrixCells = [];
 let dom = {};
 
 function showError(message) {
-    alert('Ошибка: ' + message);
+    showToast('Ошибка: ' + message, 'error');
 }
 
 function showNetworkError(err) {
-    alert('Ошибка сети: ' + err);
+    showToast('Ошибка сети: ' + err, 'error');
+}
+
+// Small auto-dismissing toast instead of a blocking native alert(). Only
+// for one-way informational messages - confirm() still handles yes/no
+// decisions natively, since a toast can't pause and wait for an answer.
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = 'cr-toast cr-toast--' + type;
+    toast.textContent = message;
+
+    let removed = false;
+    function removeToast() {
+        if (removed) return;
+        removed = true;
+        clearTimeout(timer);
+        toast.classList.remove('cr-toast--visible');
+        // Only listen for transitionend now, once the fade-out actually
+        // starts - registering it earlier would catch the fade-IN
+        // transition completing and remove the toast almost immediately.
+        toast.addEventListener('transitionend', function() { toast.remove(); }, { once: true });
+        // Fallback in case transitionend never fires (e.g. prefers-reduced-motion
+        // disables the transition entirely, so it wouldn't fire naturally).
+        setTimeout(function() { toast.remove(); }, 300);
+    }
+
+    const timer = setTimeout(removeToast, 4000);
+    toast.addEventListener('click', removeToast);
+
+    dom.toastContainer.appendChild(toast);
+    requestAnimationFrame(function() {
+        toast.classList.add('cr-toast--visible');
+    });
 }
 
 // Pick black or white text so hand labels stay readable against any
@@ -633,7 +665,8 @@ document.addEventListener('DOMContentLoaded', function() {
         tabNewBtn: document.getElementById('tab-new-btn'),
         tabEditBtn: document.getElementById('tab-edit-btn'),
         tabEditName: document.getElementById('tab-edit-name'),
-        editPickerGroup: document.getElementById('edit-picker-group')
+        editPickerGroup: document.getElementById('edit-picker-group'),
+        toastContainer: document.getElementById('toast-container')
     };
 
     loadedRangeName = window.__crInitialLoadedRange || null;
@@ -681,11 +714,11 @@ document.addEventListener('DOMContentLoaded', function() {
     dom.saveSubrangeBtn.addEventListener('click', function() {
         const name = dom.subnameInput.value.trim();
         if (!name) {
-            alert('Введите имя поддиапазона');
+            showToast('Введите имя поддиапазона', 'error');
             return;
         }
         if (currentHands.length === 0) {
-            alert('Выберите хотя бы одну руку');
+            showToast('Выберите хотя бы одну руку', 'error');
             return;
         }
 
@@ -713,20 +746,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     dom.saveRangeBtn.addEventListener('click', function() {
         // Mirror the server's sanitization (app.py's save_range replaces
-        // spaces with underscores) so the name used for the confirm text,
-        // the payload, and the post-save reload all agree with what
-        // actually gets persisted - otherwise a name with spaces saves
-        // fine but the follow-up reload 404s under the sanitized name.
+        // spaces with underscores) so the payload and the post-save
+        // reload agree with what actually gets persisted - otherwise a
+        // name with spaces saves fine but the follow-up reload 404s
+        // under the sanitized name.
         const position = dom.positionInput.value.trim().replace(/ /g, '_');
         if (!position) {
-            alert('Введите имя диапазона');
+            showToast('Введите имя диапазона', 'error');
             return;
         }
         if (tempSubranges.length === 0) {
-            alert('Добавьте хотя бы один поддиапазон');
+            showToast('Добавьте хотя бы один поддиапазон', 'error');
             return;
         }
-        if (!confirm(`Сохранить диапазон "${position}"?`)) return;
 
         // Capture before the request resolves: updating an existing range
         // should keep you editing it, but creating a brand-new one should
@@ -735,7 +767,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const wasEditing = loadedRangeName !== null;
 
         postJson('/create/save_range', { position: position }, function(data) {
-            alert(data.message);
+            showToast(data.message, 'success');
             if (wasEditing) {
                 // load_range fully overwrites the working set from what
                 // was just persisted (verified server-side), so
@@ -801,7 +833,7 @@ document.addEventListener('DOMContentLoaded', function() {
     dom.deleteRangeBtn.addEventListener('click', function() {
         const pos = dom.loadRangeSelect.value;
         if (!pos) {
-            alert('Выберите диапазон для удаления');
+            showToast('Выберите диапазон для удаления', 'error');
             return;
         }
         if (!confirm(`Удалить диапазон "${pos}"? Данное действие необратимо`)) return;
@@ -814,7 +846,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'ok') {
-                alert(data.message);
+                showToast(data.message, 'success');
                 // Stay on the Edit tab (picker visible, nothing loaded)
                 // rather than bouncing to New - you were already in an
                 // editing context and most likely want to pick a
