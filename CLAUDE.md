@@ -110,6 +110,8 @@ Weight calculation in `calculate_weight()`:
   - Do not add "Co-Authored-By: Claude" or similar attribution lines
 - **Static files**: Any new or modified CSS/JS file must be referenced via the `static_version()` filter in templates (cache busting based on file mtime)
 - **JSON columns**: After mutating a JSON column in place (e.g. `stats.last_results.append(...)`), call `flag_modified(obj, 'field_name')` — SQLAlchemy won't detect the change otherwise and it won't persist
+- **UI text**: All user-facing text (labels, buttons, messages, alerts, placeholders) must be in Russian — no exceptions
+- **UI text**: Do not end the last sentence of a UI text block with a period ("."). Mid-block sentences still get periods; only the trailing one is dropped
 
 ## File Organization
 
