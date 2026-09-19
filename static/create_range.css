@@ -519,9 +519,63 @@ body.create-page {
     flex-wrap: wrap;
 }
 
-.cr-shell .position-input-wrapper > * {
+.cr-shell .position-input-wrapper > *,
+.cr-shell #edit-picker-group > * {
     height: 44px;
     box-sizing: border-box;
+}
+
+/* ---- New/Edit tabs ---- */
+.cr-shell .cr-mode-tabs {
+    display: flex;
+    gap: var(--cr-space-sm);
+    margin-bottom: var(--cr-space-md);
+    border-bottom: 1px solid var(--cr-color-border);
+}
+
+.cr-shell .cr-mode-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 8px 4px 10px;
+    font-size: 0.95em;
+    font-weight: 500;
+    color: var(--cr-color-text-muted);
+    cursor: pointer;
+    transition: color var(--cr-transition-fast), border-color var(--cr-transition-fast);
+}
+
+.cr-shell .cr-mode-tab:hover {
+    color: var(--cr-color-text);
+}
+
+.cr-shell .cr-mode-tab--active {
+    color: var(--cr-color-primary-hover);
+    border-bottom-color: var(--cr-color-primary);
+}
+
+/* Override the generic button focus ring with something that fits the
+   tab's own underline-based active state instead of a harsh rectangle. */
+.cr-shell .cr-mode-tab:focus {
+    outline: none;
+    background: var(--cr-color-bg);
+    border-radius: var(--cr-radius-sm) var(--cr-radius-sm) 0 0;
+}
+
+.cr-shell .cr-tab-name {
+    font-weight: 600;
+}
+
+.cr-shell .cr-edit-picker-group {
+    display: contents;
+}
+
+.cr-shell .cr-edit-picker-group.cr-hidden {
+    display: none;
 }
 
 .cr-shell #position {
@@ -794,9 +848,6 @@ body.create-page {
     line-height: 1.2;
 }
 
-.cr-shell .cr-danger-zone {
-    margin-top: var(--cr-space-md);
-}
 
 /* ---- Inputs / select ---- */
 .cr-shell .cr-input {
@@ -830,6 +881,11 @@ body.create-page {
     box-shadow: 0 0 0 3px rgba(43, 179, 232, 0.15);
 }
 
+.cr-shell .cr-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .cr-shell .cr-input--full {
     width: 100%;
     margin-bottom: var(--cr-space-sm);
@@ -837,8 +893,8 @@ body.create-page {
 
 .cr-shell .cr-select {
     height: 44px;
-    flex: 1 1 180px;
-    min-width: 160px;
+    flex: 2 1 240px;
+    min-width: 220px;
     border: 1px solid var(--cr-color-border);
     border-radius: var(--cr-radius-md);
     background: var(--cr-color-bg);
@@ -933,17 +989,10 @@ body.create-page {
     color: white;
 }
 
-/* These two buttons kept their original IDs (unchanged per the hard
-   constraint), and those IDs carry old bare-ID rules preserved above for
+/* This button kept its original ID (unchanged per the hard constraint),
+   and that ID carries an old bare-ID rule preserved above for
    draw_training.html. An ID always outranks classes, so the .cr-btn
    classes alone can't win here — pair the ID with .cr-shell to override. */
-.cr-shell #clear-all-btn {
-    height: 44px;
-    border-radius: var(--cr-radius-md);
-    font-size: 0.95em;
-    transition: background var(--cr-transition-fast), color var(--cr-transition-fast), transform var(--cr-transition-fast), box-shadow var(--cr-transition-fast);
-}
-
 .cr-shell #clear-selection-btn {
     height: 44px;
     padding: 0 20px;
@@ -987,9 +1036,28 @@ body.create-page {
     .cr-shell {
         padding: var(--cr-space-md) 0 60px;
     }
-    .cr-shell .position-input-wrapper > * {
+    .cr-shell .position-input-wrapper > *,
+    .cr-shell #edit-picker-group > * {
         flex: 1 1 auto;
         min-width: 0;
+    }
+    /* Native <select> options clip rather than wrap, so it still needs a
+       real floor - letting it hit min-width:0 like the other toolbar
+       items would clip the placeholder text. */
+    .cr-shell .cr-select {
+        flex: 1 1 220px;
+        min-width: 220px;
+    }
+    .cr-shell .cr-mode-tabs {
+        flex-wrap: wrap;
+    }
+    .cr-shell .cr-mode-tab {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+    .cr-shell .cr-tab-label {
+        min-width: 0;
+        white-space: normal;
     }
 }
 
@@ -1003,7 +1071,8 @@ body.create-page {
         flex-wrap: wrap;
         gap: var(--cr-space-sm);
     }
-    .cr-shell .position-input-wrapper > * {
+    .cr-shell .position-input-wrapper > *,
+    .cr-shell #edit-picker-group > * {
         height: 46px !important;
         font-size: 16px;
         flex: 1 1 100%;
@@ -1022,7 +1091,6 @@ body.create-page {
         border-width: 1px !important;
         border-radius: 2px;
     }
-    .cr-shell #clear-all-btn,
     .cr-shell #subname {
         height: 46px !important;
         font-size: 16px;

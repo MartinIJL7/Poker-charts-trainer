@@ -8,17 +8,29 @@
 {% block content %}
     <div class="cr-shell">
         <div class="cr-toolbar">
+            <div class="cr-mode-tabs" role="tablist">
+                <button type="button" id="tab-new-btn" class="cr-mode-tab" role="tab">
+                    <svg class="cr-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l1.8 5.2L17 9l-5.2 1.8L10 16l-1.8-5.2L3 9l5.2-1.8L10 2z"/></svg>
+                    <span class="cr-tab-label">Новый диапазон</span>
+                </button>
+                <button type="button" id="tab-edit-btn" class="cr-mode-tab" role="tab">
+                    <svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5l3 3L6 17l-4 1 1-4L13.5 3.5z"/></svg>
+                    <span class="cr-tab-label">Редактировать диапазон<span id="tab-edit-name" class="cr-tab-name"></span></span>
+                </button>
+            </div>
             <div class="position-input-wrapper">
-                <select id="load-range-select" class="cr-select">
-                    <option value="">Выберите диапазон для загрузки</option>
-                    {% for pos in all_positions %}
-                        <option value="{{ pos }}">{{ pos }}</option>
-                    {% endfor %}
-                </select>
-                <button id="delete-range-btn" class="cr-btn cr-btn--danger-ghost"><svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg> Удалить</button>
+                <div id="edit-picker-group" class="cr-edit-picker-group">
+                    <select id="load-range-select" class="cr-select">
+                        <option value="" disabled>Выберите диапазон</option>
+                        {% for pos in all_positions %}
+                            <option value="{{ pos }}"{% if pos == position %} selected{% endif %}>{{ pos }}</option>
+                        {% endfor %}
+                    </select>
+                    <button id="delete-range-btn" class="cr-btn cr-btn--danger-ghost" disabled><svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg> Удалить</button>
+                </div>
                 <input type="text" id="position" class="cr-input" placeholder="Название диапазона" value="{{ position }}">
                 <button id="save-range-btn" class="cr-btn cr-btn--primary">Сохранить диапазон</button>
-                <button id="new-range-btn" class="cr-btn cr-btn--ghost">Очистить</button>
+                <button id="cancel-range-edit-btn" class="cr-btn cr-btn--ghost" style="display: none;">Отменить изменения</button>
             </div>
         </div>
 
@@ -38,7 +50,7 @@
             <div class="cr-col-subranges">
                 <div class="cr-card cr-card--subranges">
                     <h3 class="cr-card-title">Поддиапазоны</h3>
-                    <p id="empty-message" class="cr-empty-message">Пока нет поддиапазонов</p>
+                    <p id="empty-message" class="cr-empty-message">Пока нет поддиапазонов. Выделите руки на матрице и нажмите «Добавить поддиапазон»</p>
                     <ul id="subrange-list-ul" class="cr-subrange-list"></ul>
 
                     <div class="subrange-add-area">
@@ -48,16 +60,17 @@
                             <button id="cancel-edit-btn" class="cr-btn cr-btn--ghost" style="display: none;">Отменить изменения</button>
                         </div>
                     </div>
-
-                    <div class="cr-danger-zone">
-                        <button id="clear-all-btn" class="cr-btn cr-btn--danger-ghost cr-btn--full"><svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg> Очистить всё</button>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // If the page reloads mid-edit, the server-rendered position may
+        // already correspond to a saved range - let create_range.js know
+        // so the mode indicator starts in the right state.
+        window.__crInitialLoadedRange = {{ (position|default('') in all_positions)|tojson }} ? {{ (position|default(''))|tojson }} : null;
+
         document.addEventListener('DOMContentLoaded', function() {
             const allPositions = {{ all_positions|tojson }};
             if (allPositions.length === 0) {

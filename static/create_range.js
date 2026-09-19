@@ -10,6 +10,21 @@ let tempSubranges = [];
 let editingId = null;
 let editingHands = [];
 
+// Name of the saved range currently loaded for editing, or null when
+// working on a brand-new (not-yet-saved) range. Drives the mode
+// indicator, the save button's wording, and the delete button's state.
+let loadedRangeName = null;
+
+// Which toolbar panel is visible: 'new' or 'edit'. Independent from
+// loadedRangeName while browsing the edit tab before picking anything.
+let activePanel = 'new';
+
+// Content-based fingerprint of tempSubranges at the last known-clean
+// point (right after loading or saving). null means "no known baseline"
+// (e.g. a page reload mid-edit), in which case Save stays enabled rather
+// than guessing whether there are unsaved changes.
+let savedSnapshot = null;
+
 // All 169 hand-matrix cell elements, captured once after the grid is built.
 // The grid is generated exactly once on load, so this stays valid for the
 // lifetime of the page and avoids re-querying the DOM on every render.
@@ -46,6 +61,144 @@ function getContrastingTextColor(hexColor) {
 function setCellColor(cell, color) {
     cell.style.backgroundColor = color;
     cell.style.color = color ? getContrastingTextColor(color) : '';
+}
+
+// Content-based (not id-based, since ids are regenerated UUIDs on every
+// load) fingerprint of a subrange list, used to detect real changes.
+function snapshotSubranges(subs) {
+    return JSON.stringify(
+        subs.map(s => ({ name: s.name, color: s.color, hands: [...s.hands].sort() }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+    );
+}
+
+// Whether there's anything that would actually be lost by resetting or
+// navigating away right now. An in-progress matrix selection always
+// counts (it's not part of any saved subrange yet); otherwise it's
+// gated by real content changes relative to the last clean state.
+function hasUnsavedChanges() {
+    if (currentHands.length > 0) return true;
+    if (loadedRangeName === null) {
+        return tempSubranges.length > 0;
+    }
+    const nameChanged = dom.positionInput.value.trim() !== loadedRangeName;
+    const subrangesChanged = savedSnapshot === null || snapshotSubranges(tempSubranges) !== savedSnapshot;
+    return nameChanged || subrangesChanged;
+}
+
+// Single source of truth for whether the position field / Save / Cancel
+// are usable: disabled while browsing the edit tab with nothing picked,
+// gated by real changes while editing, always enabled while creating new.
+function updateSaveButtonState() {
+    const browsingWithNothingLoaded = activePanel === 'edit' && loadedRangeName === null;
+    dom.positionInput.disabled = browsingWithNothingLoaded;
+
+    if (browsingWithNothingLoaded) {
+        dom.saveRangeBtn.disabled = true;
+        dom.cancelRangeEditBtn.disabled = true;
+        return;
+    }
+
+    if (loadedRangeName === null) {
+        dom.saveRangeBtn.disabled = false;
+        dom.cancelRangeEditBtn.disabled = true;
+        return;
+    }
+
+    const nameChanged = dom.positionInput.value.trim() !== loadedRangeName;
+    const subrangesChanged = savedSnapshot === null || snapshotSubranges(tempSubranges) !== savedSnapshot;
+    const dirty = nameChanged || subrangesChanged;
+    dom.saveRangeBtn.disabled = !dirty;
+    dom.cancelRangeEditBtn.disabled = !dirty;
+}
+
+// Show/hide the dropdown+delete picker and mark the matching tab active.
+function setActivePanel(panel) {
+    activePanel = panel;
+    const isEdit = panel === 'edit';
+    dom.tabNewBtn.classList.toggle('cr-mode-tab--active', !isEdit);
+    dom.tabEditBtn.classList.toggle('cr-mode-tab--active', isEdit);
+    dom.editPickerGroup.classList.toggle('cr-hidden', !isEdit);
+    updateSaveButtonState();
+}
+
+// Reflect whether we're creating a new range or editing a loaded one:
+// updates which tab is active, the edit tab's name suffix, and the save
+// button's wording.
+function updateRangeModeUI() {
+    const isEditing = loadedRangeName !== null;
+
+    dom.tabEditName.textContent = isEditing ? ' — ' + loadedRangeName : '';
+    setActivePanel(isEditing ? 'edit' : 'new');
+
+    dom.saveRangeBtn.textContent = isEditing ? 'Сохранить изменения' : 'Сохранить диапазон';
+    dom.cancelRangeEditBtn.style.display = isEditing ? 'inline-flex' : 'none';
+}
+
+// Fetches the actual persisted subranges for a position without touching
+// session/temp state (unlike load_range, which overwrites the working
+// set). Used only on page load when reopening mid-edit, so the dirty
+// check has a real baseline instead of assuming "unknown = dirty" and
+// leaving Save/Cancel enabled even with zero actual changes.
+function establishSavedBaseline(position) {
+    fetch('/api/range/' + encodeURIComponent(position))
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                const subs = Object.keys(data.subranges).map(name => ({
+                    name: name,
+                    color: data.colors[name] || '#3498db',
+                    hands: data.subranges[name]
+                }));
+                savedSnapshot = snapshotSubranges(subs);
+                updateSaveButtonState();
+            }
+        })
+        .catch(err => console.error('Error fetching saved baseline:', err));
+}
+
+// Discard the current working set (temp subranges + matrix selection +
+// position field) and return to a blank state. Shared by both tabs, since
+// leaving either one behind unsaved work means the same thing: start over.
+function resetWorkingSet(onDone) {
+    fetch('/create/reset', { method: 'POST' })
+        .then(() => {
+            dom.positionInput.value = '';
+            dom.loadRangeSelect.value = '';
+            tempSubranges = [];
+            updateSubrangeListUI();
+            renderAllSubranges();
+            clearCurrentSelection();
+            dom.subnameInput.value = '';
+            cancelEditing();
+            loadedRangeName = null;
+            savedSnapshot = null;
+            updateDeleteButtonState();
+            if (onDone) onDone();
+        });
+}
+
+// Confirm-if-dirty, then reset to a blank "new" state. Shared by the New
+// tab and by picking the dropdown's placeholder option, since both mean
+// the same thing: "I want no range loaded." onCancel runs only if the
+// user backs out of a confirm that was actually shown.
+function switchToNew(onCancel) {
+    if (activePanel === 'new' && loadedRangeName === null && !hasUnsavedChanges()) {
+        return;
+    }
+    if (hasUnsavedChanges() && !confirm('Начать новый диапазон? Текущие изменения будут потеряны')) {
+        if (onCancel) onCancel();
+        return;
+    }
+    resetWorkingSet(function() {
+        updateRangeModeUI();
+    });
+}
+
+// Delete only makes sense once an existing saved range is actually
+// selected in the dropdown.
+function updateDeleteButtonState() {
+    dom.deleteRangeBtn.disabled = dom.loadRangeSelect.value === '';
 }
 
 // Show "Убрать всё выделение поддиапазона" only while something is
@@ -306,6 +459,7 @@ function loadTempSubranges() {
                 highlightEditingSubrange();
                 renderAllSubranges();
                 updateClearSelectionVisibility();
+                updateSaveButtonState();
             }
         })
         .catch(err => console.error('Error loading subranges:', err));
@@ -384,7 +538,7 @@ function startEditing(id) {
     dom.subnameInput.value = sub.name;
     dom.colorPicker.value = sub.color;
     dom.cancelEditBtn.style.display = 'inline-block';
-    dom.saveSubrangeBtn.innerHTML = '<svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h10l3 3v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M7 3v5h6V3"/><path d="M6 12h8v6H6z"/></svg> Обновить поддиапазон';
+    dom.saveSubrangeBtn.innerHTML = '<svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h10l3 3v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M7 3v5h6V3"/><path d="M6 12h8v6H6z"/></svg> Сохранить изменения';
 
     matrixCells.forEach(cell => {
         const hand = cell.dataset.hand;
@@ -427,6 +581,10 @@ function loadRange(position) {
     .then(data => {
         if (data.status === 'ok') {
             dom.positionInput.value = data.position;
+            loadedRangeName = data.position;
+            savedSnapshot = snapshotSubranges(data.subranges);
+            updateRangeModeUI();
+            updateDeleteButtonState();
             loadTempSubranges();
             cancelEditing();
         } else {
@@ -436,20 +594,21 @@ function loadRange(position) {
     .catch(showNetworkError);
 }
 
-function updatePositionsSelect(reset = false) {
+function updatePositionsSelect(reset = false, forceValue = null) {
     fetch('/create/get_positions')
         .then(response => response.json())
         .then(data => {
             const select = dom.loadRangeSelect;
-            const currentValue = reset ? '' : select.value;
-            select.innerHTML = '<option value="">Выберите диапазон для загрузки</option>';
+            const currentValue = forceValue !== null ? forceValue : (reset ? '' : select.value);
+            select.innerHTML = '<option value="" disabled>Выберите диапазон</option>';
             data.positions.forEach(pos => {
                 const option = document.createElement('option');
                 option.value = pos;
                 option.textContent = pos;
                 select.appendChild(option);
             });
-            select.value = (!reset && data.positions.includes(currentValue)) ? currentValue : '';
+            select.value = data.positions.includes(currentValue) ? currentValue : '';
+            updateDeleteButtonState();
         })
         .catch(err => console.error('Error updating positions list:', err));
 }
@@ -467,12 +626,33 @@ document.addEventListener('DOMContentLoaded', function() {
         saveSubrangeBtn: document.getElementById('save-subrange-btn'),
         subrangeListUl: document.getElementById('subrange-list-ul'),
         emptyMessage: document.getElementById('empty-message'),
-        clearSelectionBtn: document.getElementById('clear-selection-btn')
+        clearSelectionBtn: document.getElementById('clear-selection-btn'),
+        deleteRangeBtn: document.getElementById('delete-range-btn'),
+        saveRangeBtn: document.getElementById('save-range-btn'),
+        cancelRangeEditBtn: document.getElementById('cancel-range-edit-btn'),
+        tabNewBtn: document.getElementById('tab-new-btn'),
+        tabEditBtn: document.getElementById('tab-edit-btn'),
+        tabEditName: document.getElementById('tab-edit-name'),
+        editPickerGroup: document.getElementById('edit-picker-group')
     };
+
+    loadedRangeName = window.__crInitialLoadedRange || null;
+    updateRangeModeUI();
+    updateDeleteButtonState();
+    if (loadedRangeName !== null) {
+        establishSavedBaseline(loadedRangeName);
+    }
 
     generateHandMatrix();
     loadTempSubranges();
     updateClearSelectionVisibility();
+
+    window.addEventListener('beforeunload', function(e) {
+        if (hasUnsavedChanges()) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
 
     dom.colorPicker.addEventListener('input', function() {
         currentColor = this.value;
@@ -481,6 +661,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 setCellColor(cell, currentColor);
             }
         });
+    });
+
+    dom.positionInput.addEventListener('input', function() {
+        updateSaveButtonState();
     });
 
     dom.clearSelectionBtn.addEventListener('click', function() {
@@ -527,20 +711,13 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelEditing();
     });
 
-    document.getElementById('clear-all-btn').addEventListener('click', function() {
-        if (confirm('Удалить все добавленные поддиапазоны?')) {
-            fetch('/create/clear_temp', { method: 'POST' })
-                .then(() => {
-                    loadTempSubranges();
-                    clearCurrentSelection();
-                    dom.subnameInput.value = '';
-                    cancelEditing();
-                });
-        }
-    });
-
-    document.getElementById('save-range-btn').addEventListener('click', function() {
-        const position = dom.positionInput.value.trim();
+    dom.saveRangeBtn.addEventListener('click', function() {
+        // Mirror the server's sanitization (app.py's save_range replaces
+        // spaces with underscores) so the name used for the confirm text,
+        // the payload, and the post-save reload all agree with what
+        // actually gets persisted - otherwise a name with spaces saves
+        // fine but the follow-up reload 404s under the sanitized name.
+        const position = dom.positionInput.value.trim().replace(/ /g, '_');
         if (!position) {
             alert('Введите имя диапазона');
             return;
@@ -551,48 +728,77 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (!confirm(`Сохранить диапазон "${position}"?`)) return;
 
+        // Capture before the request resolves: updating an existing range
+        // should keep you editing it, but creating a brand-new one should
+        // return you to a clean "new" state, not jump into editing what
+        // you just made.
+        const wasEditing = loadedRangeName !== null;
+
         postJson('/create/save_range', { position: position }, function(data) {
             alert(data.message);
-            fetch('/create/clear_temp', { method: 'POST' })
-                .then(() => {
-                    tempSubranges = [];
-                    updateSubrangeListUI();
-                    renderAllSubranges();
-                    clearCurrentSelection();
-                    dom.positionInput.value = '';
-                    dom.subnameInput.value = '';
-                    cancelEditing();
+            if (wasEditing) {
+                // load_range fully overwrites the working set from what
+                // was just persisted (verified server-side), so
+                // re-loading here both refreshes the client and keeps
+                // you in "editing this range".
+                updatePositionsSelect(false, position);
+                loadRange(position);
+            } else {
+                resetWorkingSet(function() {
+                    updateRangeModeUI();
                     updatePositionsSelect(true);
                 });
+            }
         });
     });
 
+    dom.cancelRangeEditBtn.addEventListener('click', function() {
+        if (!confirm('Отменить изменения и вернуться к сохранённой версии диапазона?')) return;
+        loadRange(loadedRangeName);
+    });
+
     dom.loadRangeSelect.addEventListener('change', function() {
-        const pos = this.value;
-        if (!pos) return;
-        if (!confirm(`Загрузить диапазон "${pos}"? Текущие изменения будут потеряны`)) {
-            this.value = '';
+        const select = this;
+        const pos = select.value;
+        if (!pos) {
+            // Picking the placeholder means "no range loaded" - the same
+            // thing the New tab does, not a no-op that leaves the
+            // dropdown showing something different from what's actually
+            // still loaded.
+            switchToNew(function() {
+                select.value = loadedRangeName || '';
+            });
+            return;
+        }
+        if (hasUnsavedChanges() && !confirm(`Загрузить диапазон "${pos}"? Текущие изменения будут потеряны`)) {
+            select.value = loadedRangeName || '';
+            updateDeleteButtonState();
             return;
         }
         loadRange(pos);
     });
 
-    document.getElementById('new-range-btn').addEventListener('click', function() {
-        if (!confirm('Начать новый диапазон? Текущие изменения будут потеряны')) return;
-        fetch('/create/reset', { method: 'POST' })
-            .then(() => {
-                dom.positionInput.value = '';
-                dom.loadRangeSelect.value = '';
-                tempSubranges = [];
-                updateSubrangeListUI();
-                renderAllSubranges();
-                clearCurrentSelection();
-                dom.subnameInput.value = '';
-                cancelEditing();
-            });
+    dom.tabNewBtn.addEventListener('click', function() {
+        switchToNew();
     });
 
-    document.getElementById('delete-range-btn').addEventListener('click', function() {
+    dom.tabEditBtn.addEventListener('click', function() {
+        if (loadedRangeName !== null) {
+            setActivePanel('edit');
+            return;
+        }
+        if (!hasUnsavedChanges()) {
+            setActivePanel('edit');
+            return;
+        }
+        if (!confirm('Переключиться на редактирование? Текущие изменения будут потеряны')) return;
+        resetWorkingSet(function() {
+            updateRangeModeUI();
+            setActivePanel('edit');
+        });
+    });
+
+    dom.deleteRangeBtn.addEventListener('click', function() {
         const pos = dom.loadRangeSelect.value;
         if (!pos) {
             alert('Выберите диапазон для удаления');
@@ -609,17 +815,15 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.status === 'ok') {
                 alert(data.message);
-                fetch('/create/clear_temp', { method: 'POST' })
-                    .then(() => {
-                        dom.positionInput.value = '';
-                        tempSubranges = [];
-                        updateSubrangeListUI();
-                        renderAllSubranges();
-                        clearCurrentSelection();
-                        dom.subnameInput.value = '';
-                        cancelEditing();
-                        updatePositionsSelect(true);
-                    });
+                // Stay on the Edit tab (picker visible, nothing loaded)
+                // rather than bouncing to New - you were already in an
+                // editing context and most likely want to pick a
+                // different range next, not start one from scratch.
+                resetWorkingSet(function() {
+                    updateRangeModeUI();
+                    setActivePanel('edit');
+                    updatePositionsSelect(true);
+                });
             } else {
                 showError(data.message);
             }

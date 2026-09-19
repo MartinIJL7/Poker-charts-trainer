@@ -687,7 +687,8 @@ def create_range():
     positions = get_all_positions(config)
     if 'temp_subranges' not in session:
         session['temp_subranges'] = []
-    return render_template('create_range.html', all_positions=positions)
+    position = session.get('editing_position', '')
+    return render_template('create_range.html', all_positions=positions, position=position)
 
 
 @app.route('/create/add_subrange', methods=['POST'])
