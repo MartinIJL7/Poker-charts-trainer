@@ -64,6 +64,52 @@
             </div>
         </div>
 
+        <div class="cr-card cr-card--situation" id="situation-card">
+            <h3 class="cr-card-title">Ситуация за столом</h3>
+
+            <div class="cr-situation-visual">
+                <svg id="situation-svg" class="cr-situation-svg" viewBox="0 0 720 430" role="img" aria-label="Схема стола"></svg>
+            </div>
+
+            <div class="cr-situation-columns">
+                <div class="cr-situation-controls-col">
+                    <div class="cr-situation-field">
+                        <label for="situation-players-select">Игроков за столом</label>
+                        <select id="situation-players-select" class="cr-select">
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6" selected>6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                        </select>
+                    </div>
+                    <div class="cr-situation-field">
+                        <label for="situation-hero-select">Ваша позиция</label>
+                        <select id="situation-hero-select" class="cr-select"></select>
+                    </div>
+                    <button type="button" id="situation-reset-btn" class="cr-btn cr-btn--ghost">Сбросить стол</button>
+                </div>
+
+                <fieldset id="situation-fieldset" class="cr-situation-fieldset">
+                    <legend class="cr-visually-hidden">Стеки и ставки игроков</legend>
+                    <table class="cr-situation-table">
+                        <thead>
+                            <tr>
+                                <th>Позиция</th>
+                                <th>Стек (bb)</th>
+                                <th>Ставка (bb)</th>
+                                <th>В игре</th>
+                            </tr>
+                        </thead>
+                        <tbody id="situation-seat-rows"></tbody>
+                    </table>
+                </fieldset>
+            </div>
+        </div>
+
         <div id="toast-container" class="cr-toast-container" aria-live="polite"></div>
     </div>
 

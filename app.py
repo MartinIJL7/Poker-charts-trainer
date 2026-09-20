@@ -66,6 +66,7 @@ class UserConfig(db.Model):
     subrange_order = db.Column(db.JSON, default=list)
     modes = db.Column(db.JSON, default=dict)
     subrange_colors = db.Column(db.JSON, default=dict)
+    situations = db.Column(db.JSON, default=dict)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('config', uselist=False))
@@ -119,7 +120,8 @@ def get_user_config(user_id):
             subranges={},
             subrange_order=[],
             modes={},
-            subrange_colors={}
+            subrange_colors={},
+            situations={}
         )
         db.session.add(config)
         db.session.commit()
@@ -674,7 +676,12 @@ def api_get_range(position):
             subranges[subname] = list(sub_dict[position])
             colors[subname] = config.subrange_colors.get(subname, '#3498db')
 
-    return jsonify({'status': 'ok', 'subranges': subranges, 'colors': colors})
+    return jsonify({
+        'status': 'ok',
+        'subranges': subranges,
+        'colors': colors,
+        'situation': (config.situations or {}).get(position)
+    })
 
 
 # -------------------------------------------------------------------
@@ -740,13 +747,63 @@ def add_subrange():
     return jsonify({'status': 'ok', 'subranges': session['temp_subranges']})
 
 
+def validate_situation(payload):
+    """Validate and normalize a client-supplied table situation payload.
+    Returns a clean {num_players, hero_position, seats:[...]} dict, or None
+    if the payload is missing or malformed in any way. Never raises -
+    callers treat None as "no situation for this save", not an error, so a
+    bug here can't block the actual range save."""
+    if not isinstance(payload, dict):
+        return None
+    num_players = payload.get('num_players')
+    hero_position = payload.get('hero_position')
+    seats = payload.get('seats')
+    if not isinstance(num_players, int) or isinstance(num_players, bool) or not (2 <= num_players <= 9):
+        return None
+    if not isinstance(hero_position, str) or not hero_position.strip():
+        return None
+    if not isinstance(seats, list) or len(seats) != num_players:
+        return None
+
+    normalized = []
+    hero_found = False
+    for seat in seats:
+        if not isinstance(seat, dict):
+            return None
+        pos = seat.get('position')
+        stack = seat.get('stack')
+        bet = seat.get('bet')
+        folded = seat.get('folded')
+        if not isinstance(pos, str) or not pos.strip():
+            return None
+        if not isinstance(stack, (int, float)) or isinstance(stack, bool) or stack < 0:
+            return None
+        if not isinstance(bet, (int, float)) or isinstance(bet, bool) or bet < 0:
+            return None
+        if not isinstance(folded, bool):
+            return None
+        is_hero = (pos == hero_position)
+        hero_found = hero_found or is_hero
+        normalized.append({
+            'position': pos,
+            'stack': float(stack),
+            'bet': float(bet),
+            'folded': False if is_hero else folded  # server-side enforcement, not just UI
+        })
+    if not hero_found:
+        return None
+    return {'num_players': num_players, 'hero_position': hero_position, 'seats': normalized}
+
+
 @app.route('/create/save_range', methods=['POST'])
 @login_required
 def save_range():
     config = get_user_config(current_user.id)
+    config.situations = config.situations or {}
     data = request.get_json()
     position = data.get('position', '').strip().replace(' ', '_')
     overwrite = data.get('overwrite', False)
+    validated_situation = validate_situation(data.get('situation'))
     if not position:
         return jsonify({'status': 'error', 'message': 'Position name required'}), 400
 
@@ -769,6 +826,8 @@ def save_range():
                 del config.subranges[subname][editing_pos]
                 if not config.subranges[subname]:
                     del config.subranges[subname]
+        if editing_pos != position and editing_pos in config.situations:
+            config.situations[position] = config.situations.pop(editing_pos)
         if editing_pos != position:
             for mode_name, positions in config.modes.items():
                 if editing_pos in positions:
@@ -799,6 +858,12 @@ def save_range():
             config.subrange_order.append(name)
         config.subrange_colors[name] = sub.get('color', '#3498db')
 
+    if validated_situation is not None:
+        config.situations[position] = validated_situation
+    elif data.get('situation') is not None:
+        logging.warning(f"Invalid situation payload for position '{position}', ignoring")
+    # else: no situation sent - leave whatever's already saved untouched
+
     all_positions = get_all_positions(config)
     if all_positions:
         config.modes['All'] = all_positions
@@ -810,6 +875,7 @@ def save_range():
     flag_modified(config, 'subrange_order')
     flag_modified(config, 'modes')
     flag_modified(config, 'subrange_colors')
+    flag_modified(config, 'situations')
     db.session.commit()
 
     session.pop('editing_position', None)
@@ -875,7 +941,8 @@ def load_range():
     return jsonify({
         'status': 'ok',
         'position': position,
-        'subranges': temp
+        'subranges': temp,
+        'situation': (config.situations or {}).get(position)
     })
 
 
@@ -975,6 +1042,8 @@ def delete_range():
             if not config.modes[mode_name]:
                 del config.modes[mode_name]
 
+    (config.situations or {}).pop(position, None)
+
     if session.get('editing_position') == position:
         session.pop('editing_position', None)
 
@@ -983,6 +1052,7 @@ def delete_range():
     flag_modified(config, 'subrange_order')
     flag_modified(config, 'modes')
     flag_modified(config, 'subrange_colors')
+    flag_modified(config, 'situations')
 
     db.session.commit()
     return jsonify({'status': 'ok', 'message': f'Диапазон "{position}" удален'})

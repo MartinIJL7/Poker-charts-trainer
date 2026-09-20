@@ -33,6 +33,77 @@ let matrixCells = [];
 // Frequently-accessed elements, cached once the DOM is ready.
 let dom = {};
 
+// -------------------------------------------------------------------
+// Table situation: canonical positions + state
+// -------------------------------------------------------------------
+
+// Canonical seat-position labels per player count, in fixed clockwise
+// table order (index 0 = earliest to act, last two are always SB/BB).
+// This is a wholly separate concept from the free-text #position (range
+// name) input above - the two never interact. 5-max/6-max use MP/EP for
+// the earliest seats rather than LJ/HJ, since at those sizes there isn't
+// room for a genuinely distinct lojack/hijack.
+const CANONICAL_POSITIONS = {
+    2: ['BTN', 'BB'],
+    3: ['BTN', 'SB', 'BB'],
+    4: ['CO', 'BTN', 'SB', 'BB'],
+    5: ['MP', 'CO', 'BTN', 'SB', 'BB'],
+    6: ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB'],
+    7: ['UTG', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+    8: ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+    9: ['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB']
+};
+
+// Builds a fresh canonical-order seat array for numPlayers, carrying over
+// stack/bet/folded from `previous` for any position label present at
+// both counts (so nudging the player count by +-1 doesn't wipe
+// everything). Falls hero back to BTN if the previous hero position
+// doesn't exist at the new count. Whoever ends up hero is always
+// unfolded.
+function buildSeatsForPlayerCount(numPlayers, previous) {
+    const order = CANONICAL_POSITIONS[numPlayers];
+    const previousByPosition = {};
+    (previous.seats || []).forEach(function(seat) {
+        previousByPosition[seat.position] = seat;
+    });
+
+    let heroPosition = previous.hero_position;
+    if (order.indexOf(heroPosition) === -1) {
+        heroPosition = 'BTN';
+    }
+
+    const seats = order.map(function(pos) {
+        const prevSeat = previousByPosition[pos];
+        const isHero = pos === heroPosition;
+        return {
+            position: pos,
+            stack: prevSeat ? prevSeat.stack : 100,
+            bet: prevSeat ? prevSeat.bet : 0,
+            folded: isHero ? false : (prevSeat ? prevSeat.folded : false)
+        };
+    });
+
+    return { num_players: numPlayers, hero_position: heroPosition, seats: seats };
+}
+
+function getDefaultSituation() {
+    return buildSeatsForPlayerCount(6, { hero_position: 'BTN', seats: [] });
+}
+
+// Content-based fingerprint, mirroring snapshotSubranges' role for the
+// situation card. Seats are always stored in fixed canonical order, so
+// unlike subranges there's no id/sort normalization needed.
+function snapshotSituation(situationObj) {
+    return JSON.stringify(situationObj);
+}
+
+// Current working situation and its last-known-clean baseline. null
+// baseline means "unknown" (e.g. a page reload mid-edit before
+// establishSavedBaseline resolves), in which case dirty checks fail
+// open, same as savedSnapshot does for subranges.
+let situation = getDefaultSituation();
+let savedSituationSnapshot = null;
+
 function showError(message) {
     showToast('Ошибка: ' + message, 'error');
 }
@@ -110,12 +181,13 @@ function snapshotSubranges(subs) {
 // gated by real content changes relative to the last clean state.
 function hasUnsavedChanges() {
     if (currentHands.length > 0) return true;
+    const situationChanged = savedSituationSnapshot === null || snapshotSituation(situation) !== savedSituationSnapshot;
     if (loadedRangeName === null) {
-        return tempSubranges.length > 0;
+        return tempSubranges.length > 0 || situationChanged;
     }
     const nameChanged = dom.positionInput.value.trim() !== loadedRangeName;
     const subrangesChanged = savedSnapshot === null || snapshotSubranges(tempSubranges) !== savedSnapshot;
-    return nameChanged || subrangesChanged;
+    return nameChanged || subrangesChanged || situationChanged;
 }
 
 // Single source of truth for what's usable right now. While browsing the
@@ -131,6 +203,11 @@ function updateEditingControlsState() {
     dom.saveSubrangeBtn.disabled = browsingWithNothingLoaded;
     dom.colorPicker.disabled = browsingWithNothingLoaded;
     dom.handMatrix.classList.toggle('cr-matrix--locked', browsingWithNothingLoaded);
+    dom.situationCard.classList.toggle('cr-situation--locked', browsingWithNothingLoaded);
+    dom.situationFieldset.disabled = browsingWithNothingLoaded;
+    dom.situationPlayersSelect.disabled = browsingWithNothingLoaded;
+    dom.situationHeroSelect.disabled = browsingWithNothingLoaded;
+    dom.situationResetBtn.disabled = browsingWithNothingLoaded;
 
     if (browsingWithNothingLoaded) {
         dom.saveRangeBtn.disabled = true;
@@ -146,7 +223,8 @@ function updateEditingControlsState() {
 
     const nameChanged = dom.positionInput.value.trim() !== loadedRangeName;
     const subrangesChanged = savedSnapshot === null || snapshotSubranges(tempSubranges) !== savedSnapshot;
-    const dirty = nameChanged || subrangesChanged;
+    const situationChanged = savedSituationSnapshot === null || snapshotSituation(situation) !== savedSituationSnapshot;
+    const dirty = nameChanged || subrangesChanged || situationChanged;
     dom.saveRangeBtn.disabled = !dirty;
     dom.cancelRangeEditBtn.disabled = !dirty;
 }
@@ -190,6 +268,9 @@ function establishSavedBaseline(position) {
                     hands: data.subranges[name]
                 }));
                 savedSnapshot = snapshotSubranges(subs);
+                const loadedSituation = data.situation || getDefaultSituation();
+                savedSituationSnapshot = snapshotSituation(loadedSituation);
+                setSituation(loadedSituation);
                 updateEditingControlsState();
             }
         })
@@ -212,6 +293,9 @@ function resetWorkingSet(onDone) {
             cancelEditing();
             loadedRangeName = null;
             savedSnapshot = null;
+            const defaultSituation = getDefaultSituation();
+            savedSituationSnapshot = snapshotSituation(defaultSituation);
+            setSituation(defaultSituation);
             updateDeleteButtonState();
             if (onDone) onDone();
         });
@@ -270,6 +354,487 @@ function postJson(url, payload, onSuccess) {
         .catch(showNetworkError);
     }
     attempt(false);
+}
+
+// -------------------------------------------------------------------
+// Table situation: rendering + editing
+// -------------------------------------------------------------------
+
+function roundBb(value) {
+    return Math.round(value * 100) / 100;
+}
+
+const STACK_BET_STEP = 0.5;
+
+// Snaps to the nearest 0.5 - the step="0.5" HTML attribute only affects
+// the native spinner arrows, not free-typed input, so without this a
+// user can type e.g. "0.2" or "99.37" directly into the field.
+function roundToStep(value, step) {
+    return roundBb(Math.round(value / step) * step);
+}
+
+function totalPot(situationObj) {
+    return situationObj.seats.reduce(function(sum, seat) { return sum + seat.bet; }, 0);
+}
+
+function findSeat(pos) {
+    return situation.seats.find(function(s) { return s.position === pos; });
+}
+
+// Reorders seats starting at hero (bottom of the table) going clockwise,
+// so the SVG diagram and the edit table always agree on seat order.
+// Purely a display concern - seats stay stored in canonical order.
+function rotateForDisplay(situationObj) {
+    const order = CANONICAL_POSITIONS[situationObj.num_players];
+    const heroIndex = order.indexOf(situationObj.hero_position);
+    const seatsByPosition = {};
+    situationObj.seats.forEach(function(seat) { seatsByPosition[seat.position] = seat; });
+    const n = order.length;
+    const display = [];
+    for (let i = 0; i < n; i++) {
+        display.push(seatsByPosition[order[(heroIndex + i) % n]]);
+    }
+    return display;
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function createSvgEl(tag, attrs) {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const key in attrs) {
+        el.setAttribute(key, attrs[key]);
+    }
+    return el;
+}
+
+function populateHeroSelect(situationObj) {
+    const select = dom.situationHeroSelect;
+    select.innerHTML = '';
+    CANONICAL_POSITIONS[situationObj.num_players].forEach(function(pos) {
+        const option = document.createElement('option');
+        option.value = pos;
+        option.textContent = pos;
+        select.appendChild(option);
+    });
+    select.value = situationObj.hero_position;
+}
+
+// Greedy denomination breakdown for the chip-stack graphic: a handful of
+// higher-value chips instead of one-chip-per-bb, so e.g. 10bb reads as a
+// single "10" chip rather than ten "1" chips. Reuses only existing design
+// tokens for chip colors (see the cr-chip-d* CSS classes).
+const CHIP_DENOMINATIONS = [
+    { value: 100, cls: 'cr-chip-d100' },
+    { value: 25, cls: 'cr-chip-d25' },
+    { value: 10, cls: 'cr-chip-d10' },
+    { value: 5, cls: 'cr-chip-d5' },
+    { value: 1, cls: 'cr-chip-d1' },
+    { value: 0.5, cls: 'cr-chip-d05' }
+];
+
+function breakIntoChips(amount, maxChips) {
+    let remaining = roundBb(amount);
+    const chips = [];
+    for (let i = 0; i < CHIP_DENOMINATIONS.length && chips.length < maxChips; i++) {
+        const denom = CHIP_DENOMINATIONS[i];
+        while (remaining >= denom.value - 0.001 && chips.length < maxChips) {
+            chips.push(denom);
+            remaining = roundBb(remaining - denom.value);
+        }
+    }
+    return chips;
+}
+
+// Geometry constants for the table diagram, verified offline (script,
+// not eyeballed): every element stays in-bounds with >=12px clearance
+// from every other element, for all player counts 2-9, with every seat
+// betting simultaneously, for every possible button seat. Changing any
+// of these means re-running that check - the layout has no slack to
+// spare at 9 players.
+const TABLE_VIEW_W = 720, TABLE_VIEW_H = 430;
+const TABLE_CX = 360, TABLE_CY = 215;
+// The felt is a stadium (a rectangle with semicircular caps), i.e. the
+// corner radius equals the half-height - the shape of a real poker
+// table, and the reason seatOutlineRadius() below can be exact.
+const FELT_HALF_W = 290, FELT_HALF_H = 148;
+const FELT_CORNER_R = FELT_HALF_H;
+
+// Seat plates are rounded rectangles, not circles: a circle wide enough
+// for "UTG+1" plus a stack figure wastes a lot of vertical space, and
+// vertical space is what the bet markers need.
+const SEAT_W = 84, SEAT_H = 46, SEAT_CORNER_R = 12;
+
+// Distance from a seat's center to its hole cards, measured straight up
+// or straight down - whichever points away from the table center. Two
+// deliberate choices here:
+//  - OUTWARD (not inward) frees the whole inner ring for bet markers;
+//    previously cards and bets fought over the same few pixels of radial
+//    runway, which is why they kept colliding wherever the label went.
+//  - VERTICAL (not along the seat's own radius) keeps every seat's cards
+//    tucked behind the top or bottom edge of its plate; following the
+//    radius instead made the left- and right-hand seats' cards stick out
+//    sideways like ears.
+const CARD_GAP = 36;
+const CARD_W = 22, CARD_H = 30;
+// Side-by-side, barely tilted - a wide fan around a shared center made
+// the two cards sit almost on top of each other and read as one blob.
+const CARD_SPREAD = 10, CARD_TILT = 5;
+
+// Bet markers sit on a scaled copy of the seat outline.
+const BET_RING_FACTOR = 0.6;
+// A bet marker is laid out HORIZONTALLY - amount text, then the chip
+// stack - and centered on its point on that ring. The table is far wider
+// than it is tall, so a horizontal footprint is the cheap direction;
+// stacking the label above/below/behind the chips (every previous
+// attempt) spent the one axis that has no room.
+const BET_FONT_SIZE = 13;
+// Deliberately generous per-character width (0.6em vs ~0.55em actual for
+// digits) so the clearance check errs toward the label being too wide.
+const BET_CHAR_W = BET_FONT_SIZE * 0.6;
+const BET_TEXT_CHIP_GAP = 4;
+const BET_MAX_CHIPS = 4;
+
+// Thin chips: a low-profile stack reads as chips at this scale without
+// claiming the vertical space a chunkier ellipse would.
+const CHIP_RX = 7, CHIP_RY = 4, CHIP_STEP = 3.2;
+
+const BTN_CHIP_R = 10;
+// The button chip is pinned to the corner of its seat plate (inward
+// side), overlapping it like a badge. Offsetting it *away* from the seat
+// instead - the obvious placement - pushes it into the neighbouring seat
+// at 9 players, where seats are only ~60px apart.
+const BTN_CHIP_RADIAL_F = 1.0, BTN_CHIP_TANGENT_F = 0.9;
+
+// Distance from the table center to the felt outline along `theta`.
+// Exact for a stadium: either the ray exits through a flat edge, or
+// through one of the two end caps.
+function seatOutlineRadius(theta) {
+    const c = Math.cos(theta), s = Math.sin(theta);
+    const flat = FELT_HALF_W - FELT_CORNER_R;
+    if (Math.abs(s) > 1e-9) {
+        const t = FELT_HALF_H / Math.abs(s);
+        if (Math.abs(t * c) <= flat) return t;
+    }
+    const cc = c >= 0 ? flat : -flat;
+    const disc = (cc * c) * (cc * c) - cc * cc + FELT_CORNER_R * FELT_CORNER_R;
+    return cc * c + Math.sqrt(Math.max(disc, 0));
+}
+
+// Draws a stack of overlapping chip ellipses growing upward from a
+// vertical center at (x, y).
+function renderChipStack(svg, x, y, amount, maxChips) {
+    if (amount <= 0) return;
+    const chips = breakIntoChips(amount, maxChips || BET_MAX_CHIPS);
+    const bottomY = y + (chips.length - 1) * CHIP_STEP / 2;
+    chips.forEach(function(chip, idx) {
+        svg.appendChild(createSvgEl('ellipse', {
+            cx: x, cy: bottomY - idx * CHIP_STEP, rx: CHIP_RX, ry: CHIP_RY,
+            class: 'cr-situation-chip ' + chip.cls
+        }));
+    });
+}
+
+// Two fanned card backs marking a seat as still in the hand - folded
+// seats get none (on top of the opacity fade already applied).
+function renderCardsGlyph(svg, x, y) {
+    [-1, 1].forEach(function(side) {
+        svg.appendChild(createSvgEl('rect', {
+            x: -CARD_W / 2, y: -CARD_H / 2, width: CARD_W, height: CARD_H, rx: 3,
+            class: 'cr-situation-card',
+            transform: 'translate(' + (x + side * CARD_SPREAD) + ',' + y + ') rotate(' + (side * CARD_TILT) + ')'
+        }));
+    });
+}
+
+// Rebuilds the table SVG from scratch. Cheap enough to call on every
+// keystroke - a handful of shapes/text nodes, no measurable cost.
+function renderSituationSvg(situationObj) {
+    const svg = dom.situationSvg;
+    svg.innerHTML = '';
+
+    svg.appendChild(createSvgEl('rect', {
+        x: TABLE_CX - FELT_HALF_W, y: TABLE_CY - FELT_HALF_H,
+        width: FELT_HALF_W * 2, height: FELT_HALF_H * 2,
+        rx: FELT_CORNER_R, ry: FELT_CORNER_R,
+        class: 'cr-situation-table-felt'
+    }));
+
+    const potText = createSvgEl('text', { x: TABLE_CX, y: TABLE_CY, 'text-anchor': 'middle', class: 'cr-situation-pot-label-svg' });
+    potText.textContent = 'Банк: ' + roundBb(totalPot(situationObj)) + ' bb';
+    svg.appendChild(potText);
+
+    const display = rotateForDisplay(situationObj);
+    const n = display.length;
+
+    display.forEach(function(seat, i) {
+        const angle = (Math.PI / 2) + i * (2 * Math.PI / n);
+        const ux = Math.cos(angle), uy = Math.sin(angle);
+        // Seats sit ON the felt outline itself (not on an inscribed
+        // ellipse), so every seat straddles the rail at the same depth
+        // whatever direction it's in.
+        const outlineR = seatOutlineRadius(angle);
+        const sx = TABLE_CX + outlineR * ux;
+        const sy = TABLE_CY + outlineR * uy;
+        const isHero = seat.position === situationObj.hero_position;
+
+        let seatClass = 'cr-situation-seat';
+        if (isHero) seatClass += ' cr-situation-seat--hero';
+        if (seat.folded) seatClass += ' cr-situation-seat--folded';
+
+        if (!seat.folded) {
+            renderCardsGlyph(svg, sx, sy + (uy >= 0 ? 1 : -1) * CARD_GAP);
+        }
+
+        const group = createSvgEl('g', { class: seatClass });
+        group.appendChild(createSvgEl('rect', {
+            x: sx - SEAT_W / 2, y: sy - SEAT_H / 2, width: SEAT_W, height: SEAT_H,
+            rx: SEAT_CORNER_R, ry: SEAT_CORNER_R
+        }));
+
+        const label = createSvgEl('text', { x: sx, y: sy - 3, 'text-anchor': 'middle', class: 'cr-situation-seat-label' });
+        label.textContent = seat.position;
+        group.appendChild(label);
+
+        const stackText = createSvgEl('text', { x: sx, y: sy + 14, 'text-anchor': 'middle', class: 'cr-situation-seat-stack' });
+        stackText.textContent = roundBb(seat.stack);
+        group.appendChild(stackText);
+
+        svg.appendChild(group);
+
+        if (seat.bet > 0) {
+            const bx = TABLE_CX + outlineR * BET_RING_FACTOR * ux;
+            const by = TABLE_CY + outlineR * BET_RING_FACTOR * uy;
+            const betLabelText = String(roundBb(seat.bet));
+            const textW = betLabelText.length * BET_CHAR_W;
+            const unitW = textW + BET_TEXT_CHIP_GAP + CHIP_RX * 2;
+            const leftX = bx - unitW / 2;
+
+            const betText = createSvgEl('text', {
+                x: leftX, y: by + BET_FONT_SIZE * 0.35, 'text-anchor': 'start',
+                class: 'cr-situation-bet-chip-label'
+            });
+            betText.textContent = betLabelText;
+            svg.appendChild(betText);
+
+            renderChipStack(svg, leftX + textW + BET_TEXT_CHIP_GAP + CHIP_RX, by, seat.bet, BET_MAX_CHIPS);
+        }
+
+        if (seat.position === 'BTN') {
+            const tx = -uy, ty = ux;
+            const btnX = sx - ux * (SEAT_H / 2) * BTN_CHIP_RADIAL_F + tx * (SEAT_W / 2) * BTN_CHIP_TANGENT_F;
+            const btnY = sy - uy * (SEAT_H / 2) * BTN_CHIP_RADIAL_F + ty * (SEAT_W / 2) * BTN_CHIP_TANGENT_F;
+            svg.appendChild(createSvgEl('circle', { cx: btnX, cy: btnY, r: BTN_CHIP_R, class: 'cr-situation-button-chip' }));
+            const dText = createSvgEl('text', { x: btnX, y: btnY + 4, 'text-anchor': 'middle', class: 'cr-situation-button-chip-label' });
+            dText.textContent = 'D';
+            svg.appendChild(dText);
+        }
+    });
+}
+
+// Builds a "-" / number input / "+" group. onChange fires with the new
+// numeric value both when the input is typed in directly and when a
+// stepper button is clicked (which also updates the input's own value,
+// since a button click doesn't fire the input's native 'input' event).
+function createStepperCell(value, step, onChange) {
+    const wrap = document.createElement('div');
+    wrap.className = 'cr-situation-stepper';
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.step = String(step);
+    input.className = 'cr-input cr-situation-input-num';
+    input.value = value;
+
+    // onChange returns the actual post-clamp value (e.g. bet can't
+    // exceed stack+bet), which may differ from what was requested - sync
+    // the input back to that truth rather than trusting the raw request.
+    function applyStep(delta) {
+        const requested = Math.max(0, roundBb(parseFloat(input.value || '0') + delta));
+        const actual = onChange(requested);
+        input.value = (actual === null || actual === undefined) ? requested : actual;
+    }
+
+    // Press-and-hold repeats the step: one immediate tick, then a pause
+    // before it starts auto-repeating, so a quick tap still only moves
+    // once. Pointer capture keeps the repeat going even if the finger/
+    // cursor drifts slightly off the button while held. contextmenu is
+    // suppressed too - on mobile, holding a button can otherwise pop up
+    // the browser's long-press callout/selection menu.
+    function attachHoldRepeat(button, delta) {
+        let holdTimeout = null;
+        let repeatInterval = null;
+
+        function stop() {
+            clearTimeout(holdTimeout);
+            clearInterval(repeatInterval);
+            holdTimeout = null;
+            repeatInterval = null;
+        }
+
+        button.addEventListener('pointerdown', function(e) {
+            e.preventDefault();
+            button.setPointerCapture(e.pointerId);
+            applyStep(delta);
+            holdTimeout = setTimeout(function() {
+                repeatInterval = setInterval(function() { applyStep(delta); }, 90);
+            }, 400);
+        });
+        button.addEventListener('pointerup', stop);
+        button.addEventListener('pointercancel', stop);
+        button.addEventListener('pointerleave', stop);
+        button.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    }
+
+    const minusBtn = document.createElement('button');
+    minusBtn.type = 'button';
+    minusBtn.className = 'cr-situation-stepper-btn';
+    minusBtn.textContent = '−';
+    attachHoldRepeat(minusBtn, -step);
+
+    const plusBtn = document.createElement('button');
+    plusBtn.type = 'button';
+    plusBtn.className = 'cr-situation-stepper-btn';
+    plusBtn.textContent = '+';
+    attachHoldRepeat(plusBtn, step);
+
+    input.addEventListener('input', function() {
+        const typed = parseFloat(this.value);
+        const actual = onChange(typed);
+        if (actual !== null && actual !== undefined && actual !== typed) {
+            this.value = actual;
+        }
+    });
+
+    wrap.appendChild(minusBtn);
+    wrap.appendChild(input);
+    wrap.appendChild(plusBtn);
+    return { wrap: wrap, input: input };
+}
+
+// Rebuilds the per-seat editable rows. Called after discrete changes
+// (player count, hero, folded toggle) - not on every stack/bet
+// keystroke, since rebuilding inputs mid-typing would steal focus.
+// onSeatStackInput/onSeatBetInput instead patch the affected input's
+// value directly via seatRowInputs.
+let seatRowInputs = {};
+
+function renderSeatEditTable(situationObj) {
+    const tbody = dom.situationSeatRows;
+    tbody.innerHTML = '';
+    seatRowInputs = {};
+
+    rotateForDisplay(situationObj).forEach(function(seat) {
+        const isHero = seat.position === situationObj.hero_position;
+        const tr = document.createElement('tr');
+        tr.dataset.position = seat.position;
+        tr.className = (isHero ? 'cr-situation-hero-row' : '') + (seat.folded ? ' cr-situation-folded-row' : '');
+
+        const posTd = document.createElement('td');
+        posTd.textContent = seat.position;
+        if (isHero) {
+            const badge = document.createElement('span');
+            badge.className = 'cr-situation-hero-badge';
+            badge.textContent = 'Hero';
+            posTd.appendChild(badge);
+        }
+        tr.appendChild(posTd);
+
+        const stackStepper = createStepperCell(seat.stack, 0.5, function(newVal) {
+            return onSeatStackInput(seat.position, newVal);
+        });
+        const stackTd = document.createElement('td');
+        stackTd.appendChild(stackStepper.wrap);
+        tr.appendChild(stackTd);
+
+        const betStepper = createStepperCell(seat.bet, 0.5, function(newVal) {
+            return onSeatBetInput(seat.position, newVal);
+        });
+        const betTd = document.createElement('td');
+        betTd.appendChild(betStepper.wrap);
+        tr.appendChild(betTd);
+
+        const foldedCheckbox = document.createElement('input');
+        foldedCheckbox.type = 'checkbox';
+        foldedCheckbox.className = 'cr-situation-toggle';
+        foldedCheckbox.checked = !seat.folded;
+        foldedCheckbox.disabled = isHero;
+        foldedCheckbox.addEventListener('change', function() {
+            onSeatFoldedChange(seat.position, !this.checked);
+        });
+        const foldedTd = document.createElement('td');
+        foldedTd.appendChild(foldedCheckbox);
+        tr.appendChild(foldedTd);
+
+        tbody.appendChild(tr);
+        seatRowInputs[seat.position] = { stackInput: stackStepper.input, betInput: betStepper.input };
+    });
+}
+
+// Returns the actual resulting value (post-rounding/clamping) so the
+// caller can sync the input's displayed value back to the truth - the
+// user may have typed or stepped to something that gets adjusted.
+function onSeatStackInput(pos, rawValue) {
+    const seat = findSeat(pos);
+    if (!seat || isNaN(rawValue)) return null;
+    seat.stack = Math.max(0, roundToStep(rawValue, STACK_BET_STEP));
+    renderSituationSvg(situation);
+    updateEditingControlsState();
+    return seat.stack;
+}
+
+// Increasing bet takes chips from stack (total = stack+bet is derived
+// from the pre-edit values, not stored separately). Editing stack
+// directly does not touch bet - only this direction cascades. Bet can
+// never exceed the seat's total (stack+bet), so it can't be raised past
+// zero once the stack is empty.
+function onSeatBetInput(pos, rawValue) {
+    const seat = findSeat(pos);
+    if (!seat || isNaN(rawValue)) return null;
+    const total = seat.stack + seat.bet;
+    const newBet = Math.min(Math.max(0, roundToStep(rawValue, STACK_BET_STEP)), total);
+    seat.bet = newBet;
+    seat.stack = Math.max(0, roundBb(total - newBet));
+    if (seatRowInputs[pos]) {
+        seatRowInputs[pos].stackInput.value = seat.stack;
+    }
+    renderSituationSvg(situation);
+    updateEditingControlsState();
+    return seat.bet;
+}
+
+function onSeatFoldedChange(pos, folded) {
+    const seat = findSeat(pos);
+    if (!seat) return;
+    seat.folded = folded;
+    renderSeatEditTable(situation);
+    renderSituationSvg(situation);
+    updateEditingControlsState();
+}
+
+// Single entry point for replacing the working situation wholesale
+// (initial load, loading a saved range, resetting). Re-renders
+// everything derived from it.
+function setSituation(newSituation) {
+    situation = newSituation;
+    populateHeroSelect(situation);
+    dom.situationPlayersSelect.value = String(situation.num_players);
+    renderSeatEditTable(situation);
+    renderSituationSvg(situation);
+    updateEditingControlsState();
+}
+
+function getCurrentSituation() {
+    return JSON.parse(JSON.stringify(situation));
+}
+
+function resetSituation() {
+    const defaultSituation = getDefaultSituation();
+    if (snapshotSituation(situation) !== snapshotSituation(defaultSituation) &&
+        !confirm('Сбросить стол к настройкам по умолчанию?')) {
+        return;
+    }
+    setSituation(defaultSituation);
 }
 
 function generateHandMatrix() {
@@ -622,6 +1187,9 @@ function loadRange(position) {
             dom.positionInput.value = data.position;
             loadedRangeName = data.position;
             savedSnapshot = snapshotSubranges(data.subranges);
+            const loadedSituation = data.situation || getDefaultSituation();
+            savedSituationSnapshot = snapshotSituation(loadedSituation);
+            setSituation(loadedSituation);
             updateRangeModeUI();
             updateDeleteButtonState();
             loadTempSubranges();
@@ -674,7 +1242,14 @@ document.addEventListener('DOMContentLoaded', function() {
         tabEditBtn: document.getElementById('tab-edit-btn'),
         tabEditName: document.getElementById('tab-edit-name'),
         editPickerGroup: document.getElementById('edit-picker-group'),
-        toastContainer: document.getElementById('toast-container')
+        toastContainer: document.getElementById('toast-container'),
+        situationCard: document.getElementById('situation-card'),
+        situationPlayersSelect: document.getElementById('situation-players-select'),
+        situationHeroSelect: document.getElementById('situation-hero-select'),
+        situationResetBtn: document.getElementById('situation-reset-btn'),
+        situationSvg: document.getElementById('situation-svg'),
+        situationFieldset: document.getElementById('situation-fieldset'),
+        situationSeatRows: document.getElementById('situation-seat-rows')
     };
 
     loadedRangeName = window.__crInitialLoadedRange || null;
@@ -682,7 +1257,10 @@ document.addEventListener('DOMContentLoaded', function() {
     updateDeleteButtonState();
     if (loadedRangeName !== null) {
         establishSavedBaseline(loadedRangeName);
+    } else {
+        savedSituationSnapshot = snapshotSituation(situation);
     }
+    setSituation(situation);
 
     generateHandMatrix();
     loadTempSubranges();
@@ -774,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // you just made.
         const wasEditing = loadedRangeName !== null;
 
-        postJson('/create/save_range', { position: position }, function(data) {
+        postJson('/create/save_range', { position: position, situation: getCurrentSituation() }, function(data) {
             showToast(data.message, 'success');
             if (wasEditing) {
                 // load_range fully overwrites the working set from what
@@ -869,5 +1447,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(showNetworkError);
+    });
+
+    dom.situationPlayersSelect.addEventListener('change', function() {
+        const numPlayers = parseInt(this.value, 10);
+        setSituation(buildSeatsForPlayerCount(numPlayers, situation));
+    });
+
+    dom.situationHeroSelect.addEventListener('change', function() {
+        const newHero = this.value;
+        const updatedSeats = situation.seats.map(seat => Object.assign({}, seat, {
+            folded: seat.position === newHero ? false : seat.folded
+        }));
+        setSituation({ num_players: situation.num_players, hero_position: newHero, seats: updatedSeats });
+    });
+
+    dom.situationResetBtn.addEventListener('click', function() {
+        resetSituation();
     });
 });

@@ -1083,6 +1083,339 @@ body.create-page {
     border-left-color: var(--cr-color-danger);
 }
 
+/* ---- Table situation constructor ---- */
+.cr-shell .cr-card--situation {
+    margin-top: var(--cr-space-lg);
+}
+
+.cr-shell .cr-situation-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-xs);
+}
+
+.cr-shell .cr-situation-field label {
+    font-size: 0.9em;
+    color: var(--cr-color-text-muted);
+}
+
+/* .cr-select's generic flex-basis (meant for the horizontal toolbar row)
+   applies to height, not width, once reused inside a flex-COLUMN field
+   like this one - override it back to a normal block-level select. */
+.cr-shell .cr-situation-field .cr-select {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+}
+
+/* The diagram gets the card's full width on its own row, instead of
+   competing with the seat table for horizontal space - that competition
+   was squeezing both until the table overflowed its container. */
+.cr-shell .cr-situation-visual {
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--cr-space-lg);
+}
+
+.cr-shell .cr-situation-svg {
+    width: 100%;
+    max-width: 760px;
+    height: auto;
+    aspect-ratio: 720 / 430;
+}
+
+/* Below the diagram: a narrow controls column (player count, hero,
+   reset) beside the wider editable seat list. */
+.cr-shell .cr-situation-columns {
+    display: flex;
+    gap: var(--cr-space-lg);
+    align-items: flex-start;
+}
+
+.cr-shell .cr-situation-controls-col {
+    flex: 0 0 220px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-md);
+}
+
+.cr-shell .cr-situation-fieldset {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: none;
+    padding: 0;
+    margin: 0;
+    /* Safety net: if the row ever still doesn't fit (odd font scaling,
+       unusually narrow viewport), scroll instead of clipping/overlapping. */
+    overflow-x: auto;
+}
+
+.cr-shell .cr-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.cr-shell .cr-situation-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+.cr-shell .cr-situation-table th,
+.cr-shell .cr-situation-table td {
+    padding: var(--cr-space-xs) var(--cr-space-sm);
+    border-bottom: 1px solid var(--cr-color-border);
+    text-align: left;
+}
+
+.cr-shell .cr-situation-table th {
+    color: var(--cr-color-text-muted);
+    font-weight: 500;
+}
+
+.cr-shell .cr-situation-stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cr-shell .cr-situation-stepper-btn {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-sm);
+    background: var(--cr-color-bg);
+    color: var(--cr-color-text-muted);
+    font-size: 1em;
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--cr-transition-fast), color var(--cr-transition-fast);
+    /* Held down to auto-repeat - stop mobile's long-press callout/text
+       selection menu from popping up over the button. */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.cr-shell .cr-situation-stepper-btn:hover {
+    background: var(--cr-color-primary-soft);
+    color: var(--cr-color-primary-hover);
+    border-color: var(--cr-color-primary);
+}
+
+.cr-shell .cr-situation-stepper-btn:active {
+    transform: scale(0.95);
+}
+
+.cr-shell .cr-situation-input-num {
+    width: 56px;
+    height: 36px;
+    padding: 0 4px;
+    border-radius: var(--cr-radius-sm);
+    text-align: center;
+}
+
+/* Custom +/- steppers replace the native spinner arrows. */
+.cr-shell .cr-situation-input-num::-webkit-outer-spin-button,
+.cr-shell .cr-situation-input-num::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cr-shell .cr-situation-input-num[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.cr-shell tr.cr-situation-hero-row {
+    background: var(--cr-color-primary-soft);
+    border-left: 3px solid var(--cr-color-primary);
+}
+
+.cr-shell tr.cr-situation-folded-row {
+    opacity: 0.55;
+}
+
+.cr-shell .cr-situation-hero-badge {
+    display: inline-block;
+    margin-left: var(--cr-space-xs);
+    padding: 2px 8px;
+    border-radius: var(--cr-radius-sm);
+    background: var(--cr-color-primary);
+    color: #ffffff;
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+/* Custom toggle replacing the native checkbox for "in the hand" state,
+   matching the app's rounded/soft-color visual language instead of the
+   browser's default checkbox look. */
+.cr-shell .cr-situation-toggle {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 38px;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--cr-color-border);
+    border: none;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background var(--cr-transition-fast);
+}
+
+.cr-shell .cr-situation-toggle::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--cr-color-surface);
+    box-shadow: var(--cr-shadow-soft);
+    transition: transform var(--cr-transition-fast);
+}
+
+.cr-shell .cr-situation-toggle:checked {
+    background: var(--cr-color-primary);
+}
+
+.cr-shell .cr-situation-toggle:checked::before {
+    transform: translateX(16px);
+}
+
+.cr-shell .cr-situation-toggle:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.cr-shell .cr-situation-toggle:focus-visible {
+    outline: 2px solid var(--cr-color-primary);
+    outline-offset: 2px;
+}
+
+.cr-shell #situation-card.cr-situation--locked {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* ---- Table situation SVG diagram ---- */
+.cr-shell .cr-situation-table-felt {
+    fill: var(--cr-color-primary-soft);
+    stroke: var(--cr-color-border);
+    stroke-width: 2;
+}
+
+.cr-shell .cr-situation-seat rect {
+    fill: var(--cr-color-surface);
+    stroke: var(--cr-color-border);
+    stroke-width: 2;
+}
+
+.cr-shell .cr-situation-seat--hero rect {
+    stroke: var(--cr-color-primary);
+    stroke-width: 3;
+}
+
+.cr-shell .cr-situation-seat--folded {
+    opacity: 0.45;
+}
+
+.cr-shell .cr-situation-seat-label {
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--cr-color-text);
+}
+
+.cr-shell .cr-situation-seat-stack {
+    font-size: 11px;
+    fill: var(--cr-color-text-muted);
+}
+
+.cr-shell .cr-situation-pot-label-svg {
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--cr-color-text);
+}
+
+/* ---- Poker chip stacks (stack + bet markers) ----
+   A handful of overlapping chip ellipses standing in for a real stack;
+   breakIntoChips() picks denominations greedily so a big amount reads
+   as a few higher-value chips instead of a tall pile of small ones. */
+.cr-shell .cr-situation-chip {
+    stroke-width: 1;
+}
+
+/* Deep/bright pairs from each hue family are spread 3 denominations
+   apart (never adjacent) so a handful of chips together stay easy to
+   tell apart at a glance, without any color outside the app's palette. */
+.cr-shell .cr-chip-d100 {
+    fill: var(--cr-color-primary-hover);
+    stroke: var(--cr-color-surface);
+}
+
+.cr-shell .cr-chip-d25 {
+    fill: var(--cr-color-success-hover);
+    stroke: var(--cr-color-surface);
+}
+
+.cr-shell .cr-chip-d10 {
+    fill: var(--cr-color-danger-hover);
+    stroke: var(--cr-color-surface);
+}
+
+.cr-shell .cr-chip-d5 {
+    fill: var(--cr-color-primary);
+    stroke: var(--cr-color-surface);
+}
+
+.cr-shell .cr-chip-d1 {
+    fill: var(--cr-color-success);
+    stroke: var(--cr-color-surface);
+}
+
+.cr-shell .cr-chip-d05 {
+    fill: var(--cr-color-danger);
+    stroke: var(--cr-color-surface);
+}
+
+/* Must stay in sync with BET_FONT_SIZE in create_range.js - the
+   no-overlap clearance check is computed from that number. */
+.cr-shell .cr-situation-bet-chip-label {
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--cr-color-text);
+}
+
+/* ---- Hole cards for players still in the hand ---- */
+.cr-shell .cr-situation-card {
+    fill: var(--cr-color-primary);
+    stroke: var(--cr-color-surface);
+    stroke-width: 2;
+}
+
+.cr-shell .cr-situation-button-chip {
+    fill: var(--cr-color-surface);
+    stroke: var(--cr-color-primary);
+    stroke-width: 2;
+}
+
+.cr-shell .cr-situation-button-chip-label {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--cr-color-primary);
+}
+
 /* ==========================================================================
    Responsive (.cr-shell only)
    ========================================================================== */
@@ -1124,6 +1457,14 @@ body.create-page {
         min-width: 0;
         white-space: normal;
     }
+    .cr-shell .cr-situation-columns {
+        flex-direction: column;
+    }
+    .cr-shell .cr-situation-controls-col,
+    .cr-shell .cr-situation-fieldset {
+        flex: 1 1 100%;
+        min-width: unset;
+    }
 }
 
 @media screen and (max-width: 600px) {
@@ -1148,6 +1489,26 @@ body.create-page {
         font-size: 16px;
         flex: 1 1 100%;
         min-width: 100%;
+    }
+    /* Not reusing the generic "> *" rule above: .cr-situation-controls-col
+       is a flex COLUMN, so a flex-basis meant for a horizontal row would
+       inflate these elements' heights instead of their widths - the same
+       bug already hit once with .cr-select's own flex-basis. */
+    .cr-shell .cr-situation-controls-col .cr-select,
+    .cr-shell .cr-situation-controls-col .cr-btn {
+        height: 46px !important;
+        font-size: 16px;
+    }
+    .cr-shell .cr-situation-table th,
+    .cr-shell .cr-situation-table td {
+        padding: 4px 6px;
+        font-size: 0.85em;
+    }
+    /* No artificial cap below 600px: the diagram is already bounded by
+       its container, and every pixel it gives up shrinks the in-SVG text
+       with it (the viewBox scales as one). */
+    .cr-shell .cr-situation-svg {
+        max-width: 100%;
     }
     .cr-shell #hand-matrix {
         gap: 2px !important;
@@ -1210,6 +1571,44 @@ body.create-page {
         border-width: 0.5px !important;
         aspect-ratio: 1 / 1 !important;
         line-height: 1 !important;
+    }
+    .cr-shell .cr-situation-svg {
+        max-width: 100%;
+    }
+    .cr-shell .cr-situation-table th,
+    .cr-shell .cr-situation-table td {
+        padding: 3px 2px;
+        font-size: 0.72em;
+    }
+    .cr-shell .cr-situation-stepper {
+        gap: 2px;
+    }
+    .cr-shell .cr-situation-stepper-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 0.85em;
+    }
+    .cr-shell .cr-situation-input-num {
+        width: 36px;
+        height: 28px;
+        padding: 0 2px;
+        font-size: 0.85em;
+    }
+    .cr-shell .cr-situation-hero-badge {
+        padding: 1px 5px;
+        font-size: 0.68em;
+        margin-left: 2px;
+    }
+    .cr-shell .cr-situation-toggle {
+        width: 32px;
+        height: 18px;
+    }
+    .cr-shell .cr-situation-toggle::before {
+        width: 14px;
+        height: 14px;
+    }
+    .cr-shell .cr-situation-toggle:checked::before {
+        transform: translateX(14px);
     }
 }
 
