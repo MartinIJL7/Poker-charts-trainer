@@ -839,6 +839,11 @@ def save_range():
         if editing_pos != position and editing_pos in config.situations:
             config.situations[position] = config.situations.pop(editing_pos)
         if editing_pos != position:
+            # Carry learning stats over to the new name; stats of an overwritten target are dropped.
+            # updated_at is set explicitly so onupdate doesn't reset review timers
+            HandStats.query.filter_by(user_id=current_user.id, position=position).delete()
+            HandStats.query.filter_by(user_id=current_user.id, position=editing_pos).update(
+                {'position': position, 'updated_at': HandStats.updated_at})
             for mode_name, positions in config.modes.items():
                 if editing_pos in positions:
                     idx = positions.index(editing_pos)
