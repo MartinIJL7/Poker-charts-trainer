@@ -1392,7 +1392,7 @@ body.create-page {
 /* Must stay in sync with BET_FONT_SIZE in create_range.js - the
    no-overlap clearance check is computed from that number. */
 .cr-shell .cr-situation-bet-chip-label {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     fill: var(--cr-color-text);
 }
@@ -1401,6 +1401,13 @@ body.create-page {
 .cr-shell .cr-situation-card {
     fill: var(--cr-color-primary);
     stroke: var(--cr-color-surface);
+    stroke-width: 2;
+}
+
+/* Hero's cards are empty placeholders for the hand shown in training */
+.cr-shell .cr-situation-card--hero {
+    fill: var(--cr-color-surface);
+    stroke: var(--cr-color-primary);
     stroke-width: 2;
 }
 

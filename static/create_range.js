@@ -464,21 +464,30 @@ const FELT_CORNER_R = FELT_HALF_H;
 // vertical space is what the bet markers need.
 const SEAT_W = 84, SEAT_H = 46, SEAT_CORNER_R = 12;
 
-// Distance from a seat's center to its hole cards, measured straight up
-// or straight down - whichever points away from the table center. Two
-// deliberate choices here:
-//  - OUTWARD (not inward) frees the whole inner ring for bet markers;
-//    previously cards and bets fought over the same few pixels of radial
-//    runway, which is why they kept colliding wherever the label went.
-//  - VERTICAL (not along the seat's own radius) keeps every seat's cards
-//    tucked behind the top or bottom edge of its plate; following the
-//    radius instead made the left- and right-hand seats' cards stick out
-//    sideways like ears.
+// Every seat's hole cards sit straight ABOVE its plate (screen-up, not
+// "away from the table center"), top and bottom rows alike, tucked a
+// couple of pixels behind the plate's top edge. Vertical rather than
+// radial keeps the side seats' cards from sticking out sideways.
 const CARD_GAP = 36;
 const CARD_W = 22, CARD_H = 30;
 // Side-by-side, barely tilted - a wide fan around a shared center made
 // the two cards sit almost on top of each other and read as one blob.
 const CARD_SPREAD = 10, CARD_TILT = 5;
+
+// Hero's two cards are drawn larger and hollow: they are placeholders
+// that the training screen will fill with the real hand, so the space
+// above the hero plate is deliberately kept free of everything else.
+const HERO_CARD_W = 40, HERO_CARD_H = 54;
+const HERO_CARD_GAP = 54;
+const HERO_CARD_SPREAD = 23, HERO_CARD_TILT = 0;
+
+// Hero's bet is placed by hand, not on the ring: to the right of the hero
+// plate, like a real client. That needs a wide gap between hero and the
+// seat on hero's right, so the two seats next to hero are pushed outward
+// to at least this distance from the table's vertical axis (see
+// seatAngleFor).
+const HERO_BET_GAP_X = 10, HERO_BET_DY = -14;
+const HERO_NEIGHBOR_MIN_X = 180;
 
 // Bet markers sit on a scaled copy of the seat outline.
 const BET_RING_FACTOR = 0.6;
@@ -487,7 +496,7 @@ const BET_RING_FACTOR = 0.6;
 // than it is tall, so a horizontal footprint is the cheap direction;
 // stacking the label above/below/behind the chips (every previous
 // attempt) spent the one axis that has no room.
-const BET_FONT_SIZE = 13;
+const BET_FONT_SIZE = 15;
 // Deliberately generous per-character width (0.6em vs ~0.55em actual for
 // digits) so the clearance check errs toward the label being too wide.
 const BET_CHAR_W = BET_FONT_SIZE * 0.6;
@@ -534,16 +543,38 @@ function renderChipStack(svg, x, y, amount, maxChips) {
     });
 }
 
-// Two fanned card backs marking a seat as still in the hand - folded
-// seats get none (on top of the opacity fade already applied).
-function renderCardsGlyph(svg, x, y) {
+// Two card backs marking a seat as still in the hand - folded seats get
+// none (on top of the opacity fade already applied). The hero variant is
+// bigger and hollow.
+function renderCardsGlyph(svg, x, y, isHero) {
+    const w = isHero ? HERO_CARD_W : CARD_W;
+    const h = isHero ? HERO_CARD_H : CARD_H;
+    const spread = isHero ? HERO_CARD_SPREAD : CARD_SPREAD;
+    const tilt = isHero ? HERO_CARD_TILT : CARD_TILT;
     [-1, 1].forEach(function(side) {
         svg.appendChild(createSvgEl('rect', {
-            x: -CARD_W / 2, y: -CARD_H / 2, width: CARD_W, height: CARD_H, rx: 3,
-            class: 'cr-situation-card',
-            transform: 'translate(' + (x + side * CARD_SPREAD) + ',' + y + ') rotate(' + (side * CARD_TILT) + ')'
+            x: -w / 2, y: -h / 2, width: w, height: h, rx: 4,
+            class: 'cr-situation-card' + (isHero ? ' cr-situation-card--hero' : ''),
+            transform: 'translate(' + (x + side * spread) + ',' + y + ') rotate(' + (side * tilt) + ')'
         }));
     });
+}
+
+// Angle (radians, SVG orientation) of display seat `i` of `n`. Seats are
+// evenly spaced starting from hero at the bottom, except that the two
+// seats beside hero are moved outward when an even spacing would leave
+// no room for hero's bet between them and hero.
+function seatAngleFor(i, n) {
+    const base = (Math.PI / 2) + i * (2 * Math.PI / n);
+    const nextToHero = (i === 1 || i === n - 1);
+    if (!nextToHero || Math.sin(base) < 0.3) return base;
+    const flat = FELT_HALF_W - FELT_CORNER_R;
+    const baseX = Math.abs(seatOutlineRadius(base) * Math.cos(base));
+    if (baseX >= HERO_NEIGHBOR_MIN_X) return base;
+    const dxCap = Math.max(HERO_NEIGHBOR_MIN_X - flat, 0);
+    const y = dxCap > 0 ? Math.sqrt(FELT_CORNER_R * FELT_CORNER_R - dxCap * dxCap) : FELT_HALF_H;
+    const x = Math.cos(base) < 0 ? -HERO_NEIGHBOR_MIN_X : HERO_NEIGHBOR_MIN_X;
+    return Math.atan2(y, x);
 }
 
 // Rebuilds the table SVG from scratch. Cheap enough to call on every
@@ -567,7 +598,7 @@ function renderSituationSvg(situationObj) {
     const n = display.length;
 
     display.forEach(function(seat, i) {
-        const angle = (Math.PI / 2) + i * (2 * Math.PI / n);
+        const angle = seatAngleFor(i, n);
         const ux = Math.cos(angle), uy = Math.sin(angle);
         // Seats sit ON the felt outline itself (not on an inscribed
         // ellipse), so every seat straddles the rail at the same depth
@@ -582,7 +613,7 @@ function renderSituationSvg(situationObj) {
         if (seat.folded) seatClass += ' cr-situation-seat--folded';
 
         if (!seat.folded) {
-            renderCardsGlyph(svg, sx, sy + (uy >= 0 ? 1 : -1) * CARD_GAP);
+            renderCardsGlyph(svg, sx, sy - (isHero ? HERO_CARD_GAP : CARD_GAP), isHero);
         }
 
         const group = createSvgEl('g', { class: seatClass });
@@ -602,12 +633,17 @@ function renderSituationSvg(situationObj) {
         svg.appendChild(group);
 
         if (seat.bet > 0) {
-            const bx = TABLE_CX + outlineR * BET_RING_FACTOR * ux;
-            const by = TABLE_CY + outlineR * BET_RING_FACTOR * uy;
             const betLabelText = String(roundBb(seat.bet));
             const textW = betLabelText.length * BET_CHAR_W;
             const unitW = textW + BET_TEXT_CHIP_GAP + CHIP_RX * 2;
-            const leftX = bx - unitW / 2;
+            let leftX, by;
+            if (isHero) {
+                leftX = sx + SEAT_W / 2 + HERO_BET_GAP_X;
+                by = sy + HERO_BET_DY;
+            } else {
+                leftX = TABLE_CX + outlineR * BET_RING_FACTOR * ux - unitW / 2;
+                by = TABLE_CY + outlineR * BET_RING_FACTOR * uy;
+            }
 
             const betText = createSvgEl('text', {
                 x: leftX, y: by + BET_FONT_SIZE * 0.35, 'text-anchor': 'start',
@@ -620,9 +656,19 @@ function renderSituationSvg(situationObj) {
         }
 
         if (seat.position === 'BTN') {
-            const tx = -uy, ty = ux;
-            const btnX = sx - ux * (SEAT_H / 2) * BTN_CHIP_RADIAL_F + tx * (SEAT_W / 2) * BTN_CHIP_TANGENT_F;
-            const btnY = sy - uy * (SEAT_H / 2) * BTN_CHIP_RADIAL_F + ty * (SEAT_W / 2) * BTN_CHIP_TANGENT_F;
+            let btnX, btnY;
+            if (uy > -0.3) {
+                // Every seat except the top row has its inward side facing the
+                // cards' height, so the dealer chip goes on the plate's lower
+                // corner facing the table's vertical axis instead.
+                const dir = ux < -0.01 ? 1 : -1;
+                btnX = sx + dir * (SEAT_W / 2) * BTN_CHIP_TANGENT_F;
+                btnY = sy + SEAT_H / 2;
+            } else {
+                const tx = -uy, ty = ux;
+                btnX = sx - ux * (SEAT_H / 2) * BTN_CHIP_RADIAL_F + tx * (SEAT_W / 2) * BTN_CHIP_TANGENT_F;
+                btnY = sy - uy * (SEAT_H / 2) * BTN_CHIP_RADIAL_F + ty * (SEAT_W / 2) * BTN_CHIP_TANGENT_F;
+            }
             svg.appendChild(createSvgEl('circle', { cx: btnX, cy: btnY, r: BTN_CHIP_R, class: 'cr-situation-button-chip' }));
             const dText = createSvgEl('text', { x: btnX, y: btnY + 4, 'text-anchor': 'middle', class: 'cr-situation-button-chip-label' });
             dText.textContent = 'D';
