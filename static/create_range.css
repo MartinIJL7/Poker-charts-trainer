@@ -1121,7 +1121,7 @@ body.create-page {
     width: 100%;
     max-width: 760px;
     height: auto;
-    aspect-ratio: 720 / 430;
+    aspect-ratio: 680 / 397;
 }
 
 /* Below the diagram: a narrow controls column (player count, hero,
@@ -1338,7 +1338,7 @@ body.create-page {
 }
 
 .cr-shell .cr-situation-seat-stack {
-    font-size: 11px;
+    font-size: 15px;
     fill: var(--cr-color-text-muted);
 }
 
@@ -1518,6 +1518,12 @@ body.create-page {
     .cr-shell .cr-situation-svg {
         max-width: 100%;
     }
+    /* Let the diagram use the card's side padding too - on a phone every
+       pixel of width scales the whole table, including its text */
+    .cr-shell .cr-situation-visual {
+        margin-left: calc(-1 * var(--cr-space-md) + 4px);
+        margin-right: calc(-1 * var(--cr-space-md) + 4px);
+    }
     .cr-shell #hand-matrix {
         gap: 2px !important;
         max-width: 100% !important;
@@ -1563,26 +1569,9 @@ body.create-page {
     }
 }
 
-@media screen and (max-width: 400px) {
-    .cr-shell #hand-matrix {
-        grid-template-columns: repeat(13, 1fr) !important;
-        gap: 1px !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        padding: 0 !important;
-    }
-    .cr-shell .matrix-cell {
-        font-size: 0.5rem !important;
-        min-width: 0 !important;
-        min-height: 0 !important;
-        padding: 0 !important;
-        border-width: 0.5px !important;
-        aspect-ratio: 1 / 1 !important;
-        line-height: 1 !important;
-    }
-    .cr-shell .cr-situation-svg {
-        max-width: 100%;
-    }
+/* The seat table needs ~375px in its compact form; the 600px tier's
+   larger controls only fit from ~430px up, so switch earlier than 400 */
+@media screen and (max-width: 430px) {
     .cr-shell .cr-situation-table th,
     .cr-shell .cr-situation-table td {
         padding: 3px 2px;
@@ -1617,6 +1606,28 @@ body.create-page {
     }
     .cr-shell .cr-situation-toggle:checked::before {
         transform: translateX(14px);
+    }
+}
+
+@media screen and (max-width: 400px) {
+    .cr-shell #hand-matrix {
+        grid-template-columns: repeat(13, 1fr) !important;
+        gap: 1px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+    .cr-shell .matrix-cell {
+        font-size: 0.5rem !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        border-width: 0.5px !important;
+        aspect-ratio: 1 / 1 !important;
+        line-height: 1 !important;
+    }
+    .cr-shell .cr-situation-svg {
+        max-width: 100%;
     }
 }
 

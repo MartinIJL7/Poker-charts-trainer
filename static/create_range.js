@@ -622,11 +622,11 @@ function renderSituationSvg(situationObj) {
             rx: SEAT_CORNER_R, ry: SEAT_CORNER_R
         }));
 
-        const label = createSvgEl('text', { x: sx, y: sy - 3, 'text-anchor': 'middle', class: 'cr-situation-seat-label' });
+        const label = createSvgEl('text', { x: sx, y: sy - 5, 'text-anchor': 'middle', class: 'cr-situation-seat-label' });
         label.textContent = seat.position;
         group.appendChild(label);
 
-        const stackText = createSvgEl('text', { x: sx, y: sy + 14, 'text-anchor': 'middle', class: 'cr-situation-seat-stack' });
+        const stackText = createSvgEl('text', { x: sx, y: sy + 15, 'text-anchor': 'middle', class: 'cr-situation-seat-stack' });
         stackText.textContent = roundBb(seat.stack);
         group.appendChild(stackText);
 
