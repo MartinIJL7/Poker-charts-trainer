@@ -151,3 +151,116 @@ subrange_colors = {
     '3bet if convenient': '#FFB747',
     '3bet if extremely convenient': '#72BF44'
 }
+
+situations = {
+    'RFI_UTG': {
+        'num_players': 6,
+        'hero_position': 'EP',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'RFI_MP': {
+        'num_players': 6,
+        'hero_position': 'MP',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'RFI_CO': {
+        'num_players': 6,
+        'hero_position': 'CO',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'RFI_BTN': {
+        'num_players': 6,
+        'hero_position': 'BTN',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'RFI_SB': {
+        'num_players': 6,
+        'hero_position': 'SB',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    '3bet_IP_vs_EP': {
+        'num_players': 6,
+        'hero_position': 'BTN',
+        'seats': [{'position': 'EP', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    '3bet_IP_vs_MP': {
+        'num_players': 6,
+        'hero_position': 'BTN',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    '3bet_IP_vs_CO': {
+        'num_players': 6,
+        'hero_position': 'BTN',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    '3bet_SB_vs_EP': {
+        'num_players': 6,
+        'hero_position': 'SB',
+        'seats': [{'position': 'EP', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    '3bet_SB_vs_MP': {
+        'num_players': 6,
+        'hero_position': 'SB',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    '3bet_SB_vs_CO': {
+        'num_players': 6,
+        'hero_position': 'SB',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    '3bet_SB_vs_BTN': {
+        'num_players': 6,
+        'hero_position': 'SB',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'BB_defend_vs_EP': {
+        'num_players': 6,
+        'hero_position': 'BB',
+        'seats': [{'position': 'EP', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': True}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'BB_defend_vs_MP': {
+        'num_players': 6,
+        'hero_position': 'BB',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': True}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'BB_defend_vs_CO': {
+        'num_players': 6,
+        'hero_position': 'BB',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': True}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'BB_defend_vs_BTN': {
+        'num_players': 6,
+        'hero_position': 'BB',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': True}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'BB_defend_vs_SB': {
+        'num_players': 6,
+        'hero_position': 'BB',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'SB', 'stack': 97.0, 'bet': 3.0, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'ISO_MP': {
+        'num_players': 6,
+        'hero_position': 'MP',
+        'seats': [{'position': 'EP', 'stack': 99.0, 'bet': 1.0, 'folded': False}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'ISO_CO': {
+        'num_players': 6,
+        'hero_position': 'CO',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 99.0, 'bet': 1.0, 'folded': False}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'ISO_BTN': {
+        'num_players': 6,
+        'hero_position': 'BTN',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 99.0, 'bet': 1.0, 'folded': False}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'ISO_BB': {
+        'num_players': 6,
+        'hero_position': 'BB',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'SB', 'stack': 99.0, 'bet': 1.0, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    },
+    'ISO_SB': {
+        'num_players': 6,
+        'hero_position': 'SB',
+        'seats': [{'position': 'EP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'MP', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'CO', 'stack': 100.0, 'bet': 0.0, 'folded': True}, {'position': 'BTN', 'stack': 99.0, 'bet': 1.0, 'folded': False}, {'position': 'SB', 'stack': 99.5, 'bet': 0.5, 'folded': False}, {'position': 'BB', 'stack': 99.0, 'bet': 1.0, 'folded': False}]
+    }
+}
