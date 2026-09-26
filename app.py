@@ -407,7 +407,8 @@ def config_to_python_string(config):
     content += "subranges = " + format_dict(config.subranges, extra_newline_between_keys=True) + "\n\n"
     content += "subrange_order = " + format_list(config.subrange_order) + "\n\n"
     content += "modes = " + format_dict(config.modes) + "\n\n"
-    content += "subrange_colors = " + format_dict(config.subrange_colors) + "\n"
+    content += "subrange_colors = " + format_dict(config.subrange_colors) + "\n\n"
+    content += "situations = " + format_dict(config.situations or {}) + "\n"
     return content
 
 
@@ -1259,10 +1260,24 @@ def load_config_backup(filename):
 
     ensure_lists_in_subranges(config)
 
+    # Old backups have no 'situations'; hand-edited ones may hold junk, so
+    # keep only valid entries for positions that exist in the loaded ranges.
+    raw_situations = namespace.get('situations', {})
+    if not isinstance(raw_situations, dict):
+        raw_situations = {}
+    loaded_positions = set(get_all_positions(config))
+    cleaned_situations = {}
+    for pos, sit in raw_situations.items():
+        validated = validate_situation(sit)
+        if pos in loaded_positions and validated is not None:
+            cleaned_situations[pos] = validated
+    config.situations = cleaned_situations
+
     flag_modified(config, 'subranges')
     flag_modified(config, 'subrange_order')
     flag_modified(config, 'modes')
     flag_modified(config, 'subrange_colors')
+    flag_modified(config, 'situations')
     db.session.commit()
 
     return jsonify({'status': 'ok', 'message': f'Конфиг "{filename}" загружен'})
@@ -1292,10 +1307,12 @@ def clear_config():
     config.subrange_order = []
     config.modes = {}
     config.subrange_colors = {}
+    config.situations = {}
     flag_modified(config, 'subranges')
     flag_modified(config, 'subrange_order')
     flag_modified(config, 'modes')
     flag_modified(config, 'subrange_colors')
+    flag_modified(config, 'situations')
     db.session.commit()
     return jsonify({'status': 'ok', 'message': 'Конфиг успешно очищен'})
 

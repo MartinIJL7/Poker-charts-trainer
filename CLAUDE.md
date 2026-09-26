@@ -33,6 +33,7 @@ Set `SECRET_KEY` environment variable for production (sessions won't work withou
 - `subrange_order`: list to maintain subrange creation order
 - `modes`: training modes (dict: mode_name → list of positions)
 - `subrange_colors`: color labels for subranges
+- `situations`: table situation per position (dict: position → `{num_players, hero_position, seats}`); a missing entry renders the client-side default (6 players, hero BTN). Included in config backups; old backups without it load fine
 
 **HandStats** — per-hand tracking:
 - `attempts`, `errors`, `total_time_ms` — cumulative stats
