@@ -425,6 +425,12 @@ def get_public_backup_files():
     return sorted(public)
 
 
+def discard_range_draft():
+    """Forget the unsaved range-editor draft kept in the login session."""
+    session.pop('temp_subranges', None)
+    session.pop('editing_position', None)
+
+
 # -------------------------------------------------------------------
 # Authentication routes
 # -------------------------------------------------------------------
@@ -461,6 +467,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             login_user(user)
+            discard_range_draft()
             flash(f'Добро пожаловать, {username}!', 'success')
             next_page = request.args.get('next')
             return redirect(next_page or url_for('index'))
@@ -472,6 +479,7 @@ def login():
 @login_required
 def logout():
     logout_user()
+    discard_range_draft()
     flash('Вы вышли', 'info')
     return redirect(url_for('login'))
 
@@ -692,10 +700,11 @@ def api_get_range(position):
 def create_range():
     config = get_user_config(current_user.id)
     positions = get_all_positions(config)
-    if 'temp_subranges' not in session:
-        session['temp_subranges'] = []
-    position = session.get('editing_position', '')
-    return render_template('create_range.html', all_positions=positions, position=position)
+    # Every visit starts from a blank editor: an unsaved draft is not
+    # carried over from a previous visit (it only lives while the page is open)
+    discard_range_draft()
+    session['temp_subranges'] = []
+    return render_template('create_range.html', all_positions=positions, position='')
 
 
 @app.route('/create/add_subrange', methods=['POST'])
