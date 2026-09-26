@@ -1,5 +1,4 @@
 # app.py
-import json
 import logging
 import os
 import random
@@ -9,7 +8,6 @@ from datetime import datetime
 from flask import abort
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
-from flask import current_app
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm.attributes import flag_modified
@@ -166,6 +164,8 @@ def next_fibonacci(current):
 
 def update_hand_stats(user_id, position, hand, is_correct, time_ms):
     stats = get_or_create_hand_stats(user_id, position, hand)
+    # Captured before the commit: onupdate bumps updated_at, and the review check
+    # below needs the time of the previous answer
     old_updated_at = stats.updated_at
     stats.attempts += 1
     if not is_correct:
@@ -181,12 +181,9 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
         stats.last_times.pop(0)
     flag_modified(stats, 'last_times')   # required for SQLAlchemy to detect JSON changes
 
-    # --- Learning status check ---
     avg_time_hand = get_avg_hand_time(stats)
-
-    # Calculate current weight for this hand (for additional condition)
     avg_pos_time = get_avg_time_for_position(user_id, position)
-    weight = calculate_weight(stats, avg_pos_time)
+    # for_learning skips the "review due" max-out, so a due hand can still count as learned
     weight_for_learning = calculate_weight(stats, avg_pos_time, for_learning=True)
 
     # A hand is learned if:
@@ -223,7 +220,6 @@ def update_hand_stats(user_id, position, hand, is_correct, time_ms):
             # random early show, do not change interval, just clear penalty
             stats.penalty_active = False
 
-
     db.session.commit()
 
 def get_avg_hand_time(stats):
@@ -246,7 +242,6 @@ def get_avg_time_for_position(user_id, position):
     """Return average response time for the position (average of hand averages).
     Only hands with at least one attempt are included."""
     stats_list = HandStats.query.filter_by(user_id=user_id, position=position).all()
-    # Filter to hands that have been played at least once
     played = [s for s in stats_list if s.attempts > 0]
     if not played:
         return None
@@ -274,7 +269,7 @@ def calculate_weight(stats, avg_pos_time, for_learning=False):
         avg_hand_time = avg_pos_time if avg_pos_time is not None else 1000
     else:
         error_score = stats.errors / stats.attempts
-        # Use the new sliding average (last 3 or overall)
+        # Sliding average: last 3 attempts, or overall while there are fewer
         avg_hand_time = get_avg_hand_time(stats)
 
     if avg_pos_time is not None and avg_pos_time > 0:
@@ -510,6 +505,11 @@ def reset_stats():
 # -------------------------------------------------------------------
 # Training route
 # -------------------------------------------------------------------
+# Session state of the training flow (all read back by training.html or the POST):
+#   stats               - browser-session answer counter {total, correct, wrong}
+#   training_started    - start screen was passed; cleared on "/" and by ?reset_start=1
+#   pos, hand, status, correct_text, question_start_time - the question on screen
+#   last_result         - payload of the result screen, built right after an answer
 @app.route('/training/<mode>', methods=['GET', 'POST'])
 @login_required
 def training(mode):
@@ -520,152 +520,173 @@ def training(mode):
     if 'stats' not in session:
         session['stats'] = {'total': 0, 'correct': 0, 'wrong': 0}
 
-    # ---- POST: answer submission ----
     if request.method == 'POST':
-        # --- Get client-side measured time ---
-        # The browser sends response_time_ms in the POST data (if available)
-        elapsed_ms = request.form.get('response_time_ms', type=int)
-        
-        # Fallback for older clients or direct API calls (server-side measurement)
-        if elapsed_ms is None:
-            start_time = session.pop('question_start_time', None)
-            if start_time:
-                elapsed_ms = int((datetime.utcnow().timestamp() - start_time) * 1000)
-            else:
-                elapsed_ms = 0
-        
-        # Use elapsed_ms for statistics update later
+        return handle_training_answer(mode)
 
-        answer = request.form.get('answer', '').strip().lower()
-        pos = session.get('pos')
-        hand = session.get('hand')
-        status = session.get('status')
-        correct_text = session.get('correct_text')
-
-        if pos and hand and status:
-            stats = session['stats']
-            stats['total'] += 1
-            is_correct = (answer == correct_text.lower())
-            if is_correct:
-                stats['correct'] += 1
-            else:
-                stats['wrong'] += 1
-            session['stats'] = stats
-
-            # Get stats before update to detect penalty change
-            stats_before = get_or_create_hand_stats(current_user.id, pos, hand)
-            old_penalty = stats_before.penalty_active
-
-            # Update persistent hand statistics
-            update_hand_stats(current_user.id, pos, hand, is_correct, elapsed_ms)
-
-            # Get updated stats
-            stats = get_or_create_hand_stats(current_user.id, pos, hand)
-            just_became_penalty = (not old_penalty and stats.penalty_active)
-
-            attempts = stats.attempts
-            errors = stats.errors
-            correct_count = attempts - errors
-            avg_time_sec = round(get_avg_hand_time(stats) / 1000, 2) if attempts > 0 else 0
-            current_time_sec = round(elapsed_ms / 1000, 2)
-
-            avg_pos_time = get_avg_time_for_position(current_user.id, pos)
-            weight = calculate_weight(stats, avg_pos_time) if avg_pos_time is not None else 0
-
-            # Compute hand status fields
-            review_interval_days = stats.review_interval_days
-            penalty_active = stats.penalty_active
-            days_since = (datetime.utcnow() - stats.updated_at).days if stats.updated_at else 0
-            is_due = (review_interval_days > 0 and not penalty_active and days_since >= review_interval_days)
-            errors_last_3 = sum(1 for res in stats.last_results if res == 0)
-            last_results_display = ' '.join('✔' if res == 1 else '✘' for res in stats.last_results)
-            last_times_display = ', '.join(f'{t/1000:.2f}' for t in stats.last_times) if stats.last_times else ''
-
-            session['last_result'] = {
-                'weight': weight,
-                'user_answer': answer,
-                'correct_answer': correct_text,
-                'was_correct': is_correct,
-                'hand': hand,
-                'pos': pos,
-                'attempts': attempts,
-                'errors': errors,
-                'correct_count': correct_count,
-                'avg_time_sec': avg_time_sec,
-                'current_time_sec': current_time_sec,
-                'just_became_penalty': just_became_penalty,
-                'review_interval_days': review_interval_days,
-                'penalty_active': penalty_active,
-                'days_since_last_shown': days_since,
-                'is_due_for_review': is_due,
-                'errors_last_3': errors_last_3,
-                'last_results_display': last_results_display,
-                'last_times_display': last_times_display,
-            }
-            return redirect(url_for('training', mode=mode, show_result=1))
-        return redirect(url_for('training', mode=mode))
-
-    # ---- GET: show result or new question ----
-    
-    # If user wants to reset start screen (from heatmap, etc.)
+    # ?reset_start=1 comes from other pages (heatmap, etc.) to show the start screen again
     if request.args.get('reset_start') == '1':
         session.pop('training_started', None)
         return redirect(url_for('training', mode=mode))
 
-    # If user clicked "Start", set flag and redirect
     if request.args.get('start') == '1':
         session['training_started'] = True
         return redirect(url_for('training', mode=mode))
 
-    # If training not started yet, show start screen
     if not session.get('training_started', False):
-        stats = session['stats']
-        return render_template('training.html', mode=mode, show_start=True, stats=stats)
-    
-    show_result = request.args.get('show_result') == '1'
-    if show_result and 'last_result' in session:
-        result = session['last_result']
-        stats = session['stats']
-        return render_template(
-            'training.html',
-            mode=mode,
-            show_result=True,
-            result=result,
-            stats=stats,
-            next_url=url_for('training', mode=mode)
-        )
+        return render_training_start(mode)
 
-    # Generate a new question
+    if request.args.get('show_result') == '1' and 'last_result' in session:
+        return render_training_result(mode)
+
+    return render_training_question(mode, config)
+
+
+def read_response_time_ms():
+    """Response time of the current answer in ms.
+
+    The browser measures it and sends response_time_ms, so network latency is
+    excluded. The server-side timer is only a fallback for clients that don't
+    send the field; note that question_start_time is consumed only then.
+    """
+    elapsed_ms = request.form.get('response_time_ms', type=int)
+    if elapsed_ms is not None:
+        return elapsed_ms
+    start_time = session.pop('question_start_time', None)
+    if start_time:
+        return int((datetime.utcnow().timestamp() - start_time) * 1000)
+    return 0
+
+
+def count_session_answer(answer, correct_text):
+    """Check the answer and add it to the browser-session counter. Returns is_correct."""
+    stats = session['stats']
+    stats['total'] += 1
+    is_correct = (answer == correct_text.lower())
+    if is_correct:
+        stats['correct'] += 1
+    else:
+        stats['wrong'] += 1
+    session['stats'] = stats
+    return is_correct
+
+
+def build_last_result(stats, pos, hand, answer, correct_text, is_correct, elapsed_ms, just_became_penalty):
+    """Build the session['last_result'] payload from the freshly updated HandStats row.
+
+    Every key is read by training.html (template and buildStatusHTML), so names
+    and meanings must stay stable.
+    """
+    attempts = stats.attempts
+    errors = stats.errors
+    avg_pos_time = get_avg_time_for_position(current_user.id, pos)
+    days_since = (datetime.utcnow() - stats.updated_at).days if stats.updated_at else 0
+    is_due = (stats.review_interval_days > 0 and not stats.penalty_active
+              and days_since >= stats.review_interval_days)
+    return {
+        'weight': calculate_weight(stats, avg_pos_time) if avg_pos_time is not None else 0,
+        'user_answer': answer,
+        'correct_answer': correct_text,
+        'was_correct': is_correct,
+        'hand': hand,
+        'pos': pos,
+        'attempts': attempts,
+        'errors': errors,
+        'correct_count': attempts - errors,
+        'avg_time_sec': round(get_avg_hand_time(stats) / 1000, 2) if attempts > 0 else 0,
+        'current_time_sec': round(elapsed_ms / 1000, 2),
+        'just_became_penalty': just_became_penalty,
+        'review_interval_days': stats.review_interval_days,
+        'penalty_active': stats.penalty_active,
+        'days_since_last_shown': days_since,
+        'is_due_for_review': is_due,
+        'errors_last_3': sum(1 for res in stats.last_results if res == 0),
+        'last_results_display': ' '.join('✔' if res == 1 else '✘' for res in stats.last_results),
+        'last_times_display': ', '.join(f'{t/1000:.2f}' for t in stats.last_times) if stats.last_times else '',
+    }
+
+
+def handle_training_answer(mode):
+    """POST: grade the answer, update stats, store the result and redirect to it."""
+    # Read before the question check: the fallback timer pops question_start_time either way
+    elapsed_ms = read_response_time_ms()
+
+    answer = request.form.get('answer', '').strip().lower()
+    pos = session.get('pos')
+    hand = session.get('hand')
+    status = session.get('status')
+    correct_text = session.get('correct_text')
+
+    if not (pos and hand and status):
+        return redirect(url_for('training', mode=mode))
+
+    is_correct = count_session_answer(answer, correct_text)
+
+    # Copy the flag before updating: update_hand_stats mutates this same ORM row,
+    # and the result screen needs to know whether this very answer caused the penalty
+    # (it then blocks the "next" button)
+    penalty_before = get_or_create_hand_stats(current_user.id, pos, hand).penalty_active
+    update_hand_stats(current_user.id, pos, hand, is_correct, elapsed_ms)
+    stats = get_or_create_hand_stats(current_user.id, pos, hand)
+    just_became_penalty = (not penalty_before and stats.penalty_active)
+
+    session['last_result'] = build_last_result(
+        stats, pos, hand,
+        answer=answer,
+        correct_text=correct_text,
+        is_correct=is_correct,
+        elapsed_ms=elapsed_ms,
+        just_became_penalty=just_became_penalty,
+    )
+    return redirect(url_for('training', mode=mode, show_result=1))
+
+
+def render_training_start(mode):
+    return render_template('training.html', mode=mode, show_start=True, stats=session['stats'])
+
+
+def render_training_result(mode):
+    return render_template(
+        'training.html',
+        mode=mode,
+        show_result=True,
+        result=session['last_result'],
+        stats=session['stats'],
+        next_url=url_for('training', mode=mode)
+    )
+
+
+def get_possible_answers(pos, config):
+    """Sorted answer buttons for a position: its subrange names plus 'fold'."""
+    answers = (get_correct_answer_text(st) for st in get_possible_statuses(pos, config))
+    return sorted(set(ans for ans in answers if ans))
+
+
+def render_training_question(mode, config):
+    """Pick a new position/hand, remember it in the session and render the question."""
     session.pop('last_result', None)
     positions = config.modes[mode]
     if not positions:
         return "No positions in this mode", 400
 
     pos = random.choice(positions)
-    hand = select_weighted_hand(current_user.id, pos)   # <-- adaptive selection
+    hand = select_weighted_hand(current_user.id, pos)
     status = get_hand_status(hand, pos, config)
     correct_text = get_correct_answer_text(status)
+    possible_answers = get_possible_answers(pos, config)
 
-    possible_statuses = get_possible_statuses(pos, config)
-    possible_answers = sorted(set(
-        get_correct_answer_text(st) for st in possible_statuses if get_correct_answer_text(st)
-    ))
-
-    # Store question start time for response time measurement
     session['question_start_time'] = datetime.utcnow().timestamp()
     session['pos'] = pos
     session['hand'] = hand
     session['status'] = status
     session['correct_text'] = correct_text
 
-    stats = session['stats']
     return render_template(
         'training.html',
         mode=mode,
         pos=pos,
         hand=hand,
         possible_answers=possible_answers,
-        stats=stats,
+        stats=session['stats'],
         show_result=False
     )
 
