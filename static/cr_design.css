@@ -292,13 +292,13 @@
 }
 
 .cr-shell .cr-situation-seat-label {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
     fill: var(--cr-color-text);
 }
 
 .cr-shell .cr-situation-seat-stack {
-    font-size: 16px;
+    font-size: 18px;
     fill: var(--cr-color-text-muted);
 }
 
