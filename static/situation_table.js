@@ -148,17 +148,17 @@ export const FELT_CORNER_R = FELT_HALF_H;
 // Seat plates are rounded rectangles, not circles: a circle wide enough
 // for "UTG+1" plus a stack figure wastes a lot of vertical space, and
 // vertical space is what the bet markers need.
-export const SEAT_W = 84, SEAT_H = 46, SEAT_CORNER_R = 12;
+export const SEAT_W = 92, SEAT_H = 52, SEAT_CORNER_R = 13;
 
 // Every seat's hole cards sit straight ABOVE its plate (screen-up, not
 // "away from the table center"), top and bottom rows alike, tucked a
 // couple of pixels behind the plate's top edge. Vertical rather than
 // radial keeps the side seats' cards from sticking out sideways.
-export const CARD_GAP = 36;
-export const CARD_W = 22, CARD_H = 30;
+export const CARD_GAP = 38;
+export const CARD_W = 27, CARD_H = 37;
 // Side-by-side, barely tilted - a wide fan around a shared center made
 // the two cards sit almost on top of each other and read as one blob.
-export const CARD_SPREAD = 10, CARD_TILT = 5;
+export const CARD_SPREAD = 12, CARD_TILT = 5;
 
 // Hero's two cards are drawn larger: hollow placeholders in the editor,
 // the real dealt hand on the training screen (same slot either way), so
