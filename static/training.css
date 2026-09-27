@@ -21,7 +21,7 @@
 }
 
 .tr-shell {
-    max-width: 1200px;
+    max-width: 1500px;
     display: flex;
     align-items: flex-start;
     gap: var(--cr-space-xl);
@@ -62,17 +62,21 @@
     padding: 0 40px;
 }
 
-/* ---- Table card (question + result) ---- */
-.tr-table-card {
+/* ---- Table card (question + result) ----
+   .cr-shell prefix needed to outrank cr_design.css's ".cr-shell .cr-card"
+   padding (same specificity reason as .tr-answer-btn below) - without it
+   this loses the cascade and the card keeps the default --cr-space-lg
+   padding, eating into the space the table itself could use. */
+.cr-shell .tr-table-card {
     display: flex;
     justify-content: center;
-    padding: var(--cr-space-md);
+    padding: var(--cr-space-sm);
 }
 
 .tr-table-svg {
     display: block;
     width: 100%;
-    max-width: 820px;
+    max-width: 760px;
     height: auto;
     aspect-ratio: 680 / 397;
 }
