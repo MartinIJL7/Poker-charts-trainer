@@ -21,7 +21,26 @@
 }
 
 .tr-shell {
-    max-width: 640px;
+    max-width: 1200px;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--cr-space-xl);
+}
+
+/* Sidebar: hand stats (result screen) + session stats, to the left of the
+   table on wide screens. It comes first in the markup so reading/tab order
+   is stats-then-table; that's fine since both are informational, not the
+   primary action flow. */
+.tr-sidebar {
+    flex: 0 0 300px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-lg);
+}
+
+.tr-main {
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: var(--cr-space-lg);
@@ -53,7 +72,7 @@
 .tr-table-svg {
     display: block;
     width: 100%;
-    max-width: 640px;
+    max-width: 820px;
     height: auto;
     aspect-ratio: 680 / 397;
 }
@@ -228,7 +247,14 @@
 }
 
 .tr-actions form {
-    flex: 1 1 auto;
+    flex: 1 1 200px;
+}
+
+/* Direct-child buttons (not wrapped in a form, e.g. "Показать диапазон")
+   need their own flex-basis - otherwise their width:100% below claims the
+   whole row on its own and pushes the other action onto a new line. */
+.tr-actions > .tr-btn-wide {
+    flex: 1 1 200px;
 }
 
 .tr-btn-wide {
@@ -333,6 +359,37 @@
 /* ==========================================================================
    Responsive
    ========================================================================== */
+@media screen and (max-width: 800px) {
+    .tr-shell {
+        flex-direction: column;
+        align-items: stretch;
+        max-width: 640px;
+        gap: var(--cr-space-lg);
+    }
+
+    /* Dissolve the two column wrappers so their children flow as one
+       stack, in the original table-first, stats-last reading order. */
+    .tr-sidebar,
+    .tr-main {
+        display: contents;
+    }
+
+    .tr-start-card,
+    .tr-table-card { order: 1; }
+
+    .tr-timer-bar-wrap,
+    .tr-verdict-card { order: 2; }
+
+    .tr-answer-form,
+    .tr-details { order: 3; }
+
+    .tr-actions { order: 4; }
+
+    .tr-range-display { order: 5; }
+
+    .tr-stats-card { order: 6; }
+}
+
 @media screen and (max-width: 600px) {
     .tr-header-row {
         gap: var(--cr-space-sm);
@@ -340,6 +397,13 @@
 
     .tr-actions {
         flex-direction: column;
+    }
+
+    /* Column direction makes the main axis vertical, so the 200px flex-basis
+       set for the desktop row layout would otherwise become a min-height. */
+    .tr-actions form,
+    .tr-actions > .tr-btn-wide {
+        flex-basis: auto;
     }
 
     .cr-shell .tr-answer-btn {

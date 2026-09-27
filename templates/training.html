@@ -18,7 +18,40 @@
 
 {% block content %}
 <div class="cr-shell tr-shell">
+    <div class="tr-sidebar">
+        {% if show_result and result %}
+        <details class="cr-card tr-details">
+            <summary class="tr-details-summary">Статистика по руке {{ result.hand }} в диапазоне {{ result.pos }}</summary>
+            <div class="tr-details-body">
+                <p>Попыток: {{ result.attempts }} раз</p>
+                <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
+                <p>Ошибок: {{ result.errors }}</p>
+                <p>Среднее время ответа за последние 3 попытки: {{ result.avg_time_sec }} с
+                {% if result.last_times_display %} ({{ result.last_times_display }} с){% endif %}
+                </p>
+                <p>Текущее время ответа: {{ result.current_time_sec }} с</p>
+                <div id="tr-hand-status" class="tr-hand-status"></div>
+            </div>
+        </details>
+        {% endif %}
 
+        <div class="cr-card tr-stats-card">
+            <h2>Статистика</h2>
+            <p>Счетчик ответов в сессии браузера: <strong>{{ stats.total }}</strong></p>
+            <p>✅ <strong>{{ stats.correct }}</strong>
+                (<span id="stats-correct-pct">{{ "%.1f"|format(stats.correct / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
+            </p>
+            <p>❌ <strong>{{ stats.wrong }}</strong>
+                (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
+            </p>
+            <div class="tr-stats-actions">
+                <a href="{{ url_for('reset_stats', next=request.url) }}" class="cr-btn cr-btn--ghost">Сбросить счетчик сессии браузера</a>
+                <a href="{{ url_for('heatmap', mode=mode) }}" class="cr-btn cr-btn--ghost">Тепловая карта</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tr-main">
     {% if show_start %}
         <!-- START SCREEN -->
         <div class="cr-card tr-start-card">
@@ -42,20 +75,6 @@
             <p><strong>Правильный ответ:</strong> <span class="tr-correct-answer">{{ result.correct_answer }}</span></p>
         </div>
         {% endif %}
-
-        <details class="cr-card tr-details">
-            <summary class="tr-details-summary">Статистика по руке {{ result.hand }} в диапазоне {{ result.pos }}</summary>
-            <div class="tr-details-body">
-                <p>Попыток: {{ result.attempts }} раз</p>
-                <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
-                <p>Ошибок: {{ result.errors }}</p>
-                <p>Среднее время ответа за последние 3 попытки: {{ result.avg_time_sec }} с
-                {% if result.last_times_display %} ({{ result.last_times_display }} с){% endif %}
-                </p>
-                <p>Текущее время ответа: {{ result.current_time_sec }} с</p>
-                <div id="tr-hand-status" class="tr-hand-status"></div>
-            </div>
-        </details>
 
         <div class="tr-actions">
             <form action="{{ next_url }}" method="get">
@@ -98,20 +117,6 @@
             <input type="hidden" name="hero_card_1_suit" id="hero-card-1-suit" value="">
         </form>
     {% endif %}
-
-    <div class="cr-card tr-stats-card">
-        <h2>Статистика</h2>
-        <p>Счетчик ответов в сессии браузера: <strong>{{ stats.total }}</strong></p>
-        <p>✅ <strong>{{ stats.correct }}</strong>
-            (<span id="stats-correct-pct">{{ "%.1f"|format(stats.correct / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
-        </p>
-        <p>❌ <strong>{{ stats.wrong }}</strong>
-            (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
-        </p>
-        <div class="tr-stats-actions">
-            <a href="{{ url_for('reset_stats', next=request.url) }}" class="cr-btn cr-btn--ghost">Сбросить счетчик сессии браузера</a>
-            <a href="{{ url_for('heatmap', mode=mode) }}" class="cr-btn cr-btn--ghost">Тепловая карта</a>
-        </div>
     </div>
 
     <div id="toast-container" class="cr-toast-container" aria-live="polite"></div>
