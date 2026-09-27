@@ -30,16 +30,28 @@
 /* Sidebar: hand stats (result screen) + session stats, to the left of the
    table on wide screens. It comes first in the markup so reading/tab order
    is stats-then-table; that's fine since both are informational, not the
-   primary action flow. */
+   primary action flow.
+   It also takes the flex-grow share instead of a fixed width: once the
+   table (tr-main) hits its own height-driven size cap, any leftover row
+   width goes here rather than sitting as dead padding around the table
+   card. Capped at max-width so it doesn't balloon on ultrawide screens. */
 .tr-sidebar {
-    flex: 0 0 300px;
+    flex: 1 1 300px;
+    max-width: 420px;
     display: flex;
     flex-direction: column;
     gap: var(--cr-space-lg);
 }
 
+/* flex-basis mirrors tr-table-svg's own max-height/aspect-ratio cap (plus
+   the table card's padding+border) as a definite width, rather than
+   relying on flex's content-based auto sizing to shrink-wrap around a
+   height-constrained replaced element nested a few flex levels deep -
+   that doesn't reliably resolve in real browsers. flex-grow:0 means this
+   column never claims more than that; flex-shrink:1 still lets it
+   compress on narrower desktop widths, same as before. */
 .tr-main {
-    flex: 1 1 auto;
+    flex: 0 1 calc((100vh - 380px) * 680 / 397 + 18px);
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -73,11 +85,21 @@
     padding: var(--cr-space-sm);
 }
 
+/* width/height both auto (not width:100%) so the aspect-ratio sizing
+   algorithm can shrink the table to fit max-height on short laptop
+   screens, instead of only capping height and letterboxing (which would
+   just bring back empty side margins through a different door). The
+   100vh offset is the fixed chrome above/below the table on the
+   question screen (header + card padding + timer bar + answer grid);
+   it's tight for the wrong-answer result screen's extra verdict/actions
+   cards, which can still need a little scroll - same trade-off already
+   accepted in the table's last width-only pass. */
 .tr-table-svg {
     display: block;
-    width: 100%;
-    max-width: 760px;
+    width: auto;
     height: auto;
+    max-width: 100%;
+    max-height: calc(100vh - 380px);
     aspect-ratio: 680 / 397;
 }
 
