@@ -360,6 +360,61 @@ def get_possible_statuses(pos, config):
     return sorted(statuses)
 
 
+# Mirrors CANONICAL_POSITIONS[6] in situation_table.js - the only player
+# count the server-side default situation ever needs.
+DEFAULT_SITUATION_POSITIONS = ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB']
+
+# Neutral tint for the 'fold' answer button - not a subrange color, so it
+# doesn't visually claim any range's identity.
+FOLD_ANSWER_COLOR = '#8a99a8'
+
+VALID_HAND_RANKS = set('AKQJT98765432')
+VALID_CARD_SUITS = set('shdc')
+
+
+def get_default_situation():
+    """Server-side mirror of getDefaultSituation() in situation_table.js:
+    6-max, hero BTN, no blinds posted, no folds, every seat 100bb deep."""
+    seats = [
+        {'position': pos, 'stack': 100.0, 'bet': 0.0, 'folded': False}
+        for pos in DEFAULT_SITUATION_POSITIONS
+    ]
+    return {'num_players': 6, 'hero_position': 'BTN', 'seats': seats}
+
+
+def get_situation_for_position(config, position):
+    """Return the saved table situation for a position, or the same
+    default the range editor shows when nothing has been saved yet."""
+    situation = (config.situations or {}).get(position)
+    return situation if situation else get_default_situation()
+
+
+def get_answer_options(pos, config):
+    """Answer buttons for a position as {name, color} dicts, in the same
+    sorted order get_possible_answers already returns. 'fold' gets a
+    neutral color instead of a subrange color."""
+    options = []
+    for name in get_possible_answers(pos, config):
+        color = FOLD_ANSWER_COLOR if name == 'fold' else config.subrange_colors.get(name, '#3498db')
+        options.append({'name': name, 'color': color})
+    return options
+
+
+def validate_hero_cards(form):
+    """Parse the two hero hole cards the client dealt (static/cards.js)
+    and submitted via hidden fields. Returns [{rank,suit}, {rank,suit}] or
+    None if missing/malformed - the result screen then falls back to the
+    same hollow placeholder cards the range editor uses."""
+    cards = []
+    for i in (0, 1):
+        rank = form.get(f'hero_card_{i}_rank', '')
+        suit = form.get(f'hero_card_{i}_suit', '')
+        if rank not in VALID_HAND_RANKS or suit not in VALID_CARD_SUITS:
+            return None
+        cards.append({'rank': rank, 'suit': suit})
+    return cards
+
+
 def config_to_python_string(config):
     """Export the user config as a Python source code string."""
     def format_dict(d, indent=0, extra_newline_between_keys=False):
@@ -570,7 +625,7 @@ def count_session_answer(answer, correct_text):
     return is_correct
 
 
-def build_last_result(stats, pos, hand, answer, correct_text, is_correct, elapsed_ms, just_became_penalty):
+def build_last_result(stats, pos, hand, answer, correct_text, is_correct, elapsed_ms, just_became_penalty, situation, hero_cards):
     """Build the session['last_result'] payload from the freshly updated HandStats row.
 
     Every key is read by training.html (template and buildStatusHTML), so names
@@ -589,6 +644,8 @@ def build_last_result(stats, pos, hand, answer, correct_text, is_correct, elapse
         'was_correct': is_correct,
         'hand': hand,
         'pos': pos,
+        'situation': situation,
+        'hero_cards': hero_cards,
         'attempts': attempts,
         'errors': errors,
         'correct_count': attempts - errors,
@@ -629,6 +686,7 @@ def handle_training_answer(mode):
     stats = get_or_create_hand_stats(current_user.id, pos, hand)
     just_became_penalty = (not penalty_before and stats.penalty_active)
 
+    config = get_user_config(current_user.id)
     session['last_result'] = build_last_result(
         stats, pos, hand,
         answer=answer,
@@ -636,22 +694,29 @@ def handle_training_answer(mode):
         is_correct=is_correct,
         elapsed_ms=elapsed_ms,
         just_became_penalty=just_became_penalty,
+        situation=get_situation_for_position(config, pos),
+        hero_cards=validate_hero_cards(request.form),
     )
     return redirect(url_for('training', mode=mode, show_result=1))
 
 
 def render_training_start(mode):
-    return render_template('training.html', mode=mode, show_start=True, stats=session['stats'])
+    return render_template(
+        'training.html', mode=mode, show_start=True, stats=session['stats'],
+        training_data={'showStart': True}
+    )
 
 
 def render_training_result(mode):
+    result = session['last_result']
     return render_template(
         'training.html',
         mode=mode,
         show_result=True,
-        result=session['last_result'],
+        result=result,
         stats=session['stats'],
-        next_url=url_for('training', mode=mode)
+        next_url=url_for('training', mode=mode),
+        training_data={'showStart': False, 'showResult': True, 'result': result}
     )
 
 
@@ -672,7 +737,8 @@ def render_training_question(mode, config):
     hand = select_weighted_hand(current_user.id, pos)
     status = get_hand_status(hand, pos, config)
     correct_text = get_correct_answer_text(status)
-    possible_answers = get_possible_answers(pos, config)
+    answer_options = get_answer_options(pos, config)
+    situation = get_situation_for_position(config, pos)
 
     session['question_start_time'] = datetime.utcnow().timestamp()
     session['pos'] = pos
@@ -685,9 +751,17 @@ def render_training_question(mode, config):
         mode=mode,
         pos=pos,
         hand=hand,
-        possible_answers=possible_answers,
+        situation=situation,
+        answer_options=answer_options,
         stats=session['stats'],
-        show_result=False
+        show_result=False,
+        training_data={
+            'showStart': False,
+            'showResult': False,
+            'hand': hand,
+            'situation': situation,
+            'answerOptions': answer_options,
+        }
     )
 
 

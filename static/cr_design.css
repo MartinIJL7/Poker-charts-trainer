@@ -1,0 +1,432 @@
+/* ==========================================================================
+   Shared design system (.cr-shell pages)
+   --------------------------------------------------------------------------
+   Loaded globally from base.html, before any page-specific stylesheet, so
+   a page stylesheet (e.g. create_range.css) can still override these rules
+   with same-specificity selectors. Holds the design tokens plus the
+   reusable building blocks: shell, cards, inputs/select, icons, buttons,
+   focus rings and toasts. Every rule is scoped under .cr-shell, so pages
+   without that wrapper are unaffected (only the :root tokens leak, and
+   they are inert unless used).
+   ========================================================================== */
+
+:root {
+    --cr-color-bg: #f4f9fc;
+    --cr-color-surface: #ffffff;
+    --cr-color-text: #24313f;
+    --cr-color-text-muted: #8a99a8;
+    --cr-color-border: #e2ecf3;
+    --cr-color-primary: #2bb3e8;
+    --cr-color-primary-hover: #1c9cd0;
+    --cr-color-primary-soft: #e7f6fd;
+    --cr-color-danger: #ef6f6f;
+    --cr-color-danger-hover: #e35555;
+    --cr-color-danger-soft: #fdedec;
+    --cr-color-success: #46c193;
+    --cr-color-success-hover: #35a87d;
+    --cr-color-cell: #eef3f7;
+    --cr-color-cell-border: #e2ecf3;
+
+    --cr-radius-sm: 6px;
+    --cr-radius-md: 12px;
+    --cr-radius-lg: 18px;
+
+    --cr-shadow-soft: 0 2px 10px rgba(45, 90, 130, 0.06);
+    --cr-shadow-medium: 0 8px 24px rgba(45, 90, 130, 0.10);
+
+    --cr-space-xs: 4px;
+    --cr-space-sm: 8px;
+    --cr-space-md: 16px;
+    --cr-space-lg: 24px;
+    --cr-space-xl: 32px;
+
+    --cr-transition-fast: 150ms ease;
+    --cr-transition-base: 200ms ease;
+
+    /* Playing-card suit backgrounds (light rank text sits on top). Each
+       hue is kept apart from primary/success/danger so a card never reads
+       as a button or status color. */
+    --suit-s: #2e3a48;
+    --suit-h: #c93a3a;
+    --suit-d: #2456c9;
+    --suit-c: #1a7f55;
+}
+
+.cr-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--cr-space-lg) 0 60px;
+    box-sizing: border-box;
+}
+
+/* ---- Cards ---- */
+.cr-shell .cr-card {
+    background: var(--cr-color-surface);
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-lg);
+    box-shadow: var(--cr-shadow-soft);
+    padding: var(--cr-space-lg);
+    box-sizing: border-box;
+}
+
+.cr-shell .cr-card-title {
+    margin: 0 0 var(--cr-space-md);
+    font-size: 1.05em;
+    font-weight: 600;
+    color: var(--cr-color-text);
+}
+
+/* ---- Inputs / select ---- */
+.cr-shell .cr-input {
+    height: 44px;
+    box-sizing: border-box;
+    padding: 0 14px;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-md);
+    font-size: 1em;
+    background: var(--cr-color-bg);
+    color: var(--cr-color-text);
+    transition: border-color var(--cr-transition-fast), background var(--cr-transition-fast), box-shadow var(--cr-transition-fast);
+}
+
+.cr-shell .cr-input::placeholder {
+    color: var(--cr-color-text-muted);
+}
+
+.cr-shell .cr-input:focus {
+    outline: none;
+    border-color: var(--cr-color-primary);
+    background: var(--cr-color-surface);
+    box-shadow: 0 0 0 3px rgba(43, 179, 232, 0.15);
+}
+
+.cr-shell .cr-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cr-shell .cr-input--full {
+    width: 100%;
+    margin-bottom: var(--cr-space-sm);
+}
+
+.cr-shell .cr-select {
+    height: 44px;
+    flex: 2 1 240px;
+    min-width: 220px;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-md);
+    background: var(--cr-color-bg);
+    padding: 0 14px;
+    font-size: 1em;
+    color: var(--cr-color-text);
+    cursor: pointer;
+    transition: border-color var(--cr-transition-fast), background var(--cr-transition-fast);
+}
+
+.cr-shell .cr-select:hover {
+    border-color: var(--cr-color-primary);
+}
+
+.cr-shell .cr-select:focus {
+    outline: none;
+    border-color: var(--cr-color-primary);
+    box-shadow: 0 0 0 3px rgba(43, 179, 232, 0.15);
+}
+
+/* ---- Icons ----
+   Shared sizing for the inline SVG icons used inside buttons (edit/delete
+   in the subrange list, and the toolbar's delete/save/clear icons). One
+   place to tune size so they stay legible and consistent. */
+.cr-shell .cr-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* ---- Buttons ---- */
+.cr-shell .cr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 20px;
+    border: none;
+    border-radius: var(--cr-radius-md);
+    font-size: 0.95em;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--cr-transition-fast), color var(--cr-transition-fast), transform var(--cr-transition-fast), box-shadow var(--cr-transition-fast);
+    box-sizing: border-box;
+}
+
+.cr-shell .cr-btn:active {
+    transform: scale(0.98);
+}
+
+.cr-shell .cr-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cr-shell .cr-btn--full {
+    width: 100%;
+}
+
+.cr-shell .cr-btn--primary {
+    background: var(--cr-color-primary);
+    color: white;
+    box-shadow: var(--cr-shadow-soft);
+}
+
+.cr-shell .cr-btn--primary:hover {
+    background: var(--cr-color-primary-hover);
+    box-shadow: var(--cr-shadow-medium);
+}
+
+.cr-shell .cr-btn--ghost {
+    background: var(--cr-color-bg);
+    color: var(--cr-color-text-muted);
+    border: 1px solid var(--cr-color-border);
+}
+
+.cr-shell .cr-btn--ghost:hover {
+    background: #eef3f7;
+    color: var(--cr-color-text);
+}
+
+.cr-shell .cr-btn--danger-ghost {
+    background: var(--cr-color-danger-soft);
+    color: var(--cr-color-danger);
+}
+
+.cr-shell .cr-btn--danger-ghost:hover {
+    background: var(--cr-color-danger);
+    color: white;
+}
+
+/* ---- Focus states ----
+   Replace the browser/OS default focus ring (which can pick up the
+   system accent color) with a consistent on-brand outline. */
+.cr-shell button:focus,
+.cr-shell input:focus,
+.cr-shell select:focus {
+    outline: 2px solid var(--cr-color-primary);
+    outline-offset: 2px;
+}
+
+/* A blue ring on a destructive action reads as "safe/primary", which is
+   backwards - match the outline to the button's own danger semantics. */
+.cr-shell .cr-btn--danger-ghost:focus {
+    outline-color: var(--cr-color-danger);
+}
+
+/* ---- Toasts (replace alert() for info/success/error messages) ---- */
+.cr-shell .cr-toast-container {
+    position: fixed;
+    top: var(--cr-space-lg);
+    right: var(--cr-space-lg);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-sm);
+    width: min(360px, calc(100vw - 2 * var(--cr-space-lg)));
+    pointer-events: none;
+}
+
+.cr-shell .cr-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--cr-space-sm);
+    padding: 12px 16px;
+    border-radius: var(--cr-radius-md);
+    border-left: 3px solid var(--cr-color-border);
+    background: var(--cr-color-surface);
+    box-shadow: var(--cr-shadow-medium);
+    font-size: 0.9em;
+    line-height: 1.35;
+    color: var(--cr-color-text);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity var(--cr-transition-base), transform var(--cr-transition-base);
+}
+
+.cr-shell .cr-toast--visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.cr-shell .cr-toast--success {
+    border-left-color: var(--cr-color-success);
+}
+
+.cr-shell .cr-toast--error {
+    border-left-color: var(--cr-color-danger);
+}
+
+/* ---- Table diagram (situation_table.js / cards.js output) ----
+   Visuals for the shared SVG poker-table renderer, used by both the range
+   editor (situation card) and the training page (question/result table).
+   The hero-seat highlight ring and the hollow hero-card placeholder are
+   editor-only additions and stay in create_range.css - training always
+   has a real dealt hand, never a placeholder, and never highlights hero. */
+.cr-shell .cr-situation-table-felt {
+    fill: var(--cr-color-primary-soft);
+    stroke: var(--cr-color-border);
+    stroke-width: 2;
+}
+
+.cr-shell .cr-situation-seat rect {
+    fill: var(--cr-color-surface);
+    stroke: var(--cr-color-border);
+    stroke-width: 2;
+}
+
+.cr-shell .cr-situation-seat--folded {
+    opacity: 0.45;
+}
+
+.cr-shell .cr-situation-seat-label {
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--cr-color-text);
+}
+
+.cr-shell .cr-situation-seat-stack {
+    font-size: 15px;
+    fill: var(--cr-color-text-muted);
+}
+
+.cr-shell .cr-situation-pot-label-svg {
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--cr-color-text);
+}
+
+/* Poker chip stacks (stack + bet markers): a handful of overlapping chip
+   ellipses standing in for a real stack; breakIntoChips() picks
+   denominations greedily so a big amount reads as a few higher-value
+   chips instead of a tall pile of small ones. */
+.cr-shell .cr-situation-chip {
+    stroke-width: 1;
+}
+
+/* Deep/bright pairs from each hue family are spread 3 denominations
+   apart (never adjacent) so a handful of chips together stay easy to
+   tell apart at a glance, without any color outside the app's palette. */
+.cr-shell .cr-chip-d100 {
+    fill: var(--cr-color-primary-hover);
+    stroke: var(--cr-color-surface);
+}
+
+.cr-shell .cr-chip-d25 {
+    fill: var(--cr-color-success-hover);
+    stroke: var(--cr-color-surface);
+}
+
+.cr-shell .cr-chip-d10 {
+    fill: var(--cr-color-danger-hover);
+    stroke: var(--cr-color-surface);
+}
+
+.cr-shell .cr-chip-d5 {
+    fill: var(--cr-color-primary);
+    stroke: var(--cr-color-surface);
+}
+
+.cr-shell .cr-chip-d1 {
+    fill: var(--cr-color-success);
+    stroke: var(--cr-color-surface);
+}
+
+.cr-shell .cr-chip-d05 {
+    fill: var(--cr-color-danger);
+    stroke: var(--cr-color-surface);
+}
+
+/* Must stay in sync with BET_FONT_SIZE in situation_table.js - the
+   no-overlap clearance check is computed from that number. */
+.cr-shell .cr-situation-bet-chip-label {
+    font-size: 15px;
+    font-weight: 600;
+    fill: var(--cr-color-text);
+}
+
+/* Hole cards for non-hero players still in the hand (card backs only) */
+.cr-shell .cr-situation-card {
+    fill: var(--cr-color-primary);
+    stroke: var(--cr-color-surface);
+    stroke-width: 2;
+}
+
+.cr-shell .cr-situation-button-chip {
+    fill: var(--cr-color-surface);
+    stroke: var(--cr-color-primary);
+    stroke-width: 2;
+}
+
+.cr-shell .cr-situation-button-chip-label {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--cr-color-primary);
+}
+
+/* ---- Real hole cards (cards.js renderCardFace output) ----
+   Used only where heroCards is passed to renderSituationTable (training) -
+   the editor always passes no heroCards, so these never appear there. */
+.cr-shell .cr-card-face {
+    stroke: var(--cr-color-surface);
+    stroke-width: 2;
+}
+
+.cr-shell .cr-card-face--s { fill: var(--suit-s); }
+.cr-shell .cr-card-face--h { fill: var(--suit-h); }
+.cr-shell .cr-card-face--d { fill: var(--suit-d); }
+.cr-shell .cr-card-face--c { fill: var(--suit-c); }
+
+.cr-shell .cr-card-face-rank {
+    font-size: 22px;
+    font-weight: 700;
+    fill: #ffffff;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 1000px) {
+    .cr-shell {
+        padding: var(--cr-space-md) 0 60px;
+    }
+    /* Native <select> options clip rather than wrap, so it still needs a
+       real floor - letting it hit min-width:0 like the other toolbar
+       items would clip the placeholder text. */
+    .cr-shell .cr-select {
+        flex: 1 1 220px;
+        min-width: 220px;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .cr-shell .cr-card {
+        border-radius: var(--cr-radius-md);
+        padding: var(--cr-space-md);
+    }
+    .cr-shell .cr-toast-container {
+        top: var(--cr-space-sm);
+        right: var(--cr-space-sm);
+        left: var(--cr-space-sm);
+        width: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cr-shell * {
+        transition: none !important;
+        animation: none !important;
+    }
+}

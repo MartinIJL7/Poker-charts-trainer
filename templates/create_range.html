@@ -132,5 +132,5 @@
         });
     </script>
 
-    <script src="{{ url_for('static', filename='create_range.js') }}?v={{ static_version('create_range.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='create_range.js') }}?v={{ static_version('create_range.js') }}"></script>
 {% endblock %}

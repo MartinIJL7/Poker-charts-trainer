@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}Тренировка по покерным чартам{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ static_version('style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='cr_design.css') }}?v={{ static_version('cr_design.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">

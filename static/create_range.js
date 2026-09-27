@@ -1,5 +1,15 @@
 // create_range.js
-'use strict';
+// Native ES module (implicitly strict). The table diagram renderer lives
+// in situation_table.js; only the situation *editing* UI stays here.
+import {
+    CANONICAL_POSITIONS,
+    buildSeatsForPlayerCount,
+    getDefaultSituation,
+    rotateForDisplay,
+    roundBb,
+    renderSituationTable
+} from './situation_table.js';
+import { showToast as renderToast } from './toast.js';
 
 const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 const DRAG_THRESHOLD = 10;
@@ -34,61 +44,8 @@ let matrixCells = [];
 let dom = {};
 
 // -------------------------------------------------------------------
-// Table situation: canonical positions + state
+// Table situation: state
 // -------------------------------------------------------------------
-
-// Canonical seat-position labels per player count, in fixed clockwise
-// table order (index 0 = earliest to act, last two are always SB/BB).
-// This is a wholly separate concept from the free-text #position (range
-// name) input above - the two never interact. 5-max/6-max use MP/EP for
-// the earliest seats rather than LJ/HJ, since at those sizes there isn't
-// room for a genuinely distinct lojack/hijack.
-const CANONICAL_POSITIONS = {
-    2: ['BTN', 'BB'],
-    3: ['BTN', 'SB', 'BB'],
-    4: ['CO', 'BTN', 'SB', 'BB'],
-    5: ['MP', 'CO', 'BTN', 'SB', 'BB'],
-    6: ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB'],
-    7: ['UTG', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
-    8: ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
-    9: ['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB']
-};
-
-// Builds a fresh canonical-order seat array for numPlayers, carrying over
-// stack/bet/folded from `previous` for any position label present at
-// both counts (so nudging the player count by +-1 doesn't wipe
-// everything). Falls hero back to BTN if the previous hero position
-// doesn't exist at the new count. Whoever ends up hero is always
-// unfolded.
-function buildSeatsForPlayerCount(numPlayers, previous) {
-    const order = CANONICAL_POSITIONS[numPlayers];
-    const previousByPosition = {};
-    (previous.seats || []).forEach(function(seat) {
-        previousByPosition[seat.position] = seat;
-    });
-
-    let heroPosition = previous.hero_position;
-    if (order.indexOf(heroPosition) === -1) {
-        heroPosition = 'BTN';
-    }
-
-    const seats = order.map(function(pos) {
-        const prevSeat = previousByPosition[pos];
-        const isHero = pos === heroPosition;
-        return {
-            position: pos,
-            stack: prevSeat ? prevSeat.stack : 100,
-            bet: prevSeat ? prevSeat.bet : 0,
-            folded: isHero ? false : (prevSeat ? prevSeat.folded : false)
-        };
-    });
-
-    return { num_players: numPlayers, hero_position: heroPosition, seats: seats };
-}
-
-function getDefaultSituation() {
-    return buildSeatsForPlayerCount(6, { hero_position: 'BTN', seats: [] });
-}
 
 // Content-based fingerprint, mirroring snapshotSubranges' role for the
 // situation card. Seats are always stored in fixed canonical order, so
@@ -112,36 +69,8 @@ function showNetworkError(err) {
     showToast('Ошибка сети: ' + err, 'error');
 }
 
-// Small auto-dismissing toast instead of a blocking native alert(). Only
-// for one-way informational messages - confirm() still handles yes/no
-// decisions natively, since a toast can't pause and wait for an answer.
 function showToast(message, type) {
-    const toast = document.createElement('div');
-    toast.className = 'cr-toast cr-toast--' + type;
-    toast.textContent = message;
-
-    let removed = false;
-    function removeToast() {
-        if (removed) return;
-        removed = true;
-        clearTimeout(timer);
-        toast.classList.remove('cr-toast--visible');
-        // Only listen for transitionend now, once the fade-out actually
-        // starts - registering it earlier would catch the fade-IN
-        // transition completing and remove the toast almost immediately.
-        toast.addEventListener('transitionend', function() { toast.remove(); }, { once: true });
-        // Fallback in case transitionend never fires (e.g. prefers-reduced-motion
-        // disables the transition entirely, so it wouldn't fire naturally).
-        setTimeout(function() { toast.remove(); }, 300);
-    }
-
-    const timer = setTimeout(removeToast, 4000);
-    toast.addEventListener('click', removeToast);
-
-    dom.toastContainer.appendChild(toast);
-    requestAnimationFrame(function() {
-        toast.classList.add('cr-toast--visible');
-    });
+    renderToast(dom.toastContainer, message, type);
 }
 
 // Pick black or white text so hand labels stay readable against any
@@ -360,10 +289,6 @@ function postJson(url, payload, onSuccess) {
 // Table situation: rendering + editing
 // -------------------------------------------------------------------
 
-function roundBb(value) {
-    return Math.round(value * 100) / 100;
-}
-
 const STACK_BET_STEP = 0.5;
 
 // Snaps to the nearest 0.5 - the step="0.5" HTML attribute only affects
@@ -373,38 +298,8 @@ function roundToStep(value, step) {
     return roundBb(Math.round(value / step) * step);
 }
 
-function totalPot(situationObj) {
-    return situationObj.seats.reduce(function(sum, seat) { return sum + seat.bet; }, 0);
-}
-
 function findSeat(pos) {
     return situation.seats.find(function(s) { return s.position === pos; });
-}
-
-// Reorders seats starting at hero (bottom of the table) going clockwise,
-// so the SVG diagram and the edit table always agree on seat order.
-// Purely a display concern - seats stay stored in canonical order.
-function rotateForDisplay(situationObj) {
-    const order = CANONICAL_POSITIONS[situationObj.num_players];
-    const heroIndex = order.indexOf(situationObj.hero_position);
-    const seatsByPosition = {};
-    situationObj.seats.forEach(function(seat) { seatsByPosition[seat.position] = seat; });
-    const n = order.length;
-    const display = [];
-    for (let i = 0; i < n; i++) {
-        display.push(seatsByPosition[order[(heroIndex + i) % n]]);
-    }
-    return display;
-}
-
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
-function createSvgEl(tag, attrs) {
-    const el = document.createElementNS(SVG_NS, tag);
-    for (const key in attrs) {
-        el.setAttribute(key, attrs[key]);
-    }
-    return el;
 }
 
 function populateHeroSelect(situationObj) {
@@ -417,264 +312,6 @@ function populateHeroSelect(situationObj) {
         select.appendChild(option);
     });
     select.value = situationObj.hero_position;
-}
-
-// Greedy denomination breakdown for the chip-stack graphic: a handful of
-// higher-value chips instead of one-chip-per-bb, so e.g. 10bb reads as a
-// single "10" chip rather than ten "1" chips. Reuses only existing design
-// tokens for chip colors (see the cr-chip-d* CSS classes).
-const CHIP_DENOMINATIONS = [
-    { value: 100, cls: 'cr-chip-d100' },
-    { value: 25, cls: 'cr-chip-d25' },
-    { value: 10, cls: 'cr-chip-d10' },
-    { value: 5, cls: 'cr-chip-d5' },
-    { value: 1, cls: 'cr-chip-d1' },
-    { value: 0.5, cls: 'cr-chip-d05' }
-];
-
-function breakIntoChips(amount, maxChips) {
-    let remaining = roundBb(amount);
-    const chips = [];
-    for (let i = 0; i < CHIP_DENOMINATIONS.length && chips.length < maxChips; i++) {
-        const denom = CHIP_DENOMINATIONS[i];
-        while (remaining >= denom.value - 0.001 && chips.length < maxChips) {
-            chips.push(denom);
-            remaining = roundBb(remaining - denom.value);
-        }
-    }
-    return chips;
-}
-
-// Geometry constants for the table diagram, verified offline (script,
-// not eyeballed): every element stays in-bounds with >=12px clearance
-// from every other element, for all player counts 2-9, with every seat
-// betting simultaneously, for every possible button seat. Changing any
-// of these means re-running that check - the layout has no slack to
-// spare at 9 players.
-const TABLE_VIEW_W = 720, TABLE_VIEW_H = 430;
-const TABLE_CX = 360, TABLE_CY = 215;
-// The felt is a stadium (a rectangle with semicircular caps), i.e. the
-// corner radius equals the half-height - the shape of a real poker
-// table, and the reason seatOutlineRadius() below can be exact.
-const FELT_HALF_W = 290, FELT_HALF_H = 148;
-const FELT_CORNER_R = FELT_HALF_H;
-
-// Seat plates are rounded rectangles, not circles: a circle wide enough
-// for "UTG+1" plus a stack figure wastes a lot of vertical space, and
-// vertical space is what the bet markers need.
-const SEAT_W = 84, SEAT_H = 46, SEAT_CORNER_R = 12;
-
-// Every seat's hole cards sit straight ABOVE its plate (screen-up, not
-// "away from the table center"), top and bottom rows alike, tucked a
-// couple of pixels behind the plate's top edge. Vertical rather than
-// radial keeps the side seats' cards from sticking out sideways.
-const CARD_GAP = 36;
-const CARD_W = 22, CARD_H = 30;
-// Side-by-side, barely tilted - a wide fan around a shared center made
-// the two cards sit almost on top of each other and read as one blob.
-const CARD_SPREAD = 10, CARD_TILT = 5;
-
-// Hero's two cards are drawn larger and hollow: they are placeholders
-// that the training screen will fill with the real hand, so the space
-// above the hero plate is deliberately kept free of everything else.
-const HERO_CARD_W = 40, HERO_CARD_H = 54;
-const HERO_CARD_GAP = 54;
-const HERO_CARD_SPREAD = 23, HERO_CARD_TILT = 0;
-
-// Hero's bet is placed by hand, not on the ring: to the right of the hero
-// plate, like a real client. That needs a wide gap between hero and the
-// seat on hero's right, so the two seats next to hero are pushed outward
-// to at least this distance from the table's vertical axis (see
-// seatAngleFor).
-const HERO_BET_GAP_X = 10, HERO_BET_DY = -14;
-const HERO_NEIGHBOR_MIN_X = 180;
-
-// Bet markers sit on a scaled copy of the seat outline.
-const BET_RING_FACTOR = 0.6;
-// A bet marker is laid out HORIZONTALLY - amount text, then the chip
-// stack - and centered on its point on that ring. The table is far wider
-// than it is tall, so a horizontal footprint is the cheap direction;
-// stacking the label above/below/behind the chips (every previous
-// attempt) spent the one axis that has no room.
-const BET_FONT_SIZE = 15;
-// Deliberately generous per-character width (0.6em vs ~0.55em actual for
-// digits) so the clearance check errs toward the label being too wide.
-const BET_CHAR_W = BET_FONT_SIZE * 0.6;
-const BET_TEXT_CHIP_GAP = 4;
-const BET_MAX_CHIPS = 4;
-
-// Thin chips: a low-profile stack reads as chips at this scale without
-// claiming the vertical space a chunkier ellipse would.
-const CHIP_RX = 7, CHIP_RY = 4, CHIP_STEP = 3.2;
-
-const BTN_CHIP_R = 10;
-// The button chip is pinned to the corner of its seat plate (inward
-// side), overlapping it like a badge. Offsetting it *away* from the seat
-// instead - the obvious placement - pushes it into the neighbouring seat
-// at 9 players, where seats are only ~60px apart.
-const BTN_CHIP_RADIAL_F = 1.0, BTN_CHIP_TANGENT_F = 0.9;
-
-// Distance from the table center to the felt outline along `theta`.
-// Exact for a stadium: either the ray exits through a flat edge, or
-// through one of the two end caps.
-function seatOutlineRadius(theta) {
-    const c = Math.cos(theta), s = Math.sin(theta);
-    const flat = FELT_HALF_W - FELT_CORNER_R;
-    if (Math.abs(s) > 1e-9) {
-        const t = FELT_HALF_H / Math.abs(s);
-        if (Math.abs(t * c) <= flat) return t;
-    }
-    const cc = c >= 0 ? flat : -flat;
-    const disc = (cc * c) * (cc * c) - cc * cc + FELT_CORNER_R * FELT_CORNER_R;
-    return cc * c + Math.sqrt(Math.max(disc, 0));
-}
-
-// Draws a stack of overlapping chip ellipses growing upward from a
-// vertical center at (x, y).
-function renderChipStack(svg, x, y, amount, maxChips) {
-    if (amount <= 0) return;
-    const chips = breakIntoChips(amount, maxChips || BET_MAX_CHIPS);
-    const bottomY = y + (chips.length - 1) * CHIP_STEP / 2;
-    chips.forEach(function(chip, idx) {
-        svg.appendChild(createSvgEl('ellipse', {
-            cx: x, cy: bottomY - idx * CHIP_STEP, rx: CHIP_RX, ry: CHIP_RY,
-            class: 'cr-situation-chip ' + chip.cls
-        }));
-    });
-}
-
-// Two card backs marking a seat as still in the hand - folded seats get
-// none (on top of the opacity fade already applied). The hero variant is
-// bigger and hollow.
-function renderCardsGlyph(svg, x, y, isHero) {
-    const w = isHero ? HERO_CARD_W : CARD_W;
-    const h = isHero ? HERO_CARD_H : CARD_H;
-    const spread = isHero ? HERO_CARD_SPREAD : CARD_SPREAD;
-    const tilt = isHero ? HERO_CARD_TILT : CARD_TILT;
-    [-1, 1].forEach(function(side) {
-        svg.appendChild(createSvgEl('rect', {
-            x: -w / 2, y: -h / 2, width: w, height: h, rx: 4,
-            class: 'cr-situation-card' + (isHero ? ' cr-situation-card--hero' : ''),
-            transform: 'translate(' + (x + side * spread) + ',' + y + ') rotate(' + (side * tilt) + ')'
-        }));
-    });
-}
-
-// Angle (radians, SVG orientation) of display seat `i` of `n`. Seats are
-// evenly spaced starting from hero at the bottom, except that the two
-// seats beside hero are moved outward when an even spacing would leave
-// no room for hero's bet between them and hero.
-function seatAngleFor(i, n) {
-    const base = (Math.PI / 2) + i * (2 * Math.PI / n);
-    const nextToHero = (i === 1 || i === n - 1);
-    if (!nextToHero || Math.sin(base) < 0.3) return base;
-    const flat = FELT_HALF_W - FELT_CORNER_R;
-    const baseX = Math.abs(seatOutlineRadius(base) * Math.cos(base));
-    if (baseX >= HERO_NEIGHBOR_MIN_X) return base;
-    const dxCap = Math.max(HERO_NEIGHBOR_MIN_X - flat, 0);
-    const y = dxCap > 0 ? Math.sqrt(FELT_CORNER_R * FELT_CORNER_R - dxCap * dxCap) : FELT_HALF_H;
-    const x = Math.cos(base) < 0 ? -HERO_NEIGHBOR_MIN_X : HERO_NEIGHBOR_MIN_X;
-    return Math.atan2(y, x);
-}
-
-// Rebuilds the table SVG from scratch. Cheap enough to call on every
-// keystroke - a handful of shapes/text nodes, no measurable cost.
-function renderSituationSvg(situationObj) {
-    const svg = dom.situationSvg;
-    svg.innerHTML = '';
-
-    svg.appendChild(createSvgEl('rect', {
-        x: TABLE_CX - FELT_HALF_W, y: TABLE_CY - FELT_HALF_H,
-        width: FELT_HALF_W * 2, height: FELT_HALF_H * 2,
-        rx: FELT_CORNER_R, ry: FELT_CORNER_R,
-        class: 'cr-situation-table-felt'
-    }));
-
-    const potText = createSvgEl('text', { x: TABLE_CX, y: TABLE_CY, 'text-anchor': 'middle', class: 'cr-situation-pot-label-svg' });
-    potText.textContent = 'Банк: ' + roundBb(totalPot(situationObj)) + ' bb';
-    svg.appendChild(potText);
-
-    const display = rotateForDisplay(situationObj);
-    const n = display.length;
-
-    display.forEach(function(seat, i) {
-        const angle = seatAngleFor(i, n);
-        const ux = Math.cos(angle), uy = Math.sin(angle);
-        // Seats sit ON the felt outline itself (not on an inscribed
-        // ellipse), so every seat straddles the rail at the same depth
-        // whatever direction it's in.
-        const outlineR = seatOutlineRadius(angle);
-        const sx = TABLE_CX + outlineR * ux;
-        const sy = TABLE_CY + outlineR * uy;
-        const isHero = seat.position === situationObj.hero_position;
-
-        let seatClass = 'cr-situation-seat';
-        if (isHero) seatClass += ' cr-situation-seat--hero';
-        if (seat.folded) seatClass += ' cr-situation-seat--folded';
-
-        if (!seat.folded) {
-            renderCardsGlyph(svg, sx, sy - (isHero ? HERO_CARD_GAP : CARD_GAP), isHero);
-        }
-
-        const group = createSvgEl('g', { class: seatClass });
-        group.appendChild(createSvgEl('rect', {
-            x: sx - SEAT_W / 2, y: sy - SEAT_H / 2, width: SEAT_W, height: SEAT_H,
-            rx: SEAT_CORNER_R, ry: SEAT_CORNER_R
-        }));
-
-        const label = createSvgEl('text', { x: sx, y: sy - 5, 'text-anchor': 'middle', class: 'cr-situation-seat-label' });
-        label.textContent = seat.position;
-        group.appendChild(label);
-
-        const stackText = createSvgEl('text', { x: sx, y: sy + 15, 'text-anchor': 'middle', class: 'cr-situation-seat-stack' });
-        stackText.textContent = roundBb(seat.stack);
-        group.appendChild(stackText);
-
-        svg.appendChild(group);
-
-        if (seat.bet > 0) {
-            const betLabelText = String(roundBb(seat.bet));
-            const textW = betLabelText.length * BET_CHAR_W;
-            const unitW = textW + BET_TEXT_CHIP_GAP + CHIP_RX * 2;
-            let leftX, by;
-            if (isHero) {
-                leftX = sx + SEAT_W / 2 + HERO_BET_GAP_X;
-                by = sy + HERO_BET_DY;
-            } else {
-                leftX = TABLE_CX + outlineR * BET_RING_FACTOR * ux - unitW / 2;
-                by = TABLE_CY + outlineR * BET_RING_FACTOR * uy;
-            }
-
-            const betText = createSvgEl('text', {
-                x: leftX, y: by + BET_FONT_SIZE * 0.35, 'text-anchor': 'start',
-                class: 'cr-situation-bet-chip-label'
-            });
-            betText.textContent = betLabelText;
-            svg.appendChild(betText);
-
-            renderChipStack(svg, leftX + textW + BET_TEXT_CHIP_GAP + CHIP_RX, by, seat.bet, BET_MAX_CHIPS);
-        }
-
-        if (seat.position === 'BTN') {
-            let btnX, btnY;
-            if (uy > -0.3) {
-                // Every seat except the top row has its inward side facing the
-                // cards' height, so the dealer chip goes on the plate's lower
-                // corner facing the table's vertical axis instead.
-                const dir = ux < -0.01 ? 1 : -1;
-                btnX = sx + dir * (SEAT_W / 2) * BTN_CHIP_TANGENT_F;
-                btnY = sy + SEAT_H / 2;
-            } else {
-                const tx = -uy, ty = ux;
-                btnX = sx - ux * (SEAT_H / 2) * BTN_CHIP_RADIAL_F + tx * (SEAT_W / 2) * BTN_CHIP_TANGENT_F;
-                btnY = sy - uy * (SEAT_H / 2) * BTN_CHIP_RADIAL_F + ty * (SEAT_W / 2) * BTN_CHIP_TANGENT_F;
-            }
-            svg.appendChild(createSvgEl('circle', { cx: btnX, cy: btnY, r: BTN_CHIP_R, class: 'cr-situation-button-chip' }));
-            const dText = createSvgEl('text', { x: btnX, y: btnY + 4, 'text-anchor': 'middle', class: 'cr-situation-button-chip-label' });
-            dText.textContent = 'D';
-            svg.appendChild(dText);
-        }
-    });
 }
 
 // Builds a "-" / number input / "+" group. onChange fires with the new
@@ -824,7 +461,7 @@ function onSeatStackInput(pos, rawValue) {
     const seat = findSeat(pos);
     if (!seat || isNaN(rawValue)) return null;
     seat.stack = Math.max(0, roundToStep(rawValue, STACK_BET_STEP));
-    renderSituationSvg(situation);
+    renderSituationTable(dom.situationSvg, situation);
     updateEditingControlsState();
     return seat.stack;
 }
@@ -844,7 +481,7 @@ function onSeatBetInput(pos, rawValue) {
     if (seatRowInputs[pos]) {
         seatRowInputs[pos].stackInput.value = seat.stack;
     }
-    renderSituationSvg(situation);
+    renderSituationTable(dom.situationSvg, situation);
     updateEditingControlsState();
     return seat.bet;
 }
@@ -854,7 +491,7 @@ function onSeatFoldedChange(pos, folded) {
     if (!seat) return;
     seat.folded = folded;
     renderSeatEditTable(situation);
-    renderSituationSvg(situation);
+    renderSituationTable(dom.situationSvg, situation);
     updateEditingControlsState();
 }
 
@@ -866,7 +503,7 @@ function setSituation(newSituation) {
     populateHeroSelect(situation);
     dom.situationPlayersSelect.value = String(situation.num_players);
     renderSeatEditTable(situation);
-    renderSituationSvg(situation);
+    renderSituationTable(dom.situationSvg, situation);
     updateEditingControlsState();
 }
 

@@ -1,612 +1,124 @@
 {% extends "base.html" %}
 {% block title %}Тренировка – {{ mode }}{% endblock %}
+{% block body_class %}tr-page{% endblock %}
 {% block header %}
-<div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+<div class="tr-header-row">
     <span>Режим: {{ mode }}</span>
-    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.65em; font-weight: normal; cursor: pointer; user-select: none;">
+    {% if not show_start %}
+    <label class="tr-timer-toggle">
         <input type="checkbox" id="timer-toggle" checked> Показывать время
     </label>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_css %}
-<style>
-    .range-matrix-grid {
-        display: grid;
-        grid-template-columns: repeat(13, 1fr);
-        gap: 2px;
-        max-width: 650px;
-        margin: 0 auto;
-        touch-action: none;
-        user-select: none;
-    }
-
-    .range-matrix-cell {
-        background: #d5d8dc;
-        text-align: center;
-        font-size: 0.7em;
-        border: 1px solid #ddd;
-        aspect-ratio: 1 / 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        transition: background 0.2s;
-    }
-
-    .range-matrix-cell.current-hand {
-        border: 3px solid #2c3e50;
-        font-weight: bold;
-        font-size: 0.9em;
-    }
-
-    .range-subrange-list {
-        list-style: none;
-        padding: 0;
-        margin: 15px 0 0 0;
-    }
-
-    .range-subrange-list li {
-        display: flex;
-        align-items: center;
-        background: white;
-        padding: 8px 12px;
-        margin-bottom: 6px;
-        border-radius: 4px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .range-color-dot {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        margin-right: 10px;
-        flex-shrink: 0;
-    }
-
-    .next-btn.blocked {
-        position: relative;
-        overflow: hidden;
-        pointer-events: none;
-        cursor: not-allowed;
-        opacity: 0.8;
-    }
-
-    .next-btn.blocked::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 0%;
-        background: #3498db;
-        transition: width 3s linear;
-        z-index: 0;
-        border-radius: inherit;
-    }
-
-    .next-btn.blocked.animating::before {
-        width: 100%;
-    }
-
-    .next-btn.blocked span {
-        position: relative;
-        z-index: 1;
-    }
-
-    @media screen and (max-width: 600px) {
-        .range-matrix-grid {
-            gap: 1px;
-            max-width: 100%;
-        }
-        .range-matrix-cell {
-            font-size: 0.6rem;
-            min-height: 26px;
-            min-width: 26px;
-            border-width: 1px;
-        }
-        .range-matrix-cell.current-hand {
-            font-size: 0.8rem;
-            border-width: 2px;
-        }
-    }
-
-    @media (hover: none) and (pointer: coarse) {
-        .key-hint,
-        .key-hint-light {
-            display: none;
-        }
-    }
-
-    @media screen and (max-width: 430px) {
-        .range-matrix-grid {
-            gap: 0 !important;
-            max-width: 100% !important;
-            width: 100% !important;
-        }
-        .range-matrix-cell {
-            font-size: 0.5rem !important;
-            min-width: 0 !important;
-            min-height: 0 !important;
-            border: none !important;
-            aspect-ratio: 1 / 1 !important;
-            line-height: 1 !important;
-            padding: 0 !important;
-        }
-        .range-matrix-cell.current-hand {
-            border: 2px solid #2c3e50 !important;
-            font-size: 0.6rem !important;
-        }
-        .range-subrange-list li {
-            padding: 6px 8px;
-            font-size: 0.9em;
-        }
-    }
-
-    .key-hint {
-        font-size: 0.7em;
-        color: #888;
-        margin-right: 4px;
-        font-weight: normal;
-    }
-
-    .key-hint-light {
-        font-size: 0.7em;
-        color: #ffffff;
-        margin-right: 4px;
-        font-weight: normal;
-    }
-</style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='training.css') }}?v={{ static_version('training.css') }}">
 {% endblock %}
 
 {% block content %}
+<div class="cr-shell tr-shell">
+
     {% if show_start %}
         <!-- START SCREEN -->
-        <div style="text-align: center; margin-top: 40px;">
+        <div class="cr-card tr-start-card">
             <h2>Готовы начать тренировку?</h2>
-            <p style="margin: 20px 0; color: #555;">
+            <p class="tr-start-text">
                 Вам будут показываться руки для диапазонов из режима <strong>{{ mode }}</strong><br>
                 Отвечайте как можно быстрее и точнее
             </p>
-            <a href="{{ url_for('training', mode=mode, start=1) }}" class="btn btn-success" style="font-size: 1.5em; padding: 15px 50px; text-decoration: none;">▶ Начать</a>
+            <a href="{{ url_for('training', mode=mode, start=1) }}" class="cr-btn cr-btn--primary tr-start-btn">▶ Начать</a>
         </div>
-    {% else %}
-        <!-- NORMAL TRAINING (result or question) -->
-        {% if show_result and result %}
-            <div class="result-box">
-                <h2>
-                    Результат:
-                    <span class="result-status {% if result.was_correct %}correct{% else %}incorrect{% endif %}">
-                        {% if result.was_correct %}
-                            ✅
-                        {% else %}
-                            ❌
-                        {% endif %}
-                    </span>
-                </h2>
-                <p><strong>Диапазон:</strong> {{ result.pos }}</p>
-                <p><strong>Рука:</strong> <span class="hand">{{ result.hand }}</span></p>
-                <p><strong>Ваш ответ:</strong> {{ result.user_answer }}</p>
-                <p><strong>Правильный ответ:</strong> <span class="correct-answer">{{ result.correct_answer }}</span></p>
-                {% if result.attempts is defined %}
-                <details style="margin-top: 15px; background: #f8f9fa; border-radius: 6px; padding: 10px;">
-                    <summary style="font-weight: bold; cursor: pointer; user-select: none; outline: none;">
-                        Статистика по руке {{ result.hand }} в диапазоне {{ result.pos }}
-                    </summary>
-                    <div style="margin-top: 10px;">
-                        <p>Попыток: {{ result.attempts }} раз</p>
-                        <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
-                        <p>Ошибок: {{ result.errors }}</p>
-                        <p>Среднее время ответа за последние 3 попытки: {{ result.avg_time_sec }} с
-                        {% if result.last_times_display %} ({{ result.last_times_display }} с){% endif %}
-                        </p>
-                        <p>Текущее время ответа: {{ result.current_time_sec }} с</p>
-                        <div id="hand-status" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;"></div>
-                    </div>
-                </details>
-                {% endif %}
 
-                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <form action="{{ next_url }}" method="get">
-                        <button type="submit" class="next-btn" id="next-question-btn">
-                            <span>➡️ Следующий вопрос <span class="key-hint-light">(Enter / Space)</span></span>
-                        </button>
-                    </form>
-                    <button id="show-range-btn" class="next-btn">Показать диапазон <span class="key-hint-light">(+)</span></button>
-                </div>
+    {% elif show_result and result %}
+        <!-- RESULT SCREEN -->
+        <div class="cr-card tr-table-card {{ 'tr-table-card--correct' if result.was_correct else 'tr-table-card--incorrect' }}">
+            <svg id="tr-table-svg" class="tr-table-svg" viewBox="20 7 680 397" role="img" aria-label="Стол"></svg>
+        </div>
 
-                <div id="range-display" style="display: none; margin-top: 20px;">
-                    <h3>Диапазон <span id="range-pos"></span></h3>
-                    <div id="range-matrix"></div>
-                    <ul id="range-subrange-list" class="range-subrange-list"></ul>
-                </div>
-            </div>
-
-            <script>
-                (function() {
-                    const currentPos = '{{ result.pos }}';
-                    const currentHand = '{{ result.hand }}';
-                    const showRangeBtn = document.getElementById('show-range-btn');
-                    const rangeDisplay = document.getElementById('range-display');
-                    const rangePosSpan = document.getElementById('range-pos');
-                    const matrixContainer = document.getElementById('range-matrix');
-                    const listContainer = document.getElementById('range-subrange-list');
-
-                    const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
-                    const NOT_IN_RANGE_COLOR = '#d5d8dc';
-                    const DEFAULT_SUBRANGE_COLOR = '#3498db';
-                    const SHOW_RANGE_LABEL = 'Показать диапазон <span class="key-hint-light">(+)</span>';
-                    const HIDE_RANGE_LABEL = 'Скрыть диапазон <span class="key-hint-light">(+)</span>';
-
-                    let isVisible = false;
-
-                    if (showRangeBtn) {
-                        showRangeBtn.addEventListener('click', function() {
-                            if (isVisible) {
-                                rangeDisplay.style.display = 'none';
-                                this.innerHTML = SHOW_RANGE_LABEL;
-                                isVisible = false;
-                                return;
-                            }
-
-                            fetch('/api/range/' + encodeURIComponent(currentPos))
-                                .then(response => {
-                                    if (!response.ok) {
-                                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
-                                    }
-                                    return response.json();
-                                })
-                                .then(data => {
-                                    if (data.status === 'ok') {
-                                        rangePosSpan.textContent = currentPos;
-                                        renderRangeMatrix(data.subranges, data.colors, currentHand);
-                                        rangeDisplay.style.display = 'block';
-                                        this.innerHTML = HIDE_RANGE_LABEL;
-                                        isVisible = true;
-                                    } else {
-                                        alert('Ошибка: ' + data.message);
-                                    }
-                                })
-                                .catch(err => {
-                                    alert('Ошибка загрузки диапазона: ' + err.message + '\nПроверьте, что сервер запущен и сессия активна');
-                                    console.error(err);
-                                });
-                        });
-                    }
-
-                    // Standard 13x13 layout: pairs on the diagonal, suited above it, offsuit below
-                    function handAt(rowIdx, colIdx) {
-                        const rowRank = RANKS[rowIdx];
-                        const colRank = RANKS[colIdx];
-                        if (rowIdx === colIdx) return rowRank + colRank;
-                        if (rowIdx < colIdx) return rowRank + colRank + 's';
-                        return colRank + rowRank + 'o';
-                    }
-
-                    // First subrange (in API order) that contains the hand wins
-                    function handColor(hand, subranges, colors) {
-                        for (const [name, hands] of Object.entries(subranges)) {
-                            if (hands.includes(hand)) {
-                                return colors[name] || DEFAULT_SUBRANGE_COLOR;
-                            }
-                        }
-                        return NOT_IN_RANGE_COLOR;
-                    }
-
-                    function renderMatrixGrid(subranges, colors, highlightHand) {
-                        matrixContainer.innerHTML = '';
-                        const grid = document.createElement('div');
-                        grid.className = 'range-matrix-grid';
-
-                        RANKS.forEach((_, rowIdx) => {
-                            RANKS.forEach((_, colIdx) => {
-                                const hand = handAt(rowIdx, colIdx);
-                                const cell = document.createElement('div');
-                                cell.className = 'range-matrix-cell';
-                                cell.textContent = hand;
-                                cell.style.backgroundColor = handColor(hand, subranges, colors);
-                                if (hand === highlightHand) {
-                                    cell.classList.add('current-hand');
-                                }
-                                grid.appendChild(cell);
-                            });
-                        });
-
-                        matrixContainer.appendChild(grid);
-                    }
-
-                    function renderSubrangeLegend(subranges, colors) {
-                        listContainer.innerHTML = '';
-                        for (const name of Object.keys(subranges)) {
-                            const li = document.createElement('li');
-                            const dot = document.createElement('span');
-                            dot.className = 'range-color-dot';
-                            dot.style.backgroundColor = colors[name] || DEFAULT_SUBRANGE_COLOR;
-                            li.appendChild(dot);
-                            li.appendChild(document.createTextNode(name));
-                            listContainer.appendChild(li);
-                        }
-                    }
-
-                    function renderRangeMatrix(subranges, colors, highlightHand) {
-                        renderMatrixGrid(subranges, colors, highlightHand);
-                        renderSubrangeLegend(subranges, colors);
-                    }
-                })();
-            </script>
-
-            <script>
-                // Green check or grey cross for one learning criterion
-                function criterionMarkHTML(ok) {
-                    return `<span style="color: ${ok ? '#27ae60' : '#95a5a6'};">${ok ? '✅' : '❌'}</span>`;
-                }
-
-                // Checklist of the two "learned" conditions (strict OR weight-based),
-                // shown for hands that are not learned or were forgotten
-                function learningCriteriaHTML(attempts, errorsLast3, avgTime, data) {
-                    let html = '';
-                    html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
-                    html += `${criterionMarkHTML(attempts >= 3)} Попыток >= 3<br>`;
-                    html += `${criterionMarkHTML(errorsLast3 === 0)} Ноль ошибок за последние 3 попытки &nbsp; (${data.last_results_display})<br>`;
-                    html += `${criterionMarkHTML(avgTime <= 3)} Среднее время руки за последние 3 попытки <= 3 с`;
-                    html += `<hr style="margin: 4px 0; border: 0; border-top: 1px solid #ddd;">`;
-                    html += `<div style="font-weight: bold; color: #555; margin: 2px 0;">ИЛИ</div>`;
-                    html += `${criterionMarkHTML(data.weight <= 0.25)} вес индивидуальной сложности ≤ 0.25 (текущий: ${data.weight.toFixed(3)})<br>`;
-                    html += `</div>`;
-                    return html;
-                }
-
-                // Build status HTML for a hand based on its learning state
-                function buildStatusHTML(data) {
-                    const attempts = data.attempts || 0;
-                    const avgTime = data.avg_time_sec !== null && data.avg_time_sec !== undefined ? data.avg_time_sec : 0;
-                    const errorsLast3 = data.errors_last_3 !== undefined ? data.errors_last_3 : 0;
-                    const reviewInterval = data.review_interval_days || 0;
-                    const penaltyActive = data.penalty_active || false;
-                    const daysSince = data.days_since_last_shown || 0;
-                    const isDue = data.is_due_for_review || false;
-
-                    let html = '';
-
-                    if (penaltyActive) {
-                        html += `<div style="color: #e74c3c; font-weight: bold;">🔴 Забыта</div>`;
-                        html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Рука была выучена, но затем была допущена ошибка, или среднее время руки за последние 3 попытки превысило 3 секунды, или вес стал более 0.25</div>`;
-                        html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Поэтому к весу добавлен бонус 1.2</div>`;
-                        html += learningCriteriaHTML(attempts, errorsLast3, avgTime, data);
-                    } else if (reviewInterval > 0 && isDue) {
-                        html += `<div style="color: #e67e22; font-weight: bold;">🟠 Выучена, пора повторять!</div>`;
-                        html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Вес повышен до максимума для планового повторения</div>`;
-                        html += `<div style="font-size: 0.8em; margin-top: 4px;">Интервал: ${reviewInterval} дн. &nbsp;|&nbsp; Прошло: ${daysSince} дн.</div>`;
-                    } else if (reviewInterval > 0) {
-                        html += `<div style="color: #27ae60; font-weight: bold;">🟢 Выучена</div>`;
-                        html += `<div style="font-size: 0.8em; margin-top: 4px;">Время до следующего повторения: ${reviewInterval} дн.</div>`;
-                    } else {
-                        html += `<div style="color: #95a5a6; font-weight: bold;">⚪ Не выучена</div>`;
-                        html += learningCriteriaHTML(attempts, errorsLast3, avgTime, data);
-                    }
-
-                    return html;
-                }
-
-                (function() {
-                    const result = {{ result|tojson }};
-                    const statusDiv = document.getElementById('hand-status');
-                    if (!statusDiv) return;
-
-                    const data = {
-                        attempts: result.attempts || 0,
-                        avg_time_sec: result.avg_time_sec || 0,
-                        errors_last_3: result.errors_last_3 !== undefined ? result.errors_last_3 : 0,
-                        review_interval_days: result.review_interval_days || 0,
-                        penalty_active: result.penalty_active || false,
-                        days_since_last_shown: result.days_since_last_shown || 0,
-                        is_due_for_review: result.is_due_for_review || false,
-                        last_results_display: result.last_results_display || '',
-                        weight: result.weight || 0
-                    };
-                    statusDiv.innerHTML = buildStatusHTML(data);
-
-                    // After a mistake, a slow answer or a fresh penalty, hold the "next"
-                    // button for 3 s (with a fill animation) so the result gets read
-                    const btn = document.getElementById('next-question-btn');
-                    if (btn) {
-                        const shouldBlock = !result.was_correct || result.current_time_sec > 10 || result.just_became_penalty;
-                        if (shouldBlock) {
-                            blockNextButton(btn);
-                        }
-                    }
-
-                    function blockNextButton(btn) {
-                        btn.disabled = true;
-                        btn.classList.add('blocked');
-                        void btn.offsetWidth;   // force reflow so the ::before width transition starts from 0
-                        btn.classList.add('animating');
-                        setTimeout(() => {
-                            btn.disabled = false;
-                            btn.classList.remove('blocked', 'animating');
-                        }, 3000);
-                    }
-                })();
-            </script>
-
-        {% else %}
-            <div class="question">
-                <p><strong>Диапазон:</strong> {{ pos }}</p>
-                <p><strong>Рука:</strong> <span class="hand">{{ hand }}</span></p>
-                <p><strong>Время:</strong> <span id="timer">0.0</span> с</p>
-            </div>
-
-            <form method="post" class="answer-form" id="answer-form">
-                <p>Выберите ответ:</p>
-                <div class="button-group">
-                    {% for ans in possible_answers %}
-                        <button type="submit" name="answer" value="{{ ans }}" class="answer-btn" data-key="{{ loop.index }}">
-                            <span class="key-hint">{{ loop.index }}</span> {{ ans }}
-                        </button>
-                    {% endfor %}
-                </div>
-                <!-- Hidden field to send client-side measured time -->
-                <input type="hidden" name="response_time_ms" id="response_time_ms" value="">
-            </form>
+        {% if not result.was_correct %}
+        <div class="cr-card tr-verdict-card">
+            <p><strong>Ваш ответ:</strong> {{ result.user_answer }}</p>
+            <p><strong>Правильный ответ:</strong> <span class="tr-correct-answer">{{ result.correct_answer }}</span></p>
+        </div>
         {% endif %}
+
+        <details class="cr-card tr-details">
+            <summary class="tr-details-summary">Статистика по руке {{ result.hand }} в диапазоне {{ result.pos }}</summary>
+            <div class="tr-details-body">
+                <p>Попыток: {{ result.attempts }} раз</p>
+                <p>Правильно: {{ result.correct_count }} ({{ "%.1f"|format(result.correct_count / result.attempts * 100 if result.attempts > 0 else 0) }}%)</p>
+                <p>Ошибок: {{ result.errors }}</p>
+                <p>Среднее время ответа за последние 3 попытки: {{ result.avg_time_sec }} с
+                {% if result.last_times_display %} ({{ result.last_times_display }} с){% endif %}
+                </p>
+                <p>Текущее время ответа: {{ result.current_time_sec }} с</p>
+                <div id="tr-hand-status" class="tr-hand-status"></div>
+            </div>
+        </details>
+
+        <div class="tr-actions">
+            <form action="{{ next_url }}" method="get">
+                <button type="submit" class="cr-btn cr-btn--primary tr-btn-wide" id="next-question-btn">
+                    <span>Следующий вопрос <span class="tr-key-hint">(Enter / Space)</span></span>
+                </button>
+            </form>
+            <button id="show-range-btn" class="cr-btn cr-btn--ghost tr-btn-wide">Показать диапазон <span class="tr-key-hint">(+)</span></button>
+        </div>
+
+        <div id="range-display" class="cr-card tr-range-display" hidden>
+            <h3>Диапазон <span id="range-pos"></span></h3>
+            <div id="range-matrix"></div>
+            <ul id="range-subrange-list" class="tr-range-subrange-list"></ul>
+        </div>
+
+    {% else %}
+        <!-- QUESTION SCREEN -->
+        <div class="cr-card tr-table-card">
+            <svg id="tr-table-svg" class="tr-table-svg" viewBox="20 7 680 397" role="img" aria-label="Стол"></svg>
+        </div>
+
+        <div class="tr-timer-bar-wrap">
+            <div class="tr-timer-bar"><div id="tr-timer-fill" class="tr-timer-fill tr-timer-fill--green"></div></div>
+            <span id="tr-timer-value" class="tr-timer-value">0.0</span>
+        </div>
+
+        <form method="post" class="tr-answer-form" id="answer-form">
+            <div class="tr-answer-grid" id="answer-grid">
+                {% for opt in answer_options %}
+                    <button type="submit" name="answer" value="{{ opt.name }}" class="cr-btn tr-answer-btn" data-key="{{ loop.index }}" style="--answer-color: {{ opt.color }};">
+                        <span class="tr-key-hint">{{ loop.index }}</span> {{ opt.name }}
+                    </button>
+                {% endfor %}
+            </div>
+            <input type="hidden" name="response_time_ms" id="response_time_ms" value="">
+            <input type="hidden" name="hero_card_0_rank" id="hero-card-0-rank" value="">
+            <input type="hidden" name="hero_card_0_suit" id="hero-card-0-suit" value="">
+            <input type="hidden" name="hero_card_1_rank" id="hero-card-1-rank" value="">
+            <input type="hidden" name="hero_card_1_suit" id="hero-card-1-suit" value="">
+        </form>
     {% endif %}
 
-    <div class="stats">
+    <div class="cr-card tr-stats-card">
         <h2>Статистика</h2>
         <p>Счетчик ответов в сессии браузера: <strong>{{ stats.total }}</strong></p>
-        <p>✅  <strong>{{ stats.correct }}</strong>
+        <p>✅ <strong>{{ stats.correct }}</strong>
             (<span id="stats-correct-pct">{{ "%.1f"|format(stats.correct / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
         </p>
-        <p>❌  <strong>{{ stats.wrong }}</strong>
+        <p>❌ <strong>{{ stats.wrong }}</strong>
             (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
         </p>
-        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
-            <a href="{{ url_for('reset_stats', next=request.url) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display: inline-block;">Сбросить счетчик сессии браузера</a>
-            <a href="{{ url_for('heatmap', mode=mode) }}" class="btn-secondary" style="padding: 6px 14px; border-radius: 4px; text-decoration: none; display: inline-block;">Тепловая карта</a>
+        <div class="tr-stats-actions">
+            <a href="{{ url_for('reset_stats', next=request.url) }}" class="cr-btn cr-btn--ghost">Сбросить счетчик сессии браузера</a>
+            <a href="{{ url_for('heatmap', mode=mode) }}" class="cr-btn cr-btn--ghost">Тепловая карта</a>
         </div>
     </div>
 
-    {% if not show_start %}
-    <!-- Shared by the question and the result page: timer toggle and keyboard shortcuts -->
-    <script>
-        (function() {
-            // ----- Timer and response time measurement -----
-            // Monotonic clock where available, so the measured time isn't skewed by clock changes
-            function now() {
-                return (window.performance && performance.now) ? performance.now() : Date.now();
-            }
+    <div id="toast-container" class="cr-toast-container" aria-live="polite"></div>
+</div>
 
-            var startTime = now();
-            var form = document.getElementById('answer-form');
-            var timerSpan = document.getElementById('timer');
-            var toggleCheckbox = document.getElementById('timer-toggle');
-            var timerInterval = null;
-            var answerSubmitted = false;   // prevents double submission (clicks and keyboard)
-
-            var showTimer = true;
-            if (localStorage.getItem('showTimer') !== null) {
-                showTimer = localStorage.getItem('showTimer') === 'true';
-            }
-            if (toggleCheckbox) {
-                toggleCheckbox.checked = showTimer;
-            }
-
-            function updateTimer() {
-                var elapsed = (now() - startTime) / 1000; // seconds
-                if (timerSpan) {
-                    timerSpan.textContent = elapsed.toFixed(2);
-                    if (elapsed < 3) {
-                        timerSpan.style.color = '#27ae60';
-                    } else if (elapsed < 10) {
-                        timerSpan.style.color = '#f39c12';
-                    } else {
-                        timerSpan.style.color = '#e74c3c';
-                    }
-                }
-            }
-
-            // Hiding the timer only stops the display; response time is still measured from startTime
-            function toggleTimer(show) {
-                if (show) {
-                    if (timerSpan) {
-                        timerSpan.style.display = 'inline';
-                    }
-                    if (!timerInterval) {
-                        timerInterval = setInterval(updateTimer, 10);
-                    }
-                    updateTimer();
-                } else {
-                    if (timerSpan) {
-                        timerSpan.style.display = 'none';
-                    }
-                    if (timerInterval) {
-                        clearInterval(timerInterval);
-                        timerInterval = null;
-                    }
-                }
-            }
-
-            toggleTimer(showTimer);
-
-            if (toggleCheckbox) {
-                toggleCheckbox.addEventListener('change', function() {
-                    var show = this.checked;
-                    localStorage.setItem('showTimer', String(show));
-                    toggleTimer(show);
-                });
-            }
-
-            // On form submit: stop timer, send elapsed time
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    if (answerSubmitted) {
-                        e.preventDefault();
-                        return;
-                    }
-                    answerSubmitted = true;
-
-                    // Visually disable all answer buttons.
-                    // We avoid the `disabled` attribute because a disabled
-                    // submit button would not send its name/value to the server.
-                    form.querySelectorAll('.answer-btn').forEach(function(btn) {
-                        btn.style.pointerEvents = 'none';
-                        btn.style.opacity = '0.5';
-                        btn.style.cursor = 'default';
-                    });
-
-                    if (timerInterval) {
-                        clearInterval(timerInterval);
-                        timerInterval = null;
-                    }
-                    var elapsedMs = Math.round(now() - startTime);
-                    document.getElementById('response_time_ms').value = elapsedMs;
-                });
-            }
-
-            // ----- Keyboard shortcuts -----
-            // Question page: 1-9 pick an answer. Result page: Enter/Space next question, + toggles the range
-            document.addEventListener('keydown', function(e) {
-                const isQuestionPage = document.querySelector('.answer-form') !== null;
-                const isResultPage = document.querySelector('.result-box') !== null;
-
-                if (isQuestionPage) {
-                    if (answerSubmitted) return;
-                    const key = parseInt(e.key);
-                    if (key >= 1 && key <= 9) {
-                        const btn = document.querySelector(`.answer-btn[data-key="${key}"]`);
-                        if (btn) {
-                            e.preventDefault();
-                            btn.click();
-                            return;
-                        }
-                    }
-                }
-
-                if (isResultPage && (e.key === 'Enter' || e.key === ' ')) {
-                    const nextBtn = document.getElementById('next-question-btn');
-                    if (nextBtn && nextBtn.disabled) {
-                        e.preventDefault();
-                        return;
-                    }
-                    const nextForm = document.querySelector('.result-box form');
-                    if (nextForm) {
-                        e.preventDefault();
-                        nextForm.submit();
-                        return;
-                    }
-                }
-
-                if (isResultPage && e.key === '+') {
-                    const btn = document.getElementById('show-range-btn');
-                    if (btn) {
-                        e.preventDefault();
-                        btn.click();
-                        return;
-                    }
-                }
-            });
-        })();
-    </script>
-    {% endif %}
-
+<script>
+    window.__trainingData = {{ training_data|tojson }};
+</script>
+<script type="module" src="{{ url_for('static', filename='training.js') }}?v={{ static_version('training.js') }}"></script>
 {% endblock %}
