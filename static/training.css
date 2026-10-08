@@ -254,6 +254,13 @@
     background: var(--cr-color-bg);
 }
 
+/* Drop the shared blue focus ring here: the border already carries the
+   subrange color, and answers are picked with a click or number key. */
+.cr-shell .tr-answer-btn:focus,
+.cr-shell .tr-answer-btn:focus-visible {
+    outline: none;
+}
+
 .tr-key-hint {
     font-size: 0.75em;
     color: var(--cr-color-text-muted);
