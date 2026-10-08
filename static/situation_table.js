@@ -165,7 +165,7 @@ export const CARD_SPREAD = 12, CARD_TILT = 5;
 // the space above the hero plate is deliberately kept free of everything
 // else.
 export const HERO_CARD_W = 40, HERO_CARD_H = 54;
-export const HERO_CARD_GAP = 54;
+export const HERO_CARD_GAP = 61;
 export const HERO_CARD_SPREAD = 23, HERO_CARD_TILT = 0;
 
 // Hero's bet is placed by hand, not on the ring: to the right of the hero

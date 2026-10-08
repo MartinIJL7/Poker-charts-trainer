@@ -162,6 +162,12 @@
     box-sizing: border-box;
 }
 
+/* Buttons rendered as <a> must not pick up the global a:hover underline */
+.cr-shell .cr-btn,
+.cr-shell .cr-btn:hover {
+    text-decoration: none;
+}
+
 .cr-shell .cr-btn:active {
     transform: scale(0.98);
 }
@@ -303,7 +309,7 @@
 }
 
 .cr-shell .cr-situation-pot-label-svg {
-    font-size: 13px;
+    font-size: 17px;
     font-weight: 600;
     fill: var(--cr-color-text);
 }

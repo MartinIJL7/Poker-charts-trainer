@@ -66,7 +66,7 @@ function initQuestionScreen() {
 
     let answerSubmitted = false;
     const startTime = now();
-    let timerInterval = null;
+    let timerFrame = null;
 
     function updateTimer() {
         const elapsed = now() - startTime;
@@ -78,27 +78,33 @@ function initQuestionScreen() {
             timerFill.classList.toggle('tr-timer-fill--red', elapsed >= 10000);
         }
         if (timerValue) {
-            timerValue.textContent = (elapsed / 1000).toFixed(1);
+            timerValue.textContent = (elapsed / 1000).toFixed(2);
         }
     }
 
-    function startTimerDisplay() {
-        if (timerInterval) return;
+    // Driven by requestAnimationFrame (one update per screen refresh) rather
+    // than a fixed 50ms interval, so the bar moves continuously.
+    function timerLoop() {
         updateTimer();
-        timerInterval = setInterval(updateTimer, 50);
+        timerFrame = requestAnimationFrame(timerLoop);
+    }
+
+    function startTimerDisplay() {
+        if (timerFrame) return;
+        timerLoop();
     }
 
     function stopTimerDisplay() {
-        if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
+        if (timerFrame) {
+            cancelAnimationFrame(timerFrame);
+            timerFrame = null;
         }
     }
 
     // Hiding the bar only stops the display; response time is still
     // measured from startTime regardless of the toggle.
     setupTimerToggle(function(show) {
-        if (timerWrap) timerWrap.style.display = show ? '' : 'none';
+        if (timerWrap) timerWrap.classList.toggle('tr-timer-bar-wrap--off', !show);
         if (show) startTimerDisplay(); else stopTimerDisplay();
     });
 

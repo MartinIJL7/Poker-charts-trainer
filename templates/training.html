@@ -4,11 +4,6 @@
 {% block header %}
 <div class="tr-header-row">
     <span>Режим: {{ mode }}</span>
-    {% if not show_start %}
-    <label class="tr-timer-toggle">
-        <input type="checkbox" id="timer-toggle" checked> Показывать время
-    </label>
-    {% endif %}
 </div>
 {% endblock %}
 
@@ -99,8 +94,26 @@
 
         <div class="tr-timer-bar-wrap">
             <div class="tr-timer-bar"><div id="tr-timer-fill" class="tr-timer-fill tr-timer-fill--green"></div></div>
-            <span id="tr-timer-value" class="tr-timer-value">0.0</span>
+            <span id="tr-timer-value" class="tr-timer-value">0.00</span>
+            <label class="tr-switch" title="Показывать время">
+                <input type="checkbox" id="timer-toggle" class="tr-switch-input" checked>
+                <span class="tr-switch-track" aria-hidden="true"></span>
+                <span class="tr-switch-text">Время</span>
+            </label>
         </div>
+        <script>
+            // Apply the saved on/off state before first paint; the module
+            // script is deferred, so waiting for it makes the bar flash on
+            // every new question when the timer is turned off.
+            (function() {
+                try {
+                    if (localStorage.getItem('showTimer') === 'false') {
+                        document.querySelector('.tr-timer-bar-wrap').classList.add('tr-timer-bar-wrap--off');
+                        document.getElementById('timer-toggle').checked = false;
+                    }
+                } catch (e) { /* storage blocked - leave the default */ }
+            })();
+        </script>
 
         <form method="post" class="tr-answer-form" id="answer-form">
             <div class="tr-answer-grid" id="answer-grid">

@@ -10,16 +10,6 @@
     flex-wrap: wrap;
 }
 
-.tr-timer-toggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.65em;
-    font-weight: normal;
-    cursor: pointer;
-    user-select: none;
-}
-
 .tr-shell {
     max-width: 1500px;
     display: flex;
@@ -122,6 +112,76 @@
     align-items: center;
     gap: var(--cr-space-sm);
     padding: 0 var(--cr-space-xs);
+    min-height: 24px;
+}
+
+/* Timer hidden: the bar and number go, the switch stays so it can be
+   turned back on. */
+.tr-timer-bar-wrap--off .tr-timer-bar,
+.tr-timer-bar-wrap--off .tr-timer-value {
+    display: none;
+}
+
+.tr-timer-bar-wrap--off .tr-switch {
+    margin-left: auto;
+}
+
+/* Compact on/off switch for the timer, replacing the native checkbox. The
+   real input stays in the DOM (visually hidden) for keyboard and a11y. */
+.tr-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.85em;
+    color: var(--cr-color-text-muted);
+}
+
+.cr-shell .tr-switch-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    outline: none;
+}
+
+.tr-switch-track {
+    position: relative;
+    width: 34px;
+    height: 20px;
+    border-radius: 999px;
+    background: var(--cr-color-border);
+    transition: background var(--cr-transition-fast);
+}
+
+.tr-switch-track::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--cr-color-surface);
+    box-shadow: var(--cr-shadow-soft);
+    transition: transform var(--cr-transition-fast);
+}
+
+.tr-switch-input:checked + .tr-switch-track {
+    background: var(--cr-color-primary);
+}
+
+.tr-switch-input:checked + .tr-switch-track::after {
+    transform: translateX(14px);
+}
+
+.tr-switch-input:focus-visible + .tr-switch-track {
+    outline: 2px solid var(--cr-color-primary);
+    outline-offset: 2px;
 }
 
 .tr-timer-bar {
@@ -143,7 +203,7 @@
 .tr-timer-fill--red { background: var(--cr-color-danger); }
 
 .tr-timer-value {
-    min-width: 42px;
+    min-width: 48px;
     text-align: right;
     font-variant-numeric: tabular-nums;
     color: var(--cr-color-text-muted);
@@ -190,6 +250,12 @@
     color: var(--cr-color-text-muted);
     margin-right: 2px;
     font-weight: normal;
+}
+
+/* Hints inside the blue primary button sit on a saturated background where
+   the muted grey is unreadable. */
+.cr-shell .cr-btn--primary .tr-key-hint {
+    color: #ffffff;
 }
 
 @media (hover: none) and (pointer: coarse) {
@@ -382,6 +448,18 @@
     margin-top: var(--cr-space-sm);
 }
 
+/* Long Russian labels must wrap inside the button instead of overflowing
+   it on narrow screens (the base .cr-btn is nowrap with a fixed height). */
+.cr-shell .tr-stats-actions .cr-btn {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 44px;
+    padding: 8px 16px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.3;
+}
+
 /* ==========================================================================
    Responsive
    ========================================================================== */
@@ -451,7 +529,7 @@
     }
 
     .tr-timer-value {
-        min-width: 36px;
+        min-width: 42px;
         font-size: 0.8em;
     }
 }
