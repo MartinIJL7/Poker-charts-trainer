@@ -13,6 +13,7 @@
 
 {% block content %}
 <div class="cr-shell tr-shell">
+    <div class="tr-row">
     <div class="tr-sidebar">
         {% if show_result and result %}
         <details class="cr-card tr-details">
@@ -80,12 +81,6 @@
             <button id="show-range-btn" class="cr-btn cr-btn--ghost tr-btn-wide">Показать диапазон <span class="tr-key-hint">(+)</span></button>
         </div>
 
-        <div id="range-display" class="cr-card tr-range-display" hidden>
-            <h3>Диапазон <span id="range-pos"></span></h3>
-            <div id="range-matrix"></div>
-            <ul id="range-subrange-list" class="tr-range-subrange-list"></ul>
-        </div>
-
     {% else %}
         <!-- QUESTION SCREEN -->
         <div class="cr-card tr-table-card">
@@ -131,6 +126,17 @@
         </form>
     {% endif %}
     </div>
+    </div>
+
+    {% if show_result and result %}
+    <div id="range-display" class="cr-card tr-range-display" hidden>
+        <h3 class="cr-card-title">Диапазон <span id="range-pos"></span></h3>
+        <div class="tr-range-body">
+            <div id="range-matrix" class="tr-range-matrix"></div>
+            <ul id="range-subrange-list" class="tr-range-subrange-list"></ul>
+        </div>
+    </div>
+    {% endif %}
 
     <div id="toast-container" class="cr-toast-container" aria-live="polite"></div>
 </div>

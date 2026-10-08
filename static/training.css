@@ -10,8 +10,17 @@
     flex-wrap: wrap;
 }
 
+/* The shell stacks the table row and the full-width range card under it;
+   the sidebar/table columns live in .tr-row. */
 .tr-shell {
     max-width: 1500px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--cr-space-lg);
+}
+
+.tr-row {
     display: flex;
     align-items: flex-start;
     gap: var(--cr-space-xl);
@@ -385,10 +394,26 @@
 }
 
 /* ---- Result: range matrix preview ---- */
+/* Same look as the matrix and subrange list on /create (soft cells, small
+   radius, colored dot legend), just smaller and read-only. The card spans
+   the full shell width below the table row; the matrix keeps a modest
+   fixed size and the legend sits to its right. */
+.tr-range-body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--cr-space-xl);
+}
+
+.tr-range-matrix {
+    flex: 0 1 650px;
+    min-width: 0;
+}
+
 .tr-range-matrix-grid {
     display: grid;
     grid-template-columns: repeat(13, 1fr);
-    gap: 2px;
+    gap: 3px;
     max-width: 100%;
     margin: 0 auto;
 }
@@ -398,6 +423,7 @@
     text-align: center;
     font-size: 0.7em;
     border: 1px solid var(--cr-color-cell-border);
+    border-radius: 3px;
     aspect-ratio: 1 / 1;
     display: flex;
     align-items: center;
@@ -406,34 +432,45 @@
     color: var(--cr-color-text-muted);
 }
 
+/* Outline (not border) so the highlighted cell doesn't change size. */
 .tr-range-matrix-cell--current {
-    border: 3px solid var(--cr-color-text);
-    font-weight: bold;
-    font-size: 0.85em;
-    color: var(--cr-color-text);
+    outline: 2px solid var(--cr-color-text);
+    outline-offset: 1px;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
 }
 
 .tr-range-subrange-list {
     list-style: none;
     padding: 0;
-    margin: var(--cr-space-md) 0 0;
+    margin: 0;
+    flex: 0 1 260px;
+    min-width: 160px;
 }
 
 .tr-range-subrange-list li {
     display: flex;
     align-items: center;
     background: var(--cr-color-bg);
-    padding: 8px 12px;
-    margin-bottom: 6px;
-    border-radius: var(--cr-radius-sm);
+    padding: 10px 14px;
+    margin-bottom: var(--cr-space-sm);
+    border-radius: var(--cr-radius-md);
+    font-weight: 500;
+    color: var(--cr-color-text);
+}
+
+.tr-range-subrange-list li:last-child {
+    margin-bottom: 0;
 }
 
 .tr-range-color-dot {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    margin-right: 10px;
+    margin-right: 12px;
     flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6);
 }
 
 /* ---- Session stats ---- */
@@ -465,14 +502,25 @@
    ========================================================================== */
 @media screen and (max-width: 800px) {
     .tr-shell {
-        flex-direction: column;
-        align-items: stretch;
         max-width: 640px;
-        gap: var(--cr-space-lg);
     }
 
-    /* Dissolve the two column wrappers so their children flow as one
+    /* Single-column layout: no room beside the matrix, so the legend drops
+       under it. */
+    .tr-range-body {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--cr-space-md);
+    }
+
+    .tr-range-matrix,
+    .tr-range-subrange-list {
+        flex: 0 0 auto;
+    }
+
+    /* Dissolve the row and column wrappers so their children flow as one
        stack, in the original table-first, stats-last reading order. */
+    .tr-row,
     .tr-sidebar,
     .tr-main {
         display: contents;
@@ -517,11 +565,12 @@
     .tr-range-matrix-cell {
         font-size: 0.6rem;
     }
+
 }
 
 @media screen and (max-width: 400px) {
     .tr-range-matrix-grid {
-        gap: 1px;
+        gap: 2px;
     }
 
     .tr-range-matrix-cell {

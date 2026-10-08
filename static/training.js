@@ -209,7 +209,6 @@ function blockNextButton(btn) {
 }
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-const NOT_IN_RANGE_COLOR = '#d5d8dc';
 const DEFAULT_SUBRANGE_COLOR = '#3498db';
 
 // Standard 13x13 layout: pairs on the diagonal, suited above it, offsuit below.
@@ -221,14 +220,29 @@ function handAt(rowIdx, colIdx) {
     return colRank + rowRank + 'o';
 }
 
-// First subrange (in API order) that contains the hand wins.
+// First subrange (in API order) that contains the hand wins. Hands outside
+// every subrange return null and keep the default empty-cell look.
 function handColor(hand, subranges, colors) {
     for (const name of Object.keys(subranges)) {
         if (subranges[name].includes(hand)) {
             return colors[name] || DEFAULT_SUBRANGE_COLOR;
         }
     }
-    return NOT_IN_RANGE_COLOR;
+    return null;
+}
+
+// Black or white text, whichever stays readable on the subrange color
+// (same rule as the range editor).
+function contrastingTextColor(hexColor) {
+    let hex = hexColor.replace('#', '');
+    if (hex.length === 3) {
+        hex = hex.split('').map(function(c) { return c + c; }).join('');
+    }
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.6 ? '#24313f' : '#ffffff';
 }
 
 function renderRangeMatrix(subranges, colors, highlightHand) {
@@ -245,7 +259,11 @@ function renderRangeMatrix(subranges, colors, highlightHand) {
             const cell = document.createElement('div');
             cell.className = 'tr-range-matrix-cell';
             cell.textContent = hand;
-            cell.style.backgroundColor = handColor(hand, subranges, colors);
+            const color = handColor(hand, subranges, colors);
+            if (color) {
+                cell.style.backgroundColor = color;
+                cell.style.color = contrastingTextColor(color);
+            }
             if (hand === highlightHand) {
                 cell.classList.add('tr-range-matrix-cell--current');
             }
