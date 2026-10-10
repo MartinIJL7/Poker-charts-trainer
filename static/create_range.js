@@ -25,6 +25,16 @@ let editingHands = [];
 // indicator, the save button's wording, and the delete button's state.
 let loadedRangeName = null;
 
+// Whether the loaded range already has a table saved on the server (as
+// opposed to showing the default one). Decides if saving it with the
+// default table should first ask the user to set one up.
+let loadedRangeHasTable = false;
+
+// Whether the WORKING copy has a table. False for a new range and for a
+// loaded one that has none: the editor then shows the empty "no table"
+// preview and keeps the table controls off until "Создать стол" is clicked.
+let hasTable = false;
+
 // Which toolbar panel is visible: 'new' or 'edit'. Independent from
 // loadedRangeName while browsing the edit tab before picking anything.
 let activePanel = 'new';
@@ -110,7 +120,8 @@ function snapshotSubranges(subs) {
 // gated by real content changes relative to the last clean state.
 function hasUnsavedChanges() {
     if (currentHands.length > 0) return true;
-    const situationChanged = savedSituationSnapshot === null || snapshotSituation(situation) !== savedSituationSnapshot;
+    const situationChanged = savedSituationSnapshot === null || snapshotSituation(situation) !== savedSituationSnapshot
+        || hasTable !== loadedRangeHasTable;
     if (loadedRangeName === null) {
         return tempSubranges.length > 0 || situationChanged;
     }
@@ -132,11 +143,17 @@ function updateEditingControlsState() {
     dom.saveSubrangeBtn.disabled = browsingWithNothingLoaded;
     dom.colorPicker.disabled = browsingWithNothingLoaded;
     dom.handMatrix.classList.toggle('cr-matrix--locked', browsingWithNothingLoaded);
+    // Without a table the controls have nothing to edit; they come alive
+    // once "Создать стол" is clicked.
+    const lockTable = browsingWithNothingLoaded || !hasTable;
+    const showCreateTable = !hasTable && !browsingWithNothingLoaded;
     dom.situationCard.classList.toggle('cr-situation--locked', browsingWithNothingLoaded);
-    dom.situationFieldset.disabled = browsingWithNothingLoaded;
-    dom.situationPlayersSelect.disabled = browsingWithNothingLoaded;
-    dom.situationHeroSelect.disabled = browsingWithNothingLoaded;
-    dom.situationResetBtn.disabled = browsingWithNothingLoaded;
+    dom.situationCard.classList.toggle('cr-situation--notable', showCreateTable);
+    dom.situationEmptyBox.hidden = !showCreateTable;
+    dom.situationFieldset.disabled = lockTable;
+    dom.situationPlayersSelect.disabled = lockTable;
+    dom.situationHeroSelect.disabled = lockTable;
+    dom.situationResetBtn.disabled = lockTable;
 
     if (browsingWithNothingLoaded) {
         dom.saveRangeBtn.disabled = true;
@@ -152,7 +169,8 @@ function updateEditingControlsState() {
 
     const nameChanged = dom.positionInput.value.trim() !== loadedRangeName;
     const subrangesChanged = savedSnapshot === null || snapshotSubranges(tempSubranges) !== savedSnapshot;
-    const situationChanged = savedSituationSnapshot === null || snapshotSituation(situation) !== savedSituationSnapshot;
+    const situationChanged = savedSituationSnapshot === null || snapshotSituation(situation) !== savedSituationSnapshot
+        || hasTable !== loadedRangeHasTable;
     const dirty = nameChanged || subrangesChanged || situationChanged;
     dom.saveRangeBtn.disabled = !dirty;
     dom.cancelRangeEditBtn.disabled = !dirty;
@@ -197,6 +215,8 @@ function establishSavedBaseline(position) {
                     hands: data.subranges[name]
                 }));
                 savedSnapshot = snapshotSubranges(subs);
+                loadedRangeHasTable = Boolean(data.situation);
+                hasTable = loadedRangeHasTable;
                 const loadedSituation = data.situation || getDefaultSituation();
                 savedSituationSnapshot = snapshotSituation(loadedSituation);
                 setSituation(loadedSituation);
@@ -221,6 +241,8 @@ function resetWorkingSet(onDone) {
             dom.subnameInput.value = '';
             cancelEditing();
             loadedRangeName = null;
+            loadedRangeHasTable = false;
+            hasTable = false;
             savedSnapshot = null;
             const defaultSituation = getDefaultSituation();
             savedSituationSnapshot = snapshotSituation(defaultSituation);
@@ -461,7 +483,7 @@ function onSeatStackInput(pos, rawValue) {
     const seat = findSeat(pos);
     if (!seat || isNaN(rawValue)) return null;
     seat.stack = Math.max(0, roundToStep(rawValue, STACK_BET_STEP));
-    renderSituationTable(dom.situationSvg, situation);
+    renderSituationView();
     updateEditingControlsState();
     return seat.stack;
 }
@@ -481,7 +503,7 @@ function onSeatBetInput(pos, rawValue) {
     if (seatRowInputs[pos]) {
         seatRowInputs[pos].stackInput.value = seat.stack;
     }
-    renderSituationTable(dom.situationSvg, situation);
+    renderSituationView();
     updateEditingControlsState();
     return seat.bet;
 }
@@ -491,8 +513,32 @@ function onSeatFoldedChange(pos, folded) {
     if (!seat) return;
     seat.folded = folded;
     renderSeatEditTable(situation);
-    renderSituationTable(dom.situationSvg, situation);
+    renderSituationView();
     updateEditingControlsState();
+}
+
+// Draws the table preview: the full table, or - when the range has no table
+// yet - the same empty table the training page shows (hero plate with the
+// username, range name in the center).
+function renderSituationView() {
+    if (hasTable) {
+        renderSituationTable(dom.situationSvg, situation);
+        return;
+    }
+    const username = (window.__crUsername || '').slice(0, 14);
+    const seatNames = {};
+    if (username) seatNames[situation.hero_position] = username;
+    renderSituationTable(dom.situationSvg, situation, {
+        emptyLabel: dom.positionInput.value.trim().replace(/ /g, '_') || 'Новый диапазон',
+        seatNames: seatNames
+    });
+}
+
+// Switches the working copy from "no table" to a table, starting from the default one.
+function enableTable() {
+    hasTable = true;
+    setSituation(getDefaultSituation());
+    dom.situationPlayersSelect.focus({ preventScroll: true });
 }
 
 // Single entry point for replacing the working situation wholesale
@@ -503,7 +549,7 @@ function setSituation(newSituation) {
     populateHeroSelect(situation);
     dom.situationPlayersSelect.value = String(situation.num_players);
     renderSeatEditTable(situation);
-    renderSituationTable(dom.situationSvg, situation);
+    renderSituationView();
     updateEditingControlsState();
 }
 
@@ -858,7 +904,20 @@ function cancelEditing() {
     updateClearSelectionVisibility();
 }
 
-function loadRange(position) {
+// Opens the "set up a table?" dialog; callback gets the clicked button's
+// value ('create' | 'without') or '' when it was dismissed.
+function askAboutTable(callback) {
+    const dialog = document.getElementById('table-prompt-dialog');
+    dialog.returnValue = '';
+    dialog.addEventListener('close', function() { callback(dialog.returnValue); }, { once: true });
+    // A click on the backdrop (the dialog element itself, outside its box) dismisses it
+    dialog.addEventListener('click', function(e) {
+        if (e.target === dialog) dialog.close('');
+    }, { once: true });
+    dialog.showModal();
+}
+
+function loadRange(position, onLoaded) {
     fetch('/create/load_range', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -870,6 +929,8 @@ function loadRange(position) {
             dom.positionInput.value = data.position;
             loadedRangeName = data.position;
             savedSnapshot = snapshotSubranges(data.subranges);
+            loadedRangeHasTable = Boolean(data.situation);
+            hasTable = loadedRangeHasTable;
             const loadedSituation = data.situation || getDefaultSituation();
             savedSituationSnapshot = snapshotSituation(loadedSituation);
             setSituation(loadedSituation);
@@ -877,11 +938,20 @@ function loadRange(position) {
             updateDeleteButtonState();
             loadTempSubranges();
             cancelEditing();
+            if (onLoaded) onLoaded();
         } else {
             showError(data.message);
         }
     })
     .catch(showNetworkError);
+}
+
+// Brings the table card into view; when the range has no table yet, the
+// "Создать стол" button gets the focus so the next step is obvious.
+function scrollToTableCard() {
+    const card = document.getElementById('situation-card');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!hasTable && !dom.situationEmptyBox.hidden) dom.situationCreateBtn.focus({ preventScroll: true });
 }
 
 function updatePositionsSelect(reset = false, forceValue = null) {
@@ -931,6 +1001,8 @@ document.addEventListener('DOMContentLoaded', function() {
         situationHeroSelect: document.getElementById('situation-hero-select'),
         situationResetBtn: document.getElementById('situation-reset-btn'),
         situationSvg: document.getElementById('situation-svg'),
+        situationEmptyBox: document.getElementById('situation-empty-box'),
+        situationCreateBtn: document.getElementById('situation-create-btn'),
         situationFieldset: document.getElementById('situation-fieldset'),
         situationSeatRows: document.getElementById('situation-seat-rows')
     };
@@ -966,8 +1038,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     dom.positionInput.addEventListener('input', function() {
+        if (!hasTable) renderSituationView();   // the range name is drawn in the empty table
         updateEditingControlsState();
     });
+
+    dom.situationCreateBtn.addEventListener('click', enableTable);
 
     dom.clearSelectionBtn.addEventListener('click', function() {
         matrixCells.forEach(cell => {
@@ -1035,22 +1110,43 @@ document.addEventListener('DOMContentLoaded', function() {
         // you just made.
         const wasEditing = loadedRangeName !== null;
 
-        postJson('/create/save_range', { position: position, situation: getCurrentSituation() }, function(data) {
-            showToast(data.message, 'success');
-            if (wasEditing) {
-                // load_range fully overwrites the working set from what
-                // was just persisted (verified server-side), so
-                // re-loading here both refreshes the client and keeps
-                // you in "editing this range".
-                updatePositionsSelect(false, position);
-                loadRange(position);
-            } else {
-                resetWorkingSet(function() {
-                    updateRangeModeUI();
-                    updatePositionsSelect(true);
-                });
-            }
-        });
+        // situationPayload is null for "save without a table": the server
+        // then stores no table (and leaves an existing one untouched).
+        function saveWith(situationPayload) {
+            postJson('/create/save_range', { position: position, situation: situationPayload }, function(data) {
+                showToast(data.message, 'success');
+                if (wasEditing) {
+                    // load_range fully overwrites the working set from what
+                    // was just persisted (verified server-side), so
+                    // re-loading here both refreshes the client and keeps
+                    // you in "editing this range".
+                    updatePositionsSelect(false, position);
+                    loadRange(position);
+                } else {
+                    resetWorkingSet(function() {
+                        updateRangeModeUI();
+                        updatePositionsSelect(true);
+                    });
+                }
+            });
+        }
+
+        // A range without a table (new, or an old one that never had one)
+        // gets a nudge to create one first.
+        if (!hasTable) {
+            askAboutTable(function(choice) {
+                if (choice === 'create') {
+                    enableTable();
+                    const card = document.getElementById('situation-card');
+                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else if (choice === 'without') {
+                    saveWith(null);
+                }
+                // '' (Esc / click outside): cancelled, nothing is saved
+            });
+            return;
+        }
+        saveWith(getCurrentSituation());
     });
 
     dom.cancelRangeEditBtn.addEventListener('click', function() {
@@ -1148,4 +1244,13 @@ document.addEventListener('DOMContentLoaded', function() {
     dom.situationResetBtn.addEventListener('click', function() {
         resetSituation();
     });
+
+    // Arriving from the training page's "set up the table" link
+    const autoLoadRange = window.__crAutoLoadRange;
+    if (autoLoadRange) {
+        updatePositionsSelect(false, autoLoadRange);
+        loadRange(autoLoadRange, window.__crScrollToTable ? scrollToTableCard : undefined);
+    } else if (window.__crOpenEditTab) {
+        setActivePanel('edit');
+    }
 });

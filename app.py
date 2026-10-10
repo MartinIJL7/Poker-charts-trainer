@@ -67,6 +67,7 @@ class UserConfig(db.Model):
     situations = db.Column(db.JSON, default=dict)
     deck_style = db.Column(db.String(20), default='default')   # card artwork on the training table
     show_timer = db.Column(db.Boolean, nullable=True)           # answer timer bar; None = never chosen yet
+    seen_tables_notice = db.Column(db.Boolean, nullable=True)   # "ranges can have tables" card on the home page was dismissed
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('config', uselist=False))
@@ -100,7 +101,8 @@ with app.app_context():
         # create_all() never adds columns to an existing table, so add the
         # per-user display settings here (idempotent) - an older database still works
         user_config_columns = [row[1] for row in conn.execute(text('PRAGMA table_info(user_config)'))]
-        for column, ddl in (('deck_style', "VARCHAR(20) DEFAULT 'default'"), ('show_timer', 'BOOLEAN')):
+        for column, ddl in (('deck_style', "VARCHAR(20) DEFAULT 'default'"), ('show_timer', 'BOOLEAN'),
+                              ('seen_tables_notice', 'BOOLEAN')):
             if column not in user_config_columns:
                 conn.execute(text(f'ALTER TABLE user_config ADD COLUMN {column} {ddl}'))
         conn.commit()
@@ -479,6 +481,18 @@ def set_show_timer():
     return jsonify({'status': 'ok', 'show': show})
 
 
+def get_ranges_without_table(config):
+    """Range names that have no saved table. A table saved on purpose counts as
+    saved even if it looks like the default, so only the key's presence matters."""
+    saved = config.situations or {}
+    return [name for name in get_all_positions(config) if name not in saved]
+
+
+def get_hero_only_names(situation):
+    """Seat names for the empty-table view: only the hero's plate is drawn."""
+    return {situation['hero_position']: current_user.username[:SEAT_NAME_MAX_LEN]}
+
+
 def get_answer_options(pos, config):
     """Answer buttons for a position as {name, color} dicts, in the same
     sorted order get_possible_answers already returns. 'fold' gets a
@@ -591,7 +605,8 @@ def register():
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
-        get_user_config(user.id)
+        get_user_config(user.id).seen_tables_notice = True
+        db.session.commit()
         flash('Успешная регистрация! Пожалуйста, войдите', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
@@ -633,9 +648,23 @@ def logout():
 def index():
     session.pop('training_started', None)   # reset start flag
     config = get_user_config(current_user.id)
+    missing_tables = len(get_ranges_without_table(config))
+    show_tables_notice = (not config.seen_tables_notice) and missing_tables > 0
     if not config.modes:
-        return render_template('index.html', modes={}, no_modes=True)
-    return render_template('index.html', modes=config.modes, no_modes=False)
+        return render_template('index.html', modes={}, no_modes=True,
+                               show_tables_notice=show_tables_notice, missing_tables=missing_tables)
+    return render_template('index.html', modes=config.modes, no_modes=False,
+                           show_tables_notice=show_tables_notice, missing_tables=missing_tables)
+
+
+@app.route('/api/dismiss_tables_notice', methods=['POST'])
+@login_required
+def dismiss_tables_notice():
+    """Remember that the user closed the "ranges can have tables" card for good."""
+    config = get_user_config(current_user.id)
+    config.seen_tables_notice = True
+    db.session.commit()
+    return jsonify({'status': 'ok'})
 
 
 @app.route('/reset')
@@ -715,7 +744,7 @@ def count_session_answer(answer, correct_text):
     return is_correct
 
 
-def build_last_result(stats, pos, hand, answer, correct_text, is_correct, elapsed_ms, just_became_penalty, situation, hero_cards, seat_names):
+def build_last_result(stats, pos, hand, answer, correct_text, is_correct, elapsed_ms, just_became_penalty, situation, hero_cards, seat_names, no_table):
     """Build the session['last_result'] payload from the freshly updated HandStats row.
 
     Every key is read by training.html (template and buildStatusHTML), so names
@@ -736,6 +765,7 @@ def build_last_result(stats, pos, hand, answer, correct_text, is_correct, elapse
         'pos': pos,
         'situation': situation,
         'seat_names': seat_names,
+        'no_table': no_table,
         'hero_cards': hero_cards,
         'attempts': attempts,
         'errors': errors,
@@ -779,6 +809,7 @@ def handle_training_answer(mode):
 
     config = get_user_config(current_user.id)
     situation = get_situation_for_position(config, pos)
+    no_table = pos not in (config.situations or {})
     session['last_result'] = build_last_result(
         stats, pos, hand,
         answer=answer,
@@ -788,7 +819,8 @@ def handle_training_answer(mode):
         just_became_penalty=just_became_penalty,
         situation=situation,
         hero_cards=validate_hero_cards(request.form),
-        seat_names=get_seat_names(situation),
+        seat_names=get_hero_only_names(situation) if no_table else get_seat_names(situation),
+        no_table=no_table,
     )
     return redirect(url_for('training', mode=mode, show_result=1))
 
@@ -840,6 +872,7 @@ def render_training_question(mode, config):
     answer_options = get_answer_options(pos, config)
     situation = get_situation_for_position(config, pos)
     deck_style = get_deck_style(config)
+    no_table = pos not in (config.situations or {})
 
     session.pop('seat_names', None)   # fresh opponents for every question
     session['question_start_time'] = datetime.utcnow().timestamp()
@@ -854,6 +887,7 @@ def render_training_question(mode, config):
         pos=pos,
         hand=hand,
         situation=situation,
+        no_table=no_table,
         deck_style=deck_style,
         answer_options=answer_options,
         stats=session['stats'],
@@ -863,7 +897,9 @@ def render_training_question(mode, config):
             'showResult': False,
             'hand': hand,
             'situation': situation,
-            'seatNames': get_seat_names(situation),
+            'seatNames': get_hero_only_names(situation) if no_table else get_seat_names(situation),
+            'noTable': no_table,
+            'rangeName': pos,
             'deckStyle': deck_style,
             'showTimer': config.show_timer,
             'answerOptions': answer_options,
@@ -906,7 +942,12 @@ def create_range():
     # carried over from a previous visit (it only lives while the page is open)
     discard_range_draft()
     session['temp_subranges'] = []
-    return render_template('create_range.html', all_positions=positions, position='')
+    # /create?range=NAME opens that range for editing (the training page links here)
+    requested = request.args.get('range', '')
+    return render_template('create_range.html', all_positions=positions, position='',
+                           auto_load_range=requested if requested in positions else '',
+                           open_edit_tab=request.args.get('tab') == 'edit',
+                           scroll_to_table=request.args.get('table') == '1')
 
 
 @app.route('/create/add_subrange', methods=['POST'])

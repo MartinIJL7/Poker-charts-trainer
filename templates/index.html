@@ -3,6 +3,19 @@
 {% block header %}📊 Тренировка по покерным чартам{% endblock %}
 {% block content %}
 <div class="center-content">
+    {% if show_tables_notice %}
+    <div id="tables-notice" class="tables-notice">
+        <h3>Теперь у каждого диапазона может быть свой стол</h3>
+        <p>Стол показывает, как выглядит раздача: сколько игроков, ваша позиция, стеки и ставки. Тренировка становится ближе к реальной игре</p>
+        <p>Столов пока нет у диапазонов: <strong>{{ missing_tables }}</strong>. Откройте работу с диапазонами, выберите диапазон и настройте стол в блоке «Ситуация за столом»</p>
+        <p>В конфиге GreenLine столы уже добавлены. Если загрузите его заново в работе с конфигами, он заменит ваши текущие диапазоны, режимы и цвета, поэтому сначала сохраните резервную копию</p>
+        <div class="tables-notice-actions">
+            <a href="{{ url_for('create_range', tab='edit') }}" class="btn btn-primary">Создать стол</a>
+            <a href="{{ url_for('config_management') }}" class="btn btn-primary">Работа с конфигами</a>
+            <button type="button" id="tables-notice-close" class="btn">Понятно</button>
+        </div>
+    </div>
+    {% endif %}
     {% if no_modes %}
         <p class="warning">⚠️ Нет доступных режимов, создайте их по кнопке ниже</p>
     {% else %}
@@ -35,6 +48,15 @@
     {% endif %}
 </div>
 
+<script>
+    var tablesNoticeClose = document.getElementById('tables-notice-close');
+    if (tablesNoticeClose) {
+        tablesNoticeClose.addEventListener('click', function() {
+            document.getElementById('tables-notice').style.display = 'none';
+            fetch('/api/dismiss_tables_notice', { method: 'POST' }).catch(function() {});
+        });
+    }
+</script>
 <script>
     document.getElementById('btn-normal').addEventListener('click', function() {
         var mode = document.getElementById('mode-select').value;

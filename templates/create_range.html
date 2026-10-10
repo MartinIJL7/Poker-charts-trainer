@@ -71,6 +71,11 @@
                 <svg id="situation-svg" class="cr-situation-svg" viewBox="20 7 680 397" role="img" aria-label="Схема стола"></svg>
             </div>
 
+            <div id="situation-empty-box" class="cr-situation-empty" hidden>
+                <p class="cr-situation-empty-text">Для этого диапазона стол не настроен. Нажмите «Создать стол», чтобы задать игроков, позиции, стеки и ставки</p>
+                <button type="button" id="situation-create-btn" class="cr-btn cr-btn--primary">Создать стол</button>
+            </div>
+
             <div class="cr-situation-columns">
                 <div class="cr-situation-controls-col">
                     <div class="cr-situation-field">
@@ -111,6 +116,17 @@
         </div>
 
         <div id="toast-container" class="cr-toast-container" aria-live="polite"></div>
+
+        <dialog id="table-prompt-dialog" class="cr-dialog" aria-labelledby="table-prompt-title">
+            <form method="dialog" class="cr-dialog-body">
+                <h2 id="table-prompt-title" class="cr-dialog-title">Стол не настроен</h2>
+                <p class="cr-dialog-text">Для этого диапазона не настроен стол. Он нужен, чтобы тренировка выглядела как реальная раздача</p>
+                <div class="cr-dialog-actions">
+                    <button type="submit" value="create" class="cr-btn cr-btn--primary">Создать стол</button>
+                    <button type="submit" value="without" class="cr-btn cr-btn--ghost">Сохранить без стола</button>
+                </div>
+            </form>
+        </dialog>
     </div>
 
     <script>
@@ -118,6 +134,14 @@
         // already correspond to a saved range - let create_range.js know
         // so the mode indicator starts in the right state.
         window.__crInitialLoadedRange = {{ (position|default('') in all_positions)|tojson }} ? {{ (position|default(''))|tojson }} : null;
+        // /create?range=NAME (linked from the training page) opens that range
+        window.__crAutoLoadRange = {{ (auto_load_range|default(''))|tojson }};
+        // /create?tab=edit opens the "edit a range" tab (the home page notice links here)
+        window.__crOpenEditTab = {{ (open_edit_tab|default(false))|tojson }};
+        // /create?range=NAME&table=1 (training's "Настроить стол" link) scrolls to the table card once the range is loaded
+        window.__crScrollToTable = {{ (scroll_to_table|default(false))|tojson }};
+        // shown on the hero plate of the empty "no table" preview, like on the training page
+        window.__crUsername = {{ current_user.username|tojson }};
 
         document.addEventListener('DOMContentLoaded', function() {
             const allPositions = {{ all_positions|tojson }};

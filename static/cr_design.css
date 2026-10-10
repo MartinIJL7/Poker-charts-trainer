@@ -314,6 +314,13 @@
     fill: var(--cr-color-text);
 }
 
+/* Range name in the middle of an empty ("no table yet") training table */
+.cr-shell .cr-situation-range-name-svg {
+    font-size: 30px;
+    font-weight: 700;
+    fill: var(--cr-color-text-muted);
+}
+
 /* Poker chip stacks (stack + bet markers): a handful of overlapping chip
    ellipses standing in for a real stack; breakIntoChips() picks
    denominations greedily so a big amount reads as a few higher-value

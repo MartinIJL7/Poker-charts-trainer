@@ -485,6 +485,17 @@
     margin: 6px 0;
 }
 
+/* Link under the table of a range that has no table saved yet */
+.tr-no-table-hint {
+    margin: 0;
+    text-align: center;
+    color: var(--cr-color-text-muted);
+}
+
+.tr-no-table-hint a {
+    color: var(--cr-color-primary);
+}
+
 /* The browser's default h2 top margin stacks on the card padding and leaves
    a blank band above the title. */
 .tr-stats-card h2,
@@ -600,7 +611,8 @@
     }
 
     .tr-start-card,
-    .tr-table-card { order: 1; }
+    .tr-table-card,
+    .tr-no-table-hint { order: 1; }
 
     .tr-timer-bar-wrap,
     .tr-verdict-card { order: 2; }

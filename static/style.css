@@ -180,6 +180,58 @@ a:hover {
     text-decoration: none;
 }
 
+/* ---- "Ranges can have tables" notice on the home page ---- */
+.tables-notice {
+    max-width: 560px;
+    margin: 0 auto 24px;
+    padding: 16px 20px;
+    text-align: left;
+    background: #eaf4fb;
+    border: 1px solid #c6dff0;
+    border-radius: 8px;
+}
+
+.tables-notice h3 {
+    margin: 0 0 8px;
+}
+
+.tables-notice p {
+    margin: 8px 0;
+}
+
+.tables-notice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* Flex-centered so the label stays in the middle of the button, including on
+   phones where the global .btn has a fixed height and a long label wraps. */
+.tables-notice-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    height: auto;
+    padding: 8px 20px;
+    line-height: 1.2;
+    text-align: center;
+}
+
+@media screen and (max-width: 640px) {
+    .tables-notice-actions .btn {
+        min-height: 44px;
+        padding: 8px 16px;
+    }
+}
+
+/* a:hover underlines links globally; these are buttons */
+.tables-notice-actions .btn:hover {
+    text-decoration: none;
+}
+
 /* ---- Flash messages ---- */
 .flashes {
     list-style: none;

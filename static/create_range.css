@@ -1068,6 +1068,31 @@ body.create-page {
     opacity: 0.5;
 }
 
+/* "No table" state: only the controls are dimmed, so the empty preview and
+   the "Create table" button above them stay fully usable. */
+.cr-shell #situation-card.cr-situation--notable .cr-situation-columns {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.cr-shell .cr-situation-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--cr-space-sm);
+    margin-bottom: var(--cr-space-lg);
+    text-align: center;
+}
+
+.cr-shell .cr-situation-empty[hidden] {
+    display: none;
+}
+
+.cr-shell .cr-situation-empty-text {
+    margin: 0;
+    color: var(--cr-color-text-muted);
+}
+
 /* ---- Table situation SVG diagram (editor-only additions) ----
    The base look of the diagram situation_table.js renders (felt, seat
    plates, chips, card backs, bet/pot labels, dealer button) lives in
@@ -1278,3 +1303,43 @@ body.create-page {
         max-width: 100%;
     }
 }
+
+/* ---- "Set up a table?" dialog (native <dialog>, so focus trapping and Esc come for free) ---- */
+.cr-shell .cr-dialog {
+    width: min(440px, calc(100vw - 32px));
+    padding: 0;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-lg);
+    background: var(--cr-color-surface);
+    color: var(--cr-color-text);
+    box-shadow: var(--cr-shadow-soft);
+}
+
+.cr-shell .cr-dialog::backdrop {
+    background: rgba(36, 49, 63, 0.45);
+}
+
+.cr-shell .cr-dialog-body {
+    padding: var(--cr-space-lg);
+}
+
+.cr-shell .cr-dialog-title {
+    margin: 0 0 var(--cr-space-sm);
+    font-size: 1.2em;
+}
+
+.cr-shell .cr-dialog-text {
+    margin: 0 0 var(--cr-space-md);
+    line-height: 1.4;
+}
+
+.cr-shell .cr-dialog-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-sm);
+}
+
+.cr-shell .cr-dialog-actions .cr-btn {
+    width: 100%;
+}
+

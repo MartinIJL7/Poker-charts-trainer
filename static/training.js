@@ -19,8 +19,8 @@ let deckStyle = data.deckStyle || 'default';
 // same table without touching the question (a page reload would deal a new one).
 let lastRender = null;
 
-function renderTable(situation, heroCards, seatNames) {
-    lastRender = { situation: situation, heroCards: heroCards, seatNames: seatNames };
+function renderTable(situation, heroCards, seatNames, emptyLabel) {
+    lastRender = { situation: situation, heroCards: heroCards, seatNames: seatNames, emptyLabel: emptyLabel };
     drawTable();
 }
 
@@ -30,6 +30,7 @@ function drawTable() {
     renderSituationTable(svg, lastRender.situation, {
         heroCards: lastRender.heroCards || null,
         seatNames: lastRender.seatNames || null,
+        emptyLabel: lastRender.emptyLabel,
         deckStyle: deckStyle
     });
 }
@@ -102,7 +103,7 @@ function setupTimerToggle(onChange) {
 // -------------------------------------------------------------------
 function initQuestionScreen() {
     const heroCards = handToCards(data.hand);
-    renderTable(data.situation, heroCards, data.seatNames);
+    renderTable(data.situation, heroCards, data.seatNames, data.noTable ? data.rangeName : undefined);
 
     // Suits are only decided here on the client - carry them through the
     // POST as hidden fields so the result screen can show the exact same
@@ -346,7 +347,7 @@ function renderRangeMatrix(subranges, colors, highlightHand) {
 
 function initResultScreen() {
     const result = data.result || {};
-    renderTable(result.situation, result.hero_cards, result.seat_names);
+    renderTable(result.situation, result.hero_cards, result.seat_names, result.no_table ? result.pos : undefined);
 
     const statusDiv = document.getElementById('tr-hand-status');
     if (statusDiv) {

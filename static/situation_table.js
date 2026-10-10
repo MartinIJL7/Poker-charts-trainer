@@ -290,6 +290,20 @@ export function renderCardsGlyph(svg, x, y, isHero, heroCards, deckStyle) {
     });
 }
 
+// A range name can be long ("3bet_SB_vs_BTN" and the like); keep it inside
+// the felt by shrinking the font, never below a readable size. Needs the text
+// to be in the DOM; a hidden svg measures 0 and is left as is.
+const RANGE_NAME_MAX_W = 460;
+const RANGE_NAME_MIN_FONT_PX = 12;
+function fitRangeNameToFelt(textEl) {
+    if (!textEl.getComputedTextLength()) return;
+    let size = parseFloat(getComputedStyle(textEl).fontSize) || 17;
+    while (textEl.getComputedTextLength() > RANGE_NAME_MAX_W && size > RANGE_NAME_MIN_FONT_PX) {
+        size -= 1;
+        textEl.style.fontSize = size + 'px';
+    }
+}
+
 // A nickname can be much wider than a position name. Shrink the font until
 // the text fits inside the plate (with a little padding), and only then cut
 // it with an ellipsis. Needs the label to be in the DOM to be measured; a
@@ -323,6 +337,11 @@ export function renderSituationTable(svg, situationObj, options) {
     const heroCards = options && options.heroCards;
     const seatNames = options && options.seatNames;
     const deckStyle = options && options.deckStyle;
+    // A string here means "this range has no table": draw an empty table
+    // with only the hero's plate and cards, and this text (the range name)
+    // in the center instead of the pot.
+    const emptyLabel = options && options.emptyLabel;
+    const emptyView = typeof emptyLabel === 'string';
     svg.innerHTML = '';
 
     svg.appendChild(createSvgEl('rect', {
@@ -332,14 +351,19 @@ export function renderSituationTable(svg, situationObj, options) {
         class: 'cr-situation-table-felt'
     }));
 
-    const potText = createSvgEl('text', { x: TABLE_CX, y: TABLE_CY, 'text-anchor': 'middle', class: 'cr-situation-pot-label-svg' });
-    potText.textContent = 'Банк: ' + roundBb(totalPot(situationObj)) + ' bb';
+    const potText = createSvgEl('text', {
+        x: TABLE_CX, y: TABLE_CY, 'text-anchor': 'middle',
+        class: emptyView ? 'cr-situation-range-name-svg' : 'cr-situation-pot-label-svg'
+    });
+    potText.textContent = emptyView ? emptyLabel : 'Банк: ' + roundBb(totalPot(situationObj)) + ' bb';
     svg.appendChild(potText);
+    if (emptyView) fitRangeNameToFelt(potText);
 
     const display = rotateForDisplay(situationObj);
     const n = display.length;
 
     display.forEach(function(seat, i) {
+        if (emptyView && i > 0) return;   // hero is display slot 0; nobody else sits at an empty table
         const angle = seatAngleFor(i, n);
         const ux = Math.cos(angle), uy = Math.sin(angle);
         // Seats sit ON the felt outline itself (not on an inscribed
@@ -368,19 +392,22 @@ export function renderSituationTable(svg, situationObj, options) {
             rx: SEAT_CORNER_R, ry: SEAT_CORNER_R
         }));
 
-        const label = createSvgEl('text', { x: sx, y: sy - 7, 'text-anchor': 'middle', class: 'cr-situation-seat-label' });
+        // Without a stack line under it the label sits in the plate's vertical middle
+        const label = createSvgEl('text', { x: sx, y: emptyView ? sy + 6 : sy - 7, 'text-anchor': 'middle', class: 'cr-situation-seat-label' });
         const nickname = seatNames && seatNames[seat.position];
         label.textContent = nickname || seat.position;
         group.appendChild(label);
 
-        const stackText = createSvgEl('text', { x: sx, y: sy + 17, 'text-anchor': 'middle', class: 'cr-situation-seat-stack' });
-        stackText.textContent = roundBb(seat.stack);
-        group.appendChild(stackText);
+        if (!emptyView) {
+            const stackText = createSvgEl('text', { x: sx, y: sy + 17, 'text-anchor': 'middle', class: 'cr-situation-seat-stack' });
+            stackText.textContent = roundBb(seat.stack);
+            group.appendChild(stackText);
+        }
 
         svg.appendChild(group);
         if (nickname) fitLabelToPlate(label);
 
-        if (seat.bet > 0) {
+        if (!emptyView && seat.bet > 0) {
             const betLabelText = String(roundBb(seat.bet));
             const textW = betLabelText.length * BET_CHAR_W;
             const unitW = textW + BET_TEXT_CHIP_GAP + CHIP_RX * 2;
@@ -403,7 +430,7 @@ export function renderSituationTable(svg, situationObj, options) {
             renderChipStack(svg, leftX + textW + BET_TEXT_CHIP_GAP + CHIP_RX, by, seat.bet, BET_MAX_CHIPS);
         }
 
-        if (seat.position === 'BTN') {
+        if (!emptyView && seat.position === 'BTN') {
             let btnX, btnY;
             if (uy > -0.3) {
                 // Every seat except the top row has its inward side facing the

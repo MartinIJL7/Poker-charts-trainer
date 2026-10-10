@@ -77,6 +77,9 @@
         <div class="cr-card tr-table-card {{ 'tr-table-card--correct' if result.was_correct else 'tr-table-card--incorrect' }}">
             <svg id="tr-table-svg" class="tr-table-svg" viewBox="20 7 680 397" role="img" aria-label="Стол"></svg>
         </div>
+        {% if result.no_table %}
+        <p class="tr-no-table-hint">Стол для этого диапазона не настроен. <a href="{{ url_for('create_range', range=result.pos, table=1) }}">Настроить стол</a></p>
+        {% endif %}
 
         {% if not result.was_correct %}
         <div class="cr-card tr-verdict-card">
@@ -99,6 +102,9 @@
         <div class="cr-card tr-table-card">
             <svg id="tr-table-svg" class="tr-table-svg" viewBox="20 7 680 397" role="img" aria-label="Стол"></svg>
         </div>
+        {% if no_table %}
+        <p class="tr-no-table-hint">Стол для этого диапазона не настроен. <a href="{{ url_for('create_range', range=pos, table=1) }}">Настроить стол</a></p>
+        {% endif %}
 
         <div class="tr-timer-bar-wrap">
             <div class="tr-timer-bar"><div id="tr-timer-fill" class="tr-timer-fill tr-timer-fill--green"></div></div>
