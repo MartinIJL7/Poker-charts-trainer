@@ -13,9 +13,51 @@ function now() {
     return (window.performance && performance.now) ? performance.now() : Date.now();
 }
 
+// Chosen card artwork; changed live by the deck select below.
+let deckStyle = data.deckStyle || 'default';
+// Arguments of the last renderTable call, so a deck change can redraw the
+// same table without touching the question (a page reload would deal a new one).
+let lastRender = null;
+
 function renderTable(situation, heroCards, seatNames) {
+    lastRender = { situation: situation, heroCards: heroCards, seatNames: seatNames };
+    drawTable();
+}
+
+function drawTable() {
     const svg = document.getElementById('tr-table-svg');
-    if (svg) renderSituationTable(svg, situation, { heroCards: heroCards || null, seatNames: seatNames || null });
+    if (!svg || !lastRender) return;
+    renderSituationTable(svg, lastRender.situation, {
+        heroCards: lastRender.heroCards || null,
+        seatNames: lastRender.seatNames || null,
+        deckStyle: deckStyle
+    });
+}
+
+function setupDeckRadios() {
+    const radios = document.querySelectorAll('input[name="deck"]');
+    if (!radios.length) return;
+    function showChecked() {
+        radios.forEach(function(radio) { radio.checked = (radio.value === deckStyle); });
+    }
+    showChecked();
+    radios.forEach(function(radio) { radio.addEventListener('change', function() {
+        const chosen = radio.value;
+        fetch('/api/deck_style', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ deck: chosen })
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                deckStyle = chosen;
+                drawTable();
+            })
+            .catch(function() {
+                showChecked();
+                if (toastContainer) showToast(toastContainer, 'Не удалось сменить колоду', 'error');
+            });
+    }); });
 }
 
 // Timer toggle persists across visits (localStorage), same key the old
@@ -362,6 +404,7 @@ function initResultScreen() {
 // -------------------------------------------------------------------
 // Entry point
 // -------------------------------------------------------------------
+setupDeckRadios();
 if (!data.showStart) {
     if (data.showResult) {
         initResultScreen();

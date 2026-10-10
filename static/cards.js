@@ -39,13 +39,35 @@ export function handToCards(hand) {
     return [{ rank: rank1, suit: suits[0] }, { rank: rank2, suit: suits[1] }];
 }
 
-// Appends a face-up card centered at (x, y): a suit-tinted rounded rect
-// plus the rank alone. The suit is shown only through the fill color,
-// which comes entirely from CSS (cr-card-face--<suit>). Returns the
-// card's group so the caller can position/rotate it via a transform on
-// top of the (x, y) centering.
-export function renderCardFace(svg, x, y, w, h, rank, suit) {
+// Deck styles a user can pick. 'default' is drawn in code (suit-tinted
+// rect + rank); the others are one standalone SVG per card under
+// static/decks/<dir>/<Rank><suit>.svg (ten = T), see static/decks/CREDITS.txt.
+export const DECK_DIRS = { classic: 'classic', fourcolor: 'fourcolor' };
+
+export function isImageDeck(deck) {
+    return Object.prototype.hasOwnProperty.call(DECK_DIRS, deck);
+}
+
+// Appends a face-up card centered at (x, y). With an image deck it is the
+// card's SVG file; otherwise a suit-tinted rounded rect plus the rank alone,
+// where the suit is shown only through the fill color, which comes entirely
+// from CSS (cr-card-face--<suit>). Returns the card's group so the caller
+// can position/rotate it via a transform on top of the (x, y) centering.
+export function renderCardFace(svg, x, y, w, h, rank, suit, deck) {
     const group = document.createElementNS(SVG_NS, 'g');
+
+    if (isImageDeck(deck)) {
+        const image = document.createElementNS(SVG_NS, 'image');
+        image.setAttribute('href', '/static/decks/' + DECK_DIRS[deck] + '/' + rank + suit + '.svg');
+        image.setAttribute('x', x - w / 2);
+        image.setAttribute('y', y - h / 2);
+        image.setAttribute('width', w);
+        image.setAttribute('height', h);
+        image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        group.appendChild(image);
+        svg.appendChild(group);
+        return group;
+    }
 
     const rect = document.createElementNS(SVG_NS, 'rect');
     rect.setAttribute('x', x - w / 2);

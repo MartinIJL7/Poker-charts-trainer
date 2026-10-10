@@ -485,6 +485,72 @@
     margin: 6px 0;
 }
 
+/* The browser's default h2 top margin stacks on the card padding and leaves
+   a blank band above the title. */
+.tr-stats-card h2,
+.tr-deck-card h2 {
+    margin-top: 0;
+}
+
+/* Deck picker: native radio kept in the DOM (visually hidden) for keyboard
+   and a11y, same approach as the timer switch. */
+.tr-deck-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: var(--cr-space-sm);
+}
+
+.tr-deck-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-md, 10px);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color var(--cr-transition-fast), background var(--cr-transition-fast);
+}
+
+.tr-deck-option:hover {
+    border-color: var(--cr-color-primary);
+}
+
+.cr-shell .tr-deck-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    outline: none;
+}
+
+.tr-deck-dot {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--cr-color-border);
+    box-sizing: border-box;
+    transition: border-color var(--cr-transition-fast), box-shadow var(--cr-transition-fast);
+}
+
+.tr-deck-input:checked + .tr-deck-dot {
+    border-color: var(--cr-color-primary);
+    box-shadow: inset 0 0 0 3px var(--cr-color-surface), inset 0 0 0 8px var(--cr-color-primary);
+}
+
+.tr-deck-option:has(.tr-deck-input:checked) {
+    border-color: var(--cr-color-primary);
+}
+
+.tr-deck-input:focus-visible + .tr-deck-dot {
+    outline: 2px solid var(--cr-color-primary);
+    outline-offset: 2px;
+}
+
 .tr-stats-actions {
     display: flex;
     flex-wrap: wrap;
@@ -547,6 +613,8 @@
     .tr-range-display { order: 5; }
 
     .tr-stats-card { order: 6; }
+
+    .tr-deck-card { order: 7; }
 }
 
 @media screen and (max-width: 600px) {

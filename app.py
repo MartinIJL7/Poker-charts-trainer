@@ -65,6 +65,7 @@ class UserConfig(db.Model):
     modes = db.Column(db.JSON, default=dict)
     subrange_colors = db.Column(db.JSON, default=dict)
     situations = db.Column(db.JSON, default=dict)
+    deck_style = db.Column(db.String(20), default='default')   # card artwork on the training table
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('config', uselist=False))
@@ -95,6 +96,12 @@ with app.app_context():
     db.create_all()
     with db.engine.connect() as conn:
         conn.execute(text('PRAGMA journal_mode=WAL;'))
+        # create_all() never adds columns to an existing table, so add deck_style
+        # here (idempotent) - a database from before the deck selector still works
+        user_config_columns = [row[1] for row in conn.execute(text('PRAGMA table_info(user_config)'))]
+        if 'deck_style' not in user_config_columns:
+            conn.execute(text("ALTER TABLE user_config ADD COLUMN deck_style VARCHAR(20) DEFAULT 'default'"))
+            conn.commit()
 
 
 # -------------------------------------------------------------------
@@ -436,6 +443,27 @@ def get_seat_names(situation):
     return names
 
 
+VALID_DECK_STYLES = ('default', 'classic', 'fourcolor')
+
+
+def get_deck_style(config):
+    """The user's saved deck style; anything unknown or unset is 'default'."""
+    return config.deck_style if config.deck_style in VALID_DECK_STYLES else 'default'
+
+
+@app.route('/api/deck_style', methods=['POST'])
+@login_required
+def set_deck_style():
+    """Save the card deck the current user wants on the training table."""
+    deck = (request.get_json(silent=True) or {}).get('deck')
+    if deck not in VALID_DECK_STYLES:
+        return jsonify({'status': 'error', 'message': 'Неизвестная колода'}), 400
+    config = get_user_config(current_user.id)
+    config.deck_style = deck
+    db.session.commit()
+    return jsonify({'status': 'ok', 'deck': deck})
+
+
 def get_answer_options(pos, config):
     """Answer buttons for a position as {name, color} dicts, in the same
     sorted order get_possible_answers already returns. 'fold' gets a
@@ -751,22 +779,25 @@ def handle_training_answer(mode):
 
 
 def render_training_start(mode):
+    deck_style = get_deck_style(get_user_config(current_user.id))
     return render_template(
-        'training.html', mode=mode, show_start=True, stats=session['stats'],
-        training_data={'showStart': True}
+        'training.html', mode=mode, show_start=True, stats=session['stats'], deck_style=deck_style,
+        training_data={'showStart': True, 'deckStyle': deck_style}
     )
 
 
 def render_training_result(mode):
     result = session['last_result']
+    deck_style = get_deck_style(get_user_config(current_user.id))
     return render_template(
         'training.html',
         mode=mode,
+        deck_style=deck_style,
         show_result=True,
         result=result,
         stats=session['stats'],
         next_url=url_for('training', mode=mode),
-        training_data={'showStart': False, 'showResult': True, 'result': result}
+        training_data={'showStart': False, 'showResult': True, 'result': result, 'deckStyle': deck_style}
     )
 
 
@@ -789,6 +820,7 @@ def render_training_question(mode, config):
     correct_text = get_correct_answer_text(status)
     answer_options = get_answer_options(pos, config)
     situation = get_situation_for_position(config, pos)
+    deck_style = get_deck_style(config)
 
     session.pop('seat_names', None)   # fresh opponents for every question
     session['question_start_time'] = datetime.utcnow().timestamp()
@@ -803,6 +835,7 @@ def render_training_question(mode, config):
         pos=pos,
         hand=hand,
         situation=situation,
+        deck_style=deck_style,
         answer_options=answer_options,
         stats=session['stats'],
         show_result=False,
@@ -812,6 +845,7 @@ def render_training_question(mode, config):
             'hand': hand,
             'situation': situation,
             'seatNames': get_seat_names(situation),
+            'deckStyle': deck_style,
             'answerOptions': answer_options,
         }
     )

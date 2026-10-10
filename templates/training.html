@@ -45,6 +45,19 @@
                 <a href="{{ url_for('heatmap', mode=mode) }}" class="cr-btn cr-btn--ghost">Тепловая карта</a>
             </div>
         </div>
+
+        <div class="cr-card tr-deck-card">
+            <h2>Колода</h2>
+            <div class="tr-deck-options" role="radiogroup" aria-label="Колода">
+                {% for value, label in [('default', 'По умолчанию'), ('classic', 'Классическая двухцветная'), ('fourcolor', 'Четырехцветная')] %}
+                <label class="tr-deck-option">
+                    <input type="radio" name="deck" value="{{ value }}" class="tr-deck-input"{% if deck_style == value %} checked{% endif %}>
+                    <span class="tr-deck-dot" aria-hidden="true"></span>
+                    <span class="tr-deck-text">{{ label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 
     <div class="tr-main">
