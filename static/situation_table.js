@@ -4,7 +4,7 @@
 // Editing the situation is the caller's business - this module only
 // knows how to build/rotate a situation object and draw it.
 
-import { renderCardFace, isImageDeck } from './cards.js';
+import { renderCardFace } from './cards.js';
 
 // -------------------------------------------------------------------
 // Canonical positions + situation helpers
@@ -164,20 +164,12 @@ export const CARD_SPREAD = 12, CARD_TILT = 5;
 // the real dealt hand on the training screen (same slot either way), so
 // the space above the hero plate is deliberately kept free of everything
 // else.
-export const HERO_CARD_W = 40, HERO_CARD_H = 54;
-export const HERO_CARD_GAP = 61;
-export const HERO_CARD_SPREAD = 23, HERO_CARD_TILT = 0;
-// Image decks (full pips / face art) are unreadable at 40x54, so they get a
-// bigger card. The bottom edge stays where the default cards' is
-// (HERO_CARD_GAP - HERO_CARD_H / 2 above the plate center); the extra
-// height grows upward, into space nothing else uses.
-export const HERO_IMAGE_CARD_W = 50, HERO_IMAGE_CARD_H = 70;
-export const HERO_IMAGE_CARD_SPREAD = 27;
-export const HERO_IMAGE_CARD_GAP = HERO_CARD_GAP - HERO_CARD_H / 2 + HERO_IMAGE_CARD_H / 2;
-
-export function heroCardGap(deckStyle) {
-    return isImageDeck(deckStyle) ? HERO_IMAGE_CARD_GAP : HERO_CARD_GAP;
-}
+// 50x70 so a card's rank and suit read at a glance whatever the deck. The
+// bottom edge sits HERO_CARD_GAP - HERO_CARD_H / 2 = 34 above the plate
+// center; the height grows upward, into space nothing else uses.
+export const HERO_CARD_W = 50, HERO_CARD_H = 70;
+export const HERO_CARD_GAP = 69;
+export const HERO_CARD_SPREAD = 27, HERO_CARD_TILT = 0;
 
 // Hero's bet is placed by hand, not on the ring: to the right of the hero
 // plate, like a real client. That needs a wide gap between hero and the
@@ -269,10 +261,9 @@ export function renderChipStack(svg, x, y, amount, maxChips) {
 // ever passed for the hero seat.
 export function renderCardsGlyph(svg, x, y, isHero, heroCards, deckStyle) {
     const showFaces = isHero && heroCards;
-    const bigFaces = showFaces && isImageDeck(deckStyle);
-    const w = bigFaces ? HERO_IMAGE_CARD_W : (isHero ? HERO_CARD_W : CARD_W);
-    const h = bigFaces ? HERO_IMAGE_CARD_H : (isHero ? HERO_CARD_H : CARD_H);
-    const spread = bigFaces ? HERO_IMAGE_CARD_SPREAD : (isHero ? HERO_CARD_SPREAD : CARD_SPREAD);
+    const w = isHero ? HERO_CARD_W : CARD_W;
+    const h = isHero ? HERO_CARD_H : CARD_H;
+    const spread = isHero ? HERO_CARD_SPREAD : CARD_SPREAD;
     const tilt = isHero ? HERO_CARD_TILT : CARD_TILT;
     [-1, 1].forEach(function(side, idx) {
         const transform = 'translate(' + (x + side * spread) + ',' + y + ') rotate(' + (side * tilt) + ')';
@@ -331,7 +322,7 @@ function fitLabelToPlate(label) {
 // placeholder cards for the real hand; omit it for placeholders.
 // options.seatNames ({position: nickname}) replaces the seat labels with
 // nicknames, display-only - seat.position stays the logic key.
-// options.deckStyle ('default' | 'classic' | 'fourcolor') picks the card
+// options.deckStyle ('default' | 'minimal' | 'minimal4') picks the card
 // artwork for heroCards.
 export function renderSituationTable(svg, situationObj, options) {
     const heroCards = options && options.heroCards;
@@ -380,7 +371,7 @@ export function renderSituationTable(svg, situationObj, options) {
 
         if (!seat.folded) {
             if (isHero) {
-                renderCardsGlyph(svg, sx, sy - (heroCards ? heroCardGap(deckStyle) : HERO_CARD_GAP), true, heroCards, deckStyle);
+                renderCardsGlyph(svg, sx, sy - HERO_CARD_GAP, true, heroCards, deckStyle);
             } else {
                 renderCardsGlyph(svg, sx, sy - CARD_GAP, false);
             }

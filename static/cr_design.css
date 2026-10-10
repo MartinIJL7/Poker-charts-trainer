@@ -397,13 +397,37 @@
     stroke-width: 2;
 }
 
+/* Minimal decks: white card, ink color per suit. 4c = the four suit colors,
+   2c = hearts and diamonds red, spades and clubs black. */
+.cr-shell .cr-card-min-face {
+    fill: #fff;
+    stroke: #c7ced8;
+    stroke-width: 1;
+}
+
+.cr-shell .cr-card-min-rank {
+    font-family: Arial, 'Helvetica Neue', sans-serif;
+    font-weight: 700;
+}
+
+.cr-shell .cr-card-min { fill: currentColor; }
+.cr-shell .cr-card-min--4c.cr-card-min--s { color: var(--suit-s); }
+.cr-shell .cr-card-min--4c.cr-card-min--h { color: var(--suit-h); }
+.cr-shell .cr-card-min--4c.cr-card-min--d { color: var(--suit-d); }
+.cr-shell .cr-card-min--4c.cr-card-min--c { color: var(--suit-c); }
+.cr-shell .cr-card-min--2c.cr-card-min--s,
+.cr-shell .cr-card-min--2c.cr-card-min--c { color: #1d232b; }
+.cr-shell .cr-card-min--2c.cr-card-min--h,
+.cr-shell .cr-card-min--2c.cr-card-min--d { color: #d4302f; }
+.cr-shell .cr-card-min .cr-card-min-face { fill: #fff; }
+
 .cr-shell .cr-card-face--s { fill: var(--suit-s); }
 .cr-shell .cr-card-face--h { fill: var(--suit-h); }
 .cr-shell .cr-card-face--d { fill: var(--suit-d); }
 .cr-shell .cr-card-face--c { fill: var(--suit-c); }
 
 .cr-shell .cr-card-face-rank {
-    font-size: 22px;
+    font-size: 27px;
     font-weight: 700;
     fill: #ffffff;
 }

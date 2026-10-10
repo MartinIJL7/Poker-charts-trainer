@@ -447,12 +447,16 @@ def get_seat_names(situation):
     return names
 
 
-VALID_DECK_STYLES = ('default', 'classic', 'fourcolor')
+VALID_DECK_STYLES = ('default', 'minimal', 'minimal4')
+# Decks that no longer exist, mapped to the closest current one, so a saved
+# choice keeps its color scheme instead of silently resetting.
+LEGACY_DECK_STYLES = {'classic': 'minimal', 'fourcolor': 'minimal4'}
 
 
 def get_deck_style(config):
     """The user's saved deck style; anything unknown or unset is 'default'."""
-    return config.deck_style if config.deck_style in VALID_DECK_STYLES else 'default'
+    deck = LEGACY_DECK_STYLES.get(config.deck_style, config.deck_style)
+    return deck if deck in VALID_DECK_STYLES else 'default'
 
 
 @app.route('/api/deck_style', methods=['POST'])
