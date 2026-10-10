@@ -278,12 +278,36 @@ export function renderCardsGlyph(svg, x, y, isHero, heroCards) {
     });
 }
 
+// A nickname can be much wider than a position name. Shrink the font until
+// the text fits inside the plate (with a little padding), and only then cut
+// it with an ellipsis. Needs the label to be in the DOM to be measured; a
+// hidden svg measures 0, in which case the label is left as is.
+const NICKNAME_MIN_FONT_PX = 11;
+function fitLabelToPlate(label) {
+    const maxW = SEAT_W - 12;
+    const fullText = label.textContent;
+    let size = parseFloat(getComputedStyle(label).fontSize) || 16;
+    if (!label.getComputedTextLength()) return;
+    while (label.getComputedTextLength() > maxW && size > NICKNAME_MIN_FONT_PX) {
+        size -= 1;
+        label.style.fontSize = size + 'px';
+    }
+    let text = fullText;
+    while (label.getComputedTextLength() > maxW && text.length > 1) {
+        text = text.slice(0, -1);
+        label.textContent = text.trimEnd() + '…';
+    }
+}
+
 // Rebuilds the table SVG inside `svg` from scratch. Cheap enough to call
 // on every keystroke - a handful of shapes/text nodes, no measurable
 // cost. options.heroCards ([{rank, suit}, {rank, suit}]) swaps hero's
 // placeholder cards for the real hand; omit it for placeholders.
+// options.seatNames ({position: nickname}) replaces the seat labels with
+// nicknames, display-only - seat.position stays the logic key.
 export function renderSituationTable(svg, situationObj, options) {
     const heroCards = options && options.heroCards;
+    const seatNames = options && options.seatNames;
     svg.innerHTML = '';
 
     svg.appendChild(createSvgEl('rect', {
@@ -330,7 +354,8 @@ export function renderSituationTable(svg, situationObj, options) {
         }));
 
         const label = createSvgEl('text', { x: sx, y: sy - 7, 'text-anchor': 'middle', class: 'cr-situation-seat-label' });
-        label.textContent = seat.position;
+        const nickname = seatNames && seatNames[seat.position];
+        label.textContent = nickname || seat.position;
         group.appendChild(label);
 
         const stackText = createSvgEl('text', { x: sx, y: sy + 17, 'text-anchor': 'middle', class: 'cr-situation-seat-stack' });
@@ -338,6 +363,7 @@ export function renderSituationTable(svg, situationObj, options) {
         group.appendChild(stackText);
 
         svg.appendChild(group);
+        if (nickname) fitLabelToPlate(label);
 
         if (seat.bet > 0) {
             const betLabelText = String(roundBb(seat.bet));

@@ -13,9 +13,9 @@ function now() {
     return (window.performance && performance.now) ? performance.now() : Date.now();
 }
 
-function renderTable(situation, heroCards) {
+function renderTable(situation, heroCards, seatNames) {
     const svg = document.getElementById('tr-table-svg');
-    if (svg) renderSituationTable(svg, situation, { heroCards: heroCards || null });
+    if (svg) renderSituationTable(svg, situation, { heroCards: heroCards || null, seatNames: seatNames || null });
 }
 
 // Timer toggle persists across visits (localStorage), same key the old
@@ -42,7 +42,7 @@ function setupTimerToggle(onChange) {
 // -------------------------------------------------------------------
 function initQuestionScreen() {
     const heroCards = handToCards(data.hand);
-    renderTable(data.situation, heroCards);
+    renderTable(data.situation, heroCards, data.seatNames);
 
     // Suits are only decided here on the client - carry them through the
     // POST as hidden fields so the result screen can show the exact same
@@ -286,7 +286,7 @@ function renderRangeMatrix(subranges, colors, highlightHand) {
 
 function initResultScreen() {
     const result = data.result || {};
-    renderTable(result.situation, result.hero_cards);
+    renderTable(result.situation, result.hero_cards, result.seat_names);
 
     const statusDiv = document.getElementById('tr-hand-status');
     if (statusDiv) {

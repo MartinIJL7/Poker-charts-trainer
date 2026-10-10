@@ -389,6 +389,53 @@ def get_situation_for_position(config, position):
     return situation if situation else get_default_situation()
 
 
+# Used only when there are fewer other registered users than opponent seats.
+# Deliberately not position names, which would give the position away.
+FILLER_NICKNAMES = [
+    'NightOwl77', 'RiverRat', 'ShoveMaster', 'Fishhook', 'BluffKing',
+    'TiltProof', 'AceHunter', 'DeepStack', 'GrindHard', 'SilentJack',
+    'LuckyBox', 'CoolHand_91', 'PotCommittee', 'ValueTown', 'SteelNerves',
+]
+SEAT_NAME_MAX_LEN = 14
+
+
+def get_seat_names(situation):
+    """Map each seat position of the situation to a display nickname.
+
+    Hero shows the current username; opponents get random other users'
+    usernames. Opponent names live in session['seat_names'] so the result
+    screen shows the same names as its question; render_training_question
+    clears them, so every new question gets fresh opponents.
+    """
+    opponent_names = session.get('seat_names', {})
+    taken = set(opponent_names.values())
+    available = None  # loaded lazily, only if some seat still needs a name
+    names = {}
+    for seat in situation['seats']:
+        position = seat['position']
+        if position == situation['hero_position']:
+            names[position] = current_user.username[:SEAT_NAME_MAX_LEN]
+            continue
+        if position not in opponent_names:
+            if available is None:
+                others = [u.username[:SEAT_NAME_MAX_LEN]
+                          for u in User.query.filter(User.id != current_user.id).all()]
+                available = [n for n in dict.fromkeys(others) if n not in taken]
+                random.shuffle(available)
+                fillers = [n for n in FILLER_NICKNAMES if n not in taken and n not in available]
+                random.shuffle(fillers)
+                # pop() takes from the end, so real usernames go last to be used first
+                available = fillers + available
+            if available:
+                opponent_names[position] = available.pop()
+                taken.add(opponent_names[position])
+            else:
+                opponent_names[position] = position  # pool exhausted (more seats than names)
+        names[position] = opponent_names[position]
+    session['seat_names'] = opponent_names
+    return names
+
+
 def get_answer_options(pos, config):
     """Answer buttons for a position as {name, color} dicts, in the same
     sorted order get_possible_answers already returns. 'fold' gets a
@@ -625,7 +672,7 @@ def count_session_answer(answer, correct_text):
     return is_correct
 
 
-def build_last_result(stats, pos, hand, answer, correct_text, is_correct, elapsed_ms, just_became_penalty, situation, hero_cards):
+def build_last_result(stats, pos, hand, answer, correct_text, is_correct, elapsed_ms, just_became_penalty, situation, hero_cards, seat_names):
     """Build the session['last_result'] payload from the freshly updated HandStats row.
 
     Every key is read by training.html (template and buildStatusHTML), so names
@@ -645,6 +692,7 @@ def build_last_result(stats, pos, hand, answer, correct_text, is_correct, elapse
         'hand': hand,
         'pos': pos,
         'situation': situation,
+        'seat_names': seat_names,
         'hero_cards': hero_cards,
         'attempts': attempts,
         'errors': errors,
@@ -687,6 +735,7 @@ def handle_training_answer(mode):
     just_became_penalty = (not penalty_before and stats.penalty_active)
 
     config = get_user_config(current_user.id)
+    situation = get_situation_for_position(config, pos)
     session['last_result'] = build_last_result(
         stats, pos, hand,
         answer=answer,
@@ -694,8 +743,9 @@ def handle_training_answer(mode):
         is_correct=is_correct,
         elapsed_ms=elapsed_ms,
         just_became_penalty=just_became_penalty,
-        situation=get_situation_for_position(config, pos),
+        situation=situation,
         hero_cards=validate_hero_cards(request.form),
+        seat_names=get_seat_names(situation),
     )
     return redirect(url_for('training', mode=mode, show_result=1))
 
@@ -740,6 +790,7 @@ def render_training_question(mode, config):
     answer_options = get_answer_options(pos, config)
     situation = get_situation_for_position(config, pos)
 
+    session.pop('seat_names', None)   # fresh opponents for every question
     session['question_start_time'] = datetime.utcnow().timestamp()
     session['pos'] = pos
     session['hand'] = hand
@@ -760,6 +811,7 @@ def render_training_question(mode, config):
             'showResult': False,
             'hand': hand,
             'situation': situation,
+            'seatNames': get_seat_names(situation),
             'answerOptions': answer_options,
         }
     )
