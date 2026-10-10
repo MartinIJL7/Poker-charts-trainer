@@ -62,19 +62,37 @@ function setupDeckRadios() {
 
 // Timer toggle persists across visits (localStorage), same key the old
 // inline script used, so an existing preference carries over untouched.
+function saveShowTimer(show) {
+    fetch('/api/show_timer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ show: show })
+    }).catch(function() { /* the toggle still works for this page view */ });
+}
+
+// The setting lives on the account (data.showTimer). null means the user
+// never chose one on the server; then an older per-browser choice is used
+// and copied to the account once, so nobody loses their preference.
 function setupTimerToggle(onChange) {
     const toggle = document.getElementById('timer-toggle');
     if (!toggle) return;
     let show = true;
-    try {
-        const stored = localStorage.getItem('showTimer');
-        if (stored !== null) show = stored === 'true';
-    } catch (e) { /* private mode / storage blocked - keep the default */ }
+    if (typeof data.showTimer === 'boolean') {
+        show = data.showTimer;
+    } else {
+        try {
+            const stored = localStorage.getItem('showTimer');
+            if (stored !== null) {
+                show = stored === 'true';
+                saveShowTimer(show);
+            }
+        } catch (e) { /* private mode / storage blocked - keep the default */ }
+    }
     toggle.checked = show;
     onChange(show);
     toggle.addEventListener('change', function() {
         const value = this.checked;
-        try { localStorage.setItem('showTimer', String(value)); } catch (e) { /* ignore */ }
+        saveShowTimer(value);
         onChange(value);
     });
 }

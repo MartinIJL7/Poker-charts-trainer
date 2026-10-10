@@ -112,14 +112,21 @@
         <script>
             // Apply the saved on/off state before first paint; the module
             // script is deferred, so waiting for it makes the bar flash on
-            // every new question when the timer is turned off.
+            // every new question when the timer is turned off. The account
+            // setting wins; null means it was never chosen, so fall back to
+            // the old per-browser value.
             (function() {
-                try {
-                    if (localStorage.getItem('showTimer') === 'false') {
-                        document.querySelector('.tr-timer-bar-wrap').classList.add('tr-timer-bar-wrap--off');
-                        document.getElementById('timer-toggle').checked = false;
-                    }
-                } catch (e) { /* storage blocked - leave the default */ }
+                var show = {{ training_data.showTimer|tojson }};
+                if (show === null) {
+                    try {
+                        var stored = localStorage.getItem('showTimer');
+                        if (stored !== null) show = (stored === 'true');
+                    } catch (e) { /* storage blocked - leave the default */ }
+                }
+                if (show === false) {
+                    document.querySelector('.tr-timer-bar-wrap').classList.add('tr-timer-bar-wrap--off');
+                    document.getElementById('timer-toggle').checked = false;
+                }
             })();
         </script>
 

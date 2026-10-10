@@ -66,6 +66,7 @@ class UserConfig(db.Model):
     subrange_colors = db.Column(db.JSON, default=dict)
     situations = db.Column(db.JSON, default=dict)
     deck_style = db.Column(db.String(20), default='default')   # card artwork on the training table
+    show_timer = db.Column(db.Boolean, nullable=True)           # answer timer bar; None = never chosen yet
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('config', uselist=False))
@@ -96,12 +97,13 @@ with app.app_context():
     db.create_all()
     with db.engine.connect() as conn:
         conn.execute(text('PRAGMA journal_mode=WAL;'))
-        # create_all() never adds columns to an existing table, so add deck_style
-        # here (idempotent) - a database from before the deck selector still works
+        # create_all() never adds columns to an existing table, so add the
+        # per-user display settings here (idempotent) - an older database still works
         user_config_columns = [row[1] for row in conn.execute(text('PRAGMA table_info(user_config)'))]
-        if 'deck_style' not in user_config_columns:
-            conn.execute(text("ALTER TABLE user_config ADD COLUMN deck_style VARCHAR(20) DEFAULT 'default'"))
-            conn.commit()
+        for column, ddl in (('deck_style', "VARCHAR(20) DEFAULT 'default'"), ('show_timer', 'BOOLEAN')):
+            if column not in user_config_columns:
+                conn.execute(text(f'ALTER TABLE user_config ADD COLUMN {column} {ddl}'))
+        conn.commit()
 
 
 # -------------------------------------------------------------------
@@ -464,6 +466,19 @@ def set_deck_style():
     return jsonify({'status': 'ok', 'deck': deck})
 
 
+@app.route('/api/show_timer', methods=['POST'])
+@login_required
+def set_show_timer():
+    """Save whether the current user wants the answer timer bar on the training page."""
+    show = (request.get_json(silent=True) or {}).get('show')
+    if not isinstance(show, bool):
+        return jsonify({'status': 'error', 'message': 'Ожидается true или false'}), 400
+    config = get_user_config(current_user.id)
+    config.show_timer = show
+    db.session.commit()
+    return jsonify({'status': 'ok', 'show': show})
+
+
 def get_answer_options(pos, config):
     """Answer buttons for a position as {name, color} dicts, in the same
     sorted order get_possible_answers already returns. 'fold' gets a
@@ -779,16 +794,20 @@ def handle_training_answer(mode):
 
 
 def render_training_start(mode):
-    deck_style = get_deck_style(get_user_config(current_user.id))
+    config = get_user_config(current_user.id)
+    deck_style = get_deck_style(config)
+    show_timer = config.show_timer
     return render_template(
         'training.html', mode=mode, show_start=True, stats=session['stats'], deck_style=deck_style,
-        training_data={'showStart': True, 'deckStyle': deck_style}
+        training_data={'showStart': True, 'deckStyle': deck_style, 'showTimer': show_timer}
     )
 
 
 def render_training_result(mode):
     result = session['last_result']
-    deck_style = get_deck_style(get_user_config(current_user.id))
+    config = get_user_config(current_user.id)
+    deck_style = get_deck_style(config)
+    show_timer = config.show_timer
     return render_template(
         'training.html',
         mode=mode,
@@ -797,7 +816,7 @@ def render_training_result(mode):
         result=result,
         stats=session['stats'],
         next_url=url_for('training', mode=mode),
-        training_data={'showStart': False, 'showResult': True, 'result': result, 'deckStyle': deck_style}
+        training_data={'showStart': False, 'showResult': True, 'result': result, 'deckStyle': deck_style, 'showTimer': show_timer}
     )
 
 
@@ -846,6 +865,7 @@ def render_training_question(mode, config):
             'situation': situation,
             'seatNames': get_seat_names(situation),
             'deckStyle': deck_style,
+            'showTimer': config.show_timer,
             'answerOptions': answer_options,
         }
     )
