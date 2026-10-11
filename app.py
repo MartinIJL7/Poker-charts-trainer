@@ -4,6 +4,7 @@ import os
 import random
 import uuid
 import glob
+import re
 from datetime import datetime
 from flask import abort
 
@@ -570,18 +571,37 @@ def config_to_python_string(config):
     return content
 
 
+BACKUP_DIR = 'saved_configs'
+
+
+def backup_display_name(filename):
+    """Turn a backup filename into the name shown to users.
+
+    'user_1_rfi_v1.py' -> 'rfi_v1'; public files only lose the extension.
+    """
+    name = filename[:-3] if filename.endswith('.py') else filename
+    match = re.match(r'user_\d+_(.*)$', name)
+    return match.group(1) if match else name
+
+
+def backup_entry(filename):
+    """Describe a backup for the template: real filename plus display name."""
+    return {'filename': filename, 'display_name': backup_display_name(filename)}
+
+
 def get_backup_files(user_id):
-    """Return a list of backup filenames belonging to the user."""
+    """Return the user's own backups as backup_entry() dicts, sorted by name."""
     prefix = f'user_{user_id}_'
-    files = glob.glob(os.path.join('saved_configs', prefix + '*.py'))
-    return sorted([os.path.basename(f) for f in files])
+    files = glob.glob(os.path.join(BACKUP_DIR, prefix + '*.py'))
+    return sorted((backup_entry(os.path.basename(f)) for f in files),
+                  key=lambda entry: entry['display_name'].lower())
 
 
 def get_public_backup_files():
-    """Return a list of public backup filenames (without user_ prefix)."""
-    files = glob.glob(os.path.join('saved_configs', '*.py'))
-    public = [os.path.basename(f) for f in files if not os.path.basename(f).startswith('user_')]
-    return sorted(public)
+    """Return public backups (files without the user_ prefix) as backup_entry() dicts."""
+    names = (os.path.basename(f) for f in glob.glob(os.path.join(BACKUP_DIR, '*.py')))
+    return sorted((backup_entry(n) for n in names if not n.startswith('user_')),
+                  key=lambda entry: entry['display_name'].lower())
 
 
 def discard_range_draft():
@@ -1451,50 +1471,96 @@ def debug():
 
 # -------------------------------------------------------------------
 # Configuration backup management
+#
+# A "config" is the user's whole setup (ranges, modes, colours, table
+# situations). A backup is a generated .py file in saved_configs/:
+#   user_<id>_<name>.py  - private, visible only to its owner
+#   <name>.py            - public, loadable by everyone, read-only
+# Loading a backup replaces the live config; statistics are untouched.
 # -------------------------------------------------------------------
+CONFIG_FIELDS = ('subranges', 'subrange_order', 'modes', 'subrange_colors', 'situations')
+
+
+def set_config_fields(config, subranges, subrange_order, modes, subrange_colors, situations):
+    """Overwrite every config column and mark each JSON column as modified."""
+    config.subranges = subranges
+    config.subrange_order = subrange_order
+    config.modes = modes
+    config.subrange_colors = subrange_colors
+    config.situations = situations
+    for field in CONFIG_FIELDS:
+        flag_modified(config, field)
+
+
+def clean_loaded_situations(raw_situations, config):
+    """Keep only valid situations for positions that exist in the loaded config.
+
+    Old backups have no 'situations', and hand-edited ones may hold junk.
+    """
+    if not isinstance(raw_situations, dict):
+        return {}
+    loaded_positions = set(get_all_positions(config))
+    cleaned = {}
+    for pos, situation in raw_situations.items():
+        validated = validate_situation(situation)
+        if pos in loaded_positions and validated is not None:
+            cleaned[pos] = validated
+    return cleaned
+
+
+def backup_access_error(filename):
+    """Return a (json response, status) error if the user may not touch this backup, else None.
+
+    Private files are limited to their owner; the file must also exist.
+    """
+    if filename.startswith('user_') and not filename.startswith(f'user_{current_user.id}_'):
+        return jsonify({'status': 'error', 'message': 'Access denied'}), 403
+    if not os.path.exists(os.path.join(BACKUP_DIR, filename)):
+        return jsonify({'status': 'error', 'message': 'File not found'}), 404
+    return None
+
+
 @app.route('/config_management', methods=['GET'])
 @login_required
 def config_management():
-    personal = get_backup_files(current_user.id)
-    public = get_public_backup_files()
+    """Page with the save form and the lists of personal and public backups."""
     return render_template('config_management.html',
-                           personal_backups=personal,
-                           public_backups=public)
+                           personal_backups=get_backup_files(current_user.id),
+                           public_backups=get_public_backup_files())
 
 
 @app.route('/config_management/save', methods=['POST'])
 @login_required
 def save_config_backup():
+    """Save the live config as a personal backup; ask before overwriting."""
     name = request.form.get('name', '').strip()
     overwrite = request.form.get('overwrite', 'false').lower() == 'true'
     if not name:
         return jsonify({'status': 'error', 'message': 'Backup name required'}), 400
 
     filename = f'user_{current_user.id}_{name.replace(" ", "_")}.py'
-    filepath = os.path.join('saved_configs', filename)
+    filepath = os.path.join(BACKUP_DIR, filename)
 
     if os.path.exists(filepath) and not overwrite:
-        return jsonify({'status': 'exists', 'message': f'File {filename} already exists. Overwrite?'}), 409
+        return jsonify({'status': 'exists', 'message': f'Конфиг "{backup_display_name(filename)}" уже существует. Перезаписать?'}), 409
 
     config = get_user_config(current_user.id)
-    content = config_to_python_string(config)
     with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(content)
-    return jsonify({'status': 'ok', 'message': f'Конфиг сохранен как "{filename}"'})
+        f.write(config_to_python_string(config))
+    return jsonify({'status': 'ok',
+                    'message': f'Конфиг сохранен как "{backup_display_name(filename)}"',
+                    **backup_entry(filename)})
 
 
 @app.route('/config_management/load/<filename>', methods=['POST'])
 @login_required
 def load_config_backup(filename):
-    filepath = os.path.join('saved_configs', filename)
-    if not os.path.exists(filepath):
-        return jsonify({'status': 'error', 'message': 'File not found'}), 404
+    """Replace the live config with the contents of a backup file."""
+    error = backup_access_error(filename)
+    if error:
+        return error
 
-    # Prevent loading another user's private config
-    if filename.startswith('user_') and not filename.startswith(f'user_{current_user.id}_'):
-        return jsonify({'status': 'error', 'message': 'Access denied'}), 403
-
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(os.path.join(BACKUP_DIR, filename), 'r', encoding='utf-8') as f:
         code = f.read()
 
     namespace = {}
@@ -1504,66 +1570,42 @@ def load_config_backup(filename):
         return jsonify({'status': 'error', 'message': f'Load error: {str(e)}'}), 400
 
     config = get_user_config(current_user.id)
-    config.subranges = namespace.get('subranges', {})
-    config.subrange_order = namespace.get('subrange_order', [])
-    config.modes = namespace.get('modes', {})
-    config.subrange_colors = namespace.get('subrange_colors', {})
-
+    set_config_fields(
+        config,
+        subranges=namespace.get('subranges', {}),
+        subrange_order=namespace.get('subrange_order', []),
+        modes=namespace.get('modes', {}),
+        subrange_colors=namespace.get('subrange_colors', {}),
+        situations={},  # filled below, once the loaded positions are known
+    )
     ensure_lists_in_subranges(config)
-
-    # Old backups have no 'situations'; hand-edited ones may hold junk, so
-    # keep only valid entries for positions that exist in the loaded ranges.
-    raw_situations = namespace.get('situations', {})
-    if not isinstance(raw_situations, dict):
-        raw_situations = {}
-    loaded_positions = set(get_all_positions(config))
-    cleaned_situations = {}
-    for pos, sit in raw_situations.items():
-        validated = validate_situation(sit)
-        if pos in loaded_positions and validated is not None:
-            cleaned_situations[pos] = validated
-    config.situations = cleaned_situations
-
-    flag_modified(config, 'subranges')
-    flag_modified(config, 'subrange_order')
-    flag_modified(config, 'modes')
-    flag_modified(config, 'subrange_colors')
-    flag_modified(config, 'situations')
+    config.situations = clean_loaded_situations(namespace.get('situations', {}), config)
     db.session.commit()
 
-    return jsonify({'status': 'ok', 'message': f'Конфиг "{filename}" загружен'})
+    return jsonify({'status': 'ok', 'message': f'Конфиг "{backup_display_name(filename)}" загружен'})
 
 
 @app.route('/config_management/delete/<filename>', methods=['POST'])
 @login_required
 def delete_config_backup(filename):
+    """Delete one of the user's own backups; public ones are read-only."""
     if not filename.startswith('user_'):
         return jsonify({'status': 'error', 'message': 'Public configs cannot be deleted'}), 403
-    if not filename.startswith(f'user_{current_user.id}_'):
-        return jsonify({'status': 'error', 'message': 'Access denied'}), 403
+    error = backup_access_error(filename)
+    if error:
+        return error
 
-    filepath = os.path.join('saved_configs', filename)
-    if not os.path.exists(filepath):
-        return jsonify({'status': 'error', 'message': 'File not found'}), 404
-
-    os.remove(filepath)
-    return jsonify({'status': 'ok', 'message': f'Конфиг "{filename}" удален'})
+    os.remove(os.path.join(BACKUP_DIR, filename))
+    return jsonify({'status': 'ok', 'message': f'Конфиг "{backup_display_name(filename)}" удален'})
 
 
 @app.route('/config_management/clear', methods=['POST'])
 @login_required
 def clear_config():
+    """Wipe the live config (ranges, modes, colours, situations); statistics stay."""
     config = get_user_config(current_user.id)
-    config.subranges = {}
-    config.subrange_order = []
-    config.modes = {}
-    config.subrange_colors = {}
-    config.situations = {}
-    flag_modified(config, 'subranges')
-    flag_modified(config, 'subrange_order')
-    flag_modified(config, 'modes')
-    flag_modified(config, 'subrange_colors')
-    flag_modified(config, 'situations')
+    set_config_fields(config, subranges={}, subrange_order=[], modes={},
+                      subrange_colors={}, situations={})
     db.session.commit()
     return jsonify({'status': 'ok', 'message': 'Конфиг успешно очищен'})
 

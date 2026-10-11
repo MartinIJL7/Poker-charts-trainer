@@ -1,0 +1,283 @@
+/* config_management.css – styles for the config backups page.
+   Builds on the shared .cr-shell design system (cr_design.css): cards,
+   buttons, inputs and toasts come from there; only layout lives here. */
+
+body.config-page {
+    max-width: 100%;
+    margin: 0;
+    padding: 0 20px;
+}
+
+/* ---- Layout: two columns on desktop, one stacked column on mobile ----
+   Left = what a config is, saving and clearing; right = the saved library. */
+.cr-shell .cfg-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: var(--cr-space-lg);
+    align-items: start;
+}
+
+.cr-shell .cfg-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-lg);
+    min-width: 0;
+}
+
+/* ---- Intro card ---- */
+.cr-shell .cfg-intro p,
+.cr-shell .cfg-empty,
+.cr-shell .cfg-danger p {
+    margin: 0;
+    line-height: 1.5;
+    color: var(--cr-color-text-muted);
+}
+
+.cr-shell .cfg-intro summary {
+    cursor: pointer;
+    margin-bottom: 0;
+    list-style-position: inside;
+}
+
+.cr-shell .cfg-intro[open] summary {
+    margin-bottom: var(--cr-space-md);
+}
+
+.cr-shell .cfg-intro-list {
+    margin: var(--cr-space-md) 0 0;
+    padding-left: 20px;
+    color: var(--cr-color-text);
+    line-height: 1.5;
+}
+
+.cr-shell .cfg-intro-list li + li {
+    margin-top: var(--cr-space-sm);
+}
+
+/* ---- Save form ---- */
+.cr-shell .cfg-save-form {
+    display: flex;
+    gap: var(--cr-space-sm);
+}
+
+.cr-shell .cfg-save-form .cr-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* ---- Backup lists ---- */
+.cr-shell .cfg-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-sm);
+}
+
+.cr-shell .cfg-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cr-space-sm);
+    padding: var(--cr-space-sm) var(--cr-space-sm) var(--cr-space-sm) var(--cr-space-md);
+    background: var(--cr-color-bg);
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-md);
+}
+
+.cr-shell .cfg-item-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 500;
+    /* Long names wrap and show in full; the row grows taller instead */
+    overflow-wrap: anywhere;
+}
+
+.cr-shell .cfg-item-actions {
+    display: flex;
+    gap: var(--cr-space-xs);
+    flex-shrink: 0;
+}
+
+/* "Загрузить" is the main action of a row, so it gets the primary tint
+   instead of the faint ghost look */
+.cr-shell .cfg-item .cr-btn--ghost {
+    background: var(--cr-color-primary-soft);
+    border-color: transparent;
+    color: var(--cr-color-primary-hover);
+}
+
+.cr-shell .cfg-item .cr-btn--ghost:hover {
+    background: var(--cr-color-primary);
+    color: white;
+}
+
+.cr-shell .cfg-icon-btn {
+    width: 44px;
+    padding: 0;
+}
+
+.cr-shell .cfg-badge {
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--cr-color-primary-soft);
+    color: var(--cr-color-primary-hover);
+    font-size: 0.75em;
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+/* scrollIntoView() on a new row leaves this much room below it, so the whole
+   card is visible instead of sitting flush against the screen edge */
+.cr-shell .cfg-item {
+    scroll-margin-bottom: 80px;
+}
+
+/* A freshly saved (or overwritten) config slides in and flashes once so the
+   user sees where it landed. Reduced-motion users get none (cr_design.css) */
+.cr-shell .cfg-item--new {
+    animation: cfg-item-in 600ms ease-out, cfg-item-flash 1600ms ease-out;
+}
+
+@keyframes cfg-item-in {
+    from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes cfg-item-flash {
+    0%, 35% { background: var(--cr-color-primary-soft); border-color: var(--cr-color-primary); }
+}
+
+/* A deleted config fades out and collapses; the negative margin cancels the
+   list gap so the rows below don't jump when the element is finally removed.
+   JS pins the row's height first (CSS can't transition from auto) and removes
+   the node after 350ms - keep in sync with REMOVE_ANIMATION_MS. */
+.cr-shell .cfg-item--removing {
+    height: 0 !important;
+    margin-bottom: calc(-1 * var(--cr-space-sm));
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: height 350ms ease, margin-bottom 350ms ease, padding 350ms ease,
+                border-width 350ms ease, opacity 250ms ease;
+}
+
+/* ---- Public configs: highlighted so they stand out from personal ones ---- */
+.cr-shell .cfg-public {
+    border-color: var(--cr-color-primary);
+    background: linear-gradient(180deg, var(--cr-color-primary-soft) 0%, var(--cr-color-surface) 60%);
+    box-shadow: var(--cr-shadow-medium);
+}
+
+.cr-shell .cfg-public .cr-card-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--cr-space-sm);
+}
+
+.cr-shell .cfg-star {
+    color: var(--cr-color-primary);
+}
+
+.cr-shell .cfg-public-lead {
+    margin: calc(-1 * var(--cr-space-sm)) 0 var(--cr-space-md);
+    font-size: 0.9em;
+    line-height: 1.5;
+    color: var(--cr-color-text-muted);
+}
+
+.cr-shell .cfg-public .cfg-item {
+    background: var(--cr-color-surface);
+    border-color: var(--cr-color-primary);
+}
+
+.cr-shell .cfg-public .cfg-item .cr-btn--ghost {
+    background: var(--cr-color-primary);
+    color: white;
+}
+
+.cr-shell .cfg-public .cfg-item .cr-btn--ghost:hover {
+    background: var(--cr-color-primary-hover);
+}
+
+/* ---- Danger zone ---- */
+.cr-shell .cfg-danger {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--cr-space-md);
+    border-color: var(--cr-color-danger);
+    background: var(--cr-color-danger-soft);
+}
+
+.cr-shell .cfg-danger .cr-card-title {
+    color: var(--cr-color-danger-hover);
+    margin-bottom: var(--cr-space-xs);
+}
+
+/* The soft-red card would swallow the soft-red button, so flip it solid */
+.cr-shell .cfg-danger .cr-btn--danger-ghost {
+    background: var(--cr-color-danger);
+    color: white;
+}
+
+.cr-shell .cfg-danger .cr-btn--danger-ghost:hover {
+    background: var(--cr-color-danger-hover);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+    .cr-shell .cfg-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--cr-space-md);
+    }
+
+    /* Dissolve the two columns so the cards can be reordered across them:
+       explanation, public, saving, clear, saved configs */
+    .cr-shell .cfg-col {
+        display: contents;
+    }
+
+    .cr-shell .cfg-intro  { order: 1; }
+    .cr-shell .cfg-public { order: 2; }
+    .cr-shell .cfg-save   { order: 3; }
+    .cr-shell .cfg-danger { order: 4; }
+    .cr-shell .cfg-mine   { order: 5; }
+}
+
+@media (max-width: 600px) {
+    body.config-page {
+        padding: 0 16px;
+    }
+
+    /* Extra room under the last card so a new row at the very bottom can be
+       scrolled fully into view */
+    .cr-shell {
+        padding-bottom: 120px;
+    }
+
+    /* The buttons drop below the name so it gets the full row width */
+    .cr-shell .cfg-item {
+        flex-direction: column;
+        align-items: stretch;
+        padding: var(--cr-space-md);
+    }
+
+    .cr-shell .cfg-item-actions {
+        justify-content: flex-end;
+    }
+
+    .cr-shell .cfg-item-actions .cr-btn--ghost {
+        flex: 1 1 auto;
+    }
+
+    /* Inputs at 16px+ stop iOS from zooming the page on focus */
+    .cr-shell .cfg-save-form .cr-input {
+        font-size: 16px;
+    }
+}
