@@ -57,6 +57,7 @@
         });
     }
 </script>
+{% if not no_modes %}
 <script>
     document.getElementById('btn-normal').addEventListener('click', function() {
         var mode = document.getElementById('mode-select').value;
@@ -75,4 +76,5 @@
         window.location.href = "{{ url_for('draw_training', mode='') }}" + encodeURIComponent(mode);
     });
 </script>
+{% endif %}
 {% endblock %}
