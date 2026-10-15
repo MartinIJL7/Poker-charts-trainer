@@ -2,12 +2,6 @@
    Builds on the shared .cr-shell design system (cr_design.css): cards,
    buttons, inputs and toasts come from there; only layout lives here. */
 
-body.config-page {
-    max-width: 100%;
-    margin: 0;
-    padding: 0 20px;
-}
-
 /* ---- Layout: two columns on desktop, one stacked column on mobile ----
    Left = what a config is, saving and clearing; right = the saved library. */
 .cr-shell .cfg-grid {
@@ -251,10 +245,6 @@ body.config-page {
 }
 
 @media (max-width: 600px) {
-    body.config-page {
-        padding: 0 16px;
-    }
-
     /* Extra room under the last card so a new row at the very bottom can be
        scrolled fully into view */
     .cr-shell {

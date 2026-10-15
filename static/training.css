@@ -3,13 +3,6 @@
    cr_design.css; this file covers only what's unique to /training/<mode>:
    page layout, the timer bar, the result outline, and the answer grid. */
 
-.tr-header-row {
-    display: flex;
-    align-items: center;
-    gap: var(--cr-space-lg);
-    flex-wrap: wrap;
-}
-
 /* The shell stacks the table row and the full-width range card under it;
    the sidebar/table columns live in .tr-row. */
 .tr-shell {
@@ -630,10 +623,6 @@
 }
 
 @media screen and (max-width: 600px) {
-    .tr-header-row {
-        gap: var(--cr-space-sm);
-    }
-
     .tr-actions {
         flex-direction: column;
     }

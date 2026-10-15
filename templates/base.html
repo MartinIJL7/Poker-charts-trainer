@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -8,36 +8,52 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='cr_design.css') }}?v={{ static_version('cr_design.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
-    <div class="header-row">
-        <h1>{% block header %}📊 Тренировка по покерным чартам{% endblock %}</h1>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            {% if current_user.is_authenticated %}
-                {% if request.endpoint != 'index' %}
-                    <a href="{{ url_for('index') }}" class="home-link">🏠</a>
+<body class="cr-body {% block body_class %}{% endblock %}">
+    <header class="cr-topbar">
+        <div class="cr-topbar-inner">
+            <a href="{{ url_for('index') }}" class="cr-topbar-brand" aria-label="На главную">
+                <svg class="cr-topbar-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M7 15l3-4 3 2 4-6"/></svg>
+                <span class="cr-topbar-brand-text">Покерные чарты</span>
+            </a>
+            <h1 class="cr-topbar-title">{% block header %}Тренировка по покерным чартам{% endblock %}</h1>
+            <nav class="cr-topbar-actions">
+                {% if current_user.is_authenticated %}
+                    {% if request.endpoint != 'index' %}
+                        <a href="{{ url_for('index') }}" class="cr-topbar-btn cr-topbar-btn--icon" aria-label="На главную" title="На главную">
+                            <svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L10 3l7 6.5M5 8.5V16h10V8.5"/></svg>
+                        </a>
+                    {% endif %}
+                    <span class="cr-topbar-user" title="{{ current_user.username }}">
+                        <span class="cr-topbar-avatar">{{ current_user.username[:1]|upper }}</span>
+                        <span class="cr-topbar-username">{{ current_user.username }}</span>
+                    </span>
+                    {% if request.endpoint == 'index' %}
+                        <a href="{{ url_for('logout') }}" class="cr-topbar-btn cr-topbar-btn--danger">Выйти</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="cr-topbar-btn">Войти</a>
+                    <a href="{{ url_for('register') }}" class="cr-topbar-btn cr-topbar-btn--primary">Регистрация</a>
                 {% endif %}
-                <span>👤 {{ current_user.username }}</span>
-                {% if request.endpoint == 'index' %}
-                    <a href="{{ url_for('logout') }}" class="home-link" style="background: #e74c3c;">Выйти</a>
-                {% endif %}
-            {% else %}
-                <a href="{{ url_for('login') }}" class="home-link">Войти</a>
-                <a href="{{ url_for('register') }}" class="home-link" style="background: #27ae60;">Регистрация</a>
-            {% endif %}
+            </nav>
         </div>
-    </div>
+    </header>
 
+    <main class="cr-main">
+        {% block content %}{% endblock %}
+    </main>
+    <div id="flash-toast-container" class="cr-toast-container" aria-live="polite"></div>
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <ul class="flashes">
-                {% for category, message in messages %}
-                    <li class="{{ category }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
+    <script type="module">
+        import { showToast } from "{{ url_for('static', filename='toast.js') }}?v={{ static_version('toast.js') }}";
+        const flashes = {{ messages|tojson }};
+        const container = document.getElementById('flash-toast-container');
+        flashes.forEach(function(item) {
+            showToast(container, item[1], item[0] === 'error' || item[0] === 'success' ? item[0] : 'info');
+        });
+    </script>
         {% endif %}
     {% endwith %}
-
-    {% block content %}{% endblock %}
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,11 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Тренировка – {{ mode }}{% endblock %}
 {% block body_class %}tr-page{% endblock %}
-{% block header %}
-<div class="tr-header-row">
-    <span>Режим: {{ mode }}</span>
-</div>
-{% endblock %}
+{% block header %}Режим: {{ mode }}{% endblock %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='training.css') }}?v={{ static_version('training.css') }}">

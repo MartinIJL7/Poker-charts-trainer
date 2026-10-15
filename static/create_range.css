@@ -1,12 +1,5 @@
 /* create_range.css – styles for the range editor page */
 
-body.create-page {
-    max-width: 100% !important;
-    padding: 0 20px;
-    margin: 0;
-    background: #f7f9fc;
-}
-
 .create-container {
     max-width: 100% !important;
     padding: 20px 40px;
@@ -316,11 +309,6 @@ body.create-page {
     .create-container {
         padding: 15px;
     }
-    .header-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
     .top-row {
         flex-wrap: wrap;
     }
@@ -347,7 +335,6 @@ body.create-page {
 }
 
 @media screen and (max-width: 600px) {
-    body.create-page { padding: 0 6px; }
     .create-container {
         overflow: visible !important;
         height: auto !important;
