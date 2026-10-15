@@ -1,0 +1,85 @@
+/* auth.css - login and registration pages only.
+   Cards, inputs and buttons come from the shared .cr-shell design system
+   (cr_design.css); this file covers the centered card and its form layout. */
+
+.cr-shell.au-shell {
+    max-width: 440px;
+    padding-top: var(--cr-space-lg);
+}
+
+.au-shell .au-card {
+    padding: var(--cr-space-xl);
+}
+
+.au-shell .au-title {
+    margin: 0 0 var(--cr-space-xs);
+    font-size: 1.4em;
+    font-weight: 700;
+    color: var(--cr-color-text);
+}
+
+.au-shell .au-subtitle {
+    margin: 0 0 var(--cr-space-lg);
+    color: var(--cr-color-text-muted);
+    font-size: 0.95em;
+}
+
+.au-shell .au-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-md);
+}
+
+.au-shell .au-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.au-shell .au-label {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--cr-color-text);
+}
+
+/* Inputs and the submit button share the form's full width exactly */
+.au-shell .au-form .cr-input {
+    width: 100%;
+    margin: 0;
+}
+
+.au-shell .au-submit {
+    margin-top: var(--cr-space-sm);
+    height: 46px;
+    font-size: 1em;
+}
+
+/* Enter pressed in a field: show the button as clicked before submitting */
+.cr-shell .cr-btn.is-pressed {
+    background: var(--cr-color-primary-hover);
+    box-shadow: var(--cr-shadow-medium);
+    transform: scale(0.98);
+}
+
+.au-shell .au-switch {
+    margin: var(--cr-space-lg) 0 0;
+    text-align: center;
+    color: var(--cr-color-text-muted);
+    font-size: 0.95em;
+}
+
+.au-shell .au-switch a {
+    color: var(--cr-color-primary-hover);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.au-shell .au-switch a:hover {
+    text-decoration: underline;
+}
+
+@media screen and (max-width: 600px) {
+    .au-shell .au-card {
+        padding: var(--cr-space-lg) var(--cr-space-md);
+    }
+}

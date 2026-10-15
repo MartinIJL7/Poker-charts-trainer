@@ -622,9 +622,11 @@ def register():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         if not username or not password:
-            return render_template('register.html', error='Пожалуйста, заполните все поля')
+            flash('Пожалуйста, заполните все поля', 'error')
+            return render_template('register.html', username=username)
         if User.query.filter_by(username=username).first():
-            return render_template('register.html', error='Такое имя пользователя уже существует')
+            flash('Такое имя пользователя уже существует', 'error')
+            return render_template('register.html')
         user = User(username=username)
         user.set_password(password)
         db.session.add(user)
@@ -651,7 +653,8 @@ def login():
             flash(f'Добро пожаловать, {username}!', 'success')
             next_page = request.args.get('next')
             return redirect(next_page or url_for('index'))
-        return render_template('login.html', error='Неправильные имя пользователя или пароль')
+        flash('Неправильные имя пользователя или пароль', 'error')
+        return render_template('login.html', username=username)
     return render_template('login.html')
 
 

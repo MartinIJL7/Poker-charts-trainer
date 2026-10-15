@@ -320,10 +320,6 @@ a:hover {
         max-width: 100%;
         padding: 0 10px;
     }
-    .auth-container {
-        margin: 20px auto;
-        padding: 20px;
-    }
     .button-group {
         gap: 6px;
     }
