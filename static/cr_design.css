@@ -232,7 +232,7 @@ body.cr-body {
     box-sizing: border-box;
 }
 
-/* Narrow pages (login, register, debug) keep a centered column */
+/* Narrow pages (login, register) keep a centered column */
 body.narrow-page .cr-main {
     max-width: 800px;
     margin: 0 auto;

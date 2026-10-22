@@ -6,7 +6,6 @@ import uuid
 import glob
 import re
 from datetime import datetime
-from flask import abort
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -1434,42 +1433,6 @@ def delete_mode(mode_name):
     flag_modified(config, 'modes')
     db.session.commit()
     return jsonify({'status': 'ok', 'message': f'Режим "{mode_name}" удален'})
-
-
-# -------------------------------------------------------------------
-# Debug route
-# -------------------------------------------------------------------
-@app.route('/debug', methods=['GET', 'POST'])
-@login_required
-def debug():
-    if current_user.username != 'MartinIJL':
-        abort(403)
-    config = get_user_config(current_user.id)
-    all_positions = get_all_positions(config)
-    result = None
-
-    if request.method == 'POST':
-        pos = request.form.get('position', '').strip()
-        hand = request.form.get('hand', '').strip()
-        if not pos or not hand:
-            result = {'error': 'Нужно заполнить оба поля'}
-        elif pos not in all_positions:
-            result = {'error': f'Неизвестный диапазон: {pos}'}
-        elif hand not in ALL_HANDS:
-            result = {'error': f'Неизвестная рука: {hand}'}
-        else:
-            status = get_hand_status(hand, pos, config)
-            correct_text = get_correct_answer_text(status)
-            possible_statuses = get_possible_statuses(pos, config)
-            result = {
-                'position': pos,
-                'hand': hand,
-                'status': status,
-                'correct_text': correct_text,
-                'possible_statuses': possible_statuses
-            }
-
-    return render_template('debug.html', result=result, positions=all_positions)
 
 
 # -------------------------------------------------------------------

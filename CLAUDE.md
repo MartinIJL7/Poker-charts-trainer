@@ -92,7 +92,7 @@ Weight calculation in `calculate_weight()`:
 - `/heatmap` — visual hand difficulty (color-coded by weight)
 - `/all_stats` — aggregate stats across positions
 - `/api/range/<position>` — JSON endpoint for hand data
-- `/config_management` — backup/restore, debug tools
+- `/config_management` — backup/restore
 
 ## Frontend
 
