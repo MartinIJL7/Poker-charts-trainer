@@ -1,75 +1,100 @@
 {% extends "base.html" %}
 {% block title %}Главная{% endblock %}
 {% block header %}Тренировка по покерным чартам{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}?v={{ static_version('index.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="center-content">
+<div class="cr-shell hm-shell">
     {% if show_tables_notice %}
-    <div id="tables-notice" class="tables-notice">
-        <h3>Теперь у каждого диапазона может быть свой стол</h3>
+    <div id="tables-notice" class="cr-card hm-notice">
+        <h3 class="hm-notice-title">Теперь у каждого диапазона может быть свой стол</h3>
         <p>Стол показывает, как выглядит раздача: сколько игроков, ваша позиция, стеки и ставки. Тренировка становится ближе к реальной игре</p>
         <p>Столов пока нет у диапазонов: <strong>{{ missing_tables }}</strong>. Откройте работу с диапазонами, выберите диапазон и настройте стол в блоке «Ситуация за столом»</p>
         <p>В конфиге GreenLine столы уже добавлены. Если загрузите его заново в работе с конфигами, он заменит ваши текущие диапазоны, режимы и цвета, поэтому сначала сохраните резервную копию</p>
-        <div class="tables-notice-actions">
-            <a href="{{ url_for('create_range', tab='edit') }}" class="btn btn-primary">Создать стол</a>
-            <a href="{{ url_for('config_management') }}" class="btn btn-primary">Работа с конфигами</a>
-            <button type="button" id="tables-notice-close" class="btn">Понятно</button>
+        <div class="hm-notice-actions">
+            <a href="{{ url_for('create_range', tab='edit') }}" class="cr-btn cr-btn--primary">Создать стол</a>
+            <a href="{{ url_for('config_management') }}" class="cr-btn cr-btn--ghost">Работа с конфигами</a>
+            <button type="button" id="tables-notice-close" class="cr-btn cr-btn--ghost">Понятно</button>
         </div>
     </div>
     {% endif %}
+
     {% if no_modes %}
-        <p class="warning">⚠️ Нет доступных режимов, создайте их по кнопке ниже</p>
-    {% else %}
-        <h2>Выберите режим и тип тренировки:</h2>
-        <div style="margin: 20px auto; max-width: 400px;">
-            <select id="mode-select" style="width: 100%; padding: 10px; font-size: 1em; border-radius: 6px; border: 1px solid #ccc;">
-                <option value="">-- Выберите режим --</option>
+    <p class="hm-warning">Нет доступных режимов, создайте их в разделе «Работа с режимами»</p>
+    {% endif %}
+
+    <div class="hm-grid">
+        <div class="hm-lead">
+            <button type="button" class="hm-tile hm-tile--lead" data-training="normal"{% if no_modes %} disabled{% endif %}>
+                <span class="hm-tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+                </span>
+                <span class="hm-tile-title">Обычная тренировка</span>
+            </button>
+            <button type="button" class="hm-tile hm-tile--lead" data-training="draw"{% if no_modes %} disabled{% endif %}>
+                <span class="hm-tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 013 3L8 19l-4 1z"/><path d="M14 7l3 3"/></svg>
+                </span>
+                <span class="hm-tile-title">Рисование диапазонов</span>
+            </button>
+        </div>
+
+        <div class="hm-side">
+            <a href="{{ url_for('create_mode') }}" class="hm-tile">
+                <span class="hm-tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
+                </span>
+                <span class="hm-tile-title">Работа с режимами</span>
+            </a>
+            <a href="{{ url_for('all_stats') }}" class="hm-tile">
+                <span class="hm-tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>
+                </span>
+                <span class="hm-tile-title">Работа со статистикой</span>
+            </a>
+            <a href="{{ url_for('create_range') }}" class="hm-tile">
+                <span class="hm-tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16"/></svg>
+                </span>
+                <span class="hm-tile-title">Работа с диапазонами</span>
+            </a>
+            <a href="{{ url_for('config_management') }}" class="hm-tile">
+                <span class="hm-tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>
+                </span>
+                <span class="hm-tile-title">Работа с конфигами</span>
+            </a>
+        </div>
+    </div>
+
+    {% if not no_modes %}
+    <dialog id="mode-dialog" class="cr-dialog hm-dialog" aria-labelledby="mode-dialog-title"
+            data-url-normal="{{ url_for('training', mode='') }}"
+            data-url-draw="{{ url_for('draw_training', mode='') }}">
+        <div class="cr-dialog-body">
+            <h2 id="mode-dialog-title" class="cr-dialog-title" tabindex="-1" autofocus>Выберите режим</h2>
+            <p id="mode-dialog-subtitle" class="cr-dialog-text hm-dialog-subtitle"></p>
+            <ul class="hm-mode-list">
                 {% for mode_name in modes %}
-                    <option value="{{ mode_name }}">{{ mode_name }}</option>
+                <li>
+                    <button type="button" class="hm-mode-item" data-mode="{{ mode_name }}">
+                        <span class="hm-mode-name">{{ mode_name }}</span>
+                    </button>
+                </li>
                 {% endfor %}
-            </select>
-            <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <button id="btn-normal" class="btn btn-primary" style="min-width: 160px;">📝 Обычная тренировка</button>
-                <button id="btn-draw" class="btn btn-success" style="min-width: 160px;">🎨 Рисование диапазонов</button>
+            </ul>
+            <div class="cr-dialog-actions">
+                <button type="button" id="mode-dialog-cancel" class="cr-btn cr-btn--ghost">Отмена</button>
             </div>
         </div>
+    </dialog>
     {% endif %}
-
-    <div class="action-links" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-        <a href="{{ url_for('create_range') }}">📝 Работа с диапазонами</a>
-        <a href="{{ url_for('create_mode') }}">📋 Работа с режимами</a>
-        <a href="{{ url_for('config_management') }}">💾 Работа с конфигами</a>
-        <a href="{{ url_for('all_stats') }}">📊 Работа со статистикой</a>
-    </div>
-
 </div>
+{% endblock %}
 
-<script>
-    var tablesNoticeClose = document.getElementById('tables-notice-close');
-    if (tablesNoticeClose) {
-        tablesNoticeClose.addEventListener('click', function() {
-            document.getElementById('tables-notice').style.display = 'none';
-            fetch('/api/dismiss_tables_notice', { method: 'POST' }).catch(function() {});
-        });
-    }
-</script>
-{% if not no_modes %}
-<script>
-    document.getElementById('btn-normal').addEventListener('click', function() {
-        var mode = document.getElementById('mode-select').value;
-        if (!mode) {
-            alert('Пожалуйста, выберите режим');
-            return;
-        }
-        window.location.href = "{{ url_for('training', mode='') }}" + encodeURIComponent(mode);
-    });
-    document.getElementById('btn-draw').addEventListener('click', function() {
-        var mode = document.getElementById('mode-select').value;
-        if (!mode) {
-            alert('Пожалуйста, выберите режим');
-            return;
-        }
-        window.location.href = "{{ url_for('draw_training', mode='') }}" + encodeURIComponent(mode);
-    });
-</script>
-{% endif %}
+{% block extra_js %}
+    <script src="{{ url_for('static', filename='index.js') }}?v={{ static_version('index.js') }}"></script>
 {% endblock %}

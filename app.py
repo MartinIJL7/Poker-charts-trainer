@@ -676,10 +676,7 @@ def index():
     config = get_user_config(current_user.id)
     missing_tables = len(get_ranges_without_table(config))
     show_tables_notice = (not config.seen_tables_notice) and missing_tables > 0
-    if not config.modes:
-        return render_template('index.html', modes={}, no_modes=True,
-                               show_tables_notice=show_tables_notice, missing_tables=missing_tables)
-    return render_template('index.html', modes=config.modes, no_modes=False,
+    return render_template('index.html', modes=config.modes or {}, no_modes=not config.modes,
                            show_tables_notice=show_tables_notice, missing_tables=missing_tables)
 
 

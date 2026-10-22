@@ -19,30 +19,6 @@ h1, h2 {
     border-radius: 5px;
 }
 
-ul.mode-list {
-    list-style: none;
-    padding: 0;
-}
-
-ul.mode-list li {
-    margin: 8px 0;
-}
-
-ul.mode-list li a {
-    display: inline-block;
-    background: #3498db;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: bold;
-    transition: background 0.2s;
-}
-
-ul.mode-list li a:hover {
-    background: #2980b9;
-}
-
 .question {
     background: white;
     padding: 20px;
@@ -151,111 +127,6 @@ a:hover {
     text-decoration: underline;
 }
 
-/* ---- "Ranges can have tables" notice on the home page ---- */
-.tables-notice {
-    max-width: 560px;
-    margin: 0 auto 24px;
-    padding: 16px 20px;
-    text-align: left;
-    background: #eaf4fb;
-    border: 1px solid #c6dff0;
-    border-radius: 8px;
-}
-
-.tables-notice h3 {
-    margin: 0 0 8px;
-}
-
-.tables-notice p {
-    margin: 8px 0;
-}
-
-.tables-notice-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-/* Flex-centered so the label stays in the middle of the button, including on
-   phones where the global .btn has a fixed height and a long label wraps. */
-.tables-notice-actions .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    flex: 1 1 auto;
-    height: auto;
-    padding: 8px 20px;
-    line-height: 1.2;
-    text-align: center;
-}
-
-@media screen and (max-width: 640px) {
-    .tables-notice-actions .btn {
-        min-height: 44px;
-        padding: 8px 16px;
-    }
-}
-
-/* a:hover underlines links globally; these are buttons */
-.tables-notice-actions .btn:hover {
-    text-decoration: none;
-}
-
-/* ---- Centered layout for home page ---- */
-.center-content {
-    max-width: 600px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-.center-content .mode-list {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.center-content .mode-list li a {
-    display: inline-block;
-    background: #3498db;
-    color: white;
-    padding: 10px 40px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: bold;
-    transition: background 0.2s;
-    min-width: 200px;
-}
-
-.center-content .mode-list li a:hover {
-    background: #2980b9;
-}
-
-.center-content .action-links {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 30px;
-}
-
-.center-content .action-links a {
-    background: #ecf0f1;
-    padding: 8px 16px;
-    border-radius: 4px;
-    text-decoration: none;
-    color: #2c3e50;
-    transition: background 0.2s;
-}
-
-.center-content .action-links a:hover {
-    background: #d5dbdb;
-}
-
 /* ---- Buttons (global) ---- */
 .btn {
     display: inline-block;
@@ -316,10 +187,6 @@ a:hover {
 
 /* Mobile adaptation */
 @media screen and (max-width: 640px) {
-    .center-content {
-        max-width: 100%;
-        padding: 0 10px;
-    }
     .button-group {
         gap: 6px;
     }
