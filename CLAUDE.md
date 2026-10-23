@@ -6,11 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Flask web app for poker strategy training. Users build hand ranges, train across positions, and track learning progress with spaced repetition intervals.
 
+**Terminology**: in code and DB a "position" is really a *range name* chosen by the user (e.g. `BTN RFI`), not only a seat. `HandStats.position`, `modes` values and the `situations` keys all hold range names. A "subrange" is a named hand group inside a range (it doubles as an answer button in training).
+
 ## Tech Stack
 
 - **Backend**: Flask + SQLAlchemy ORM
-- **Database**: SQLite (WAL mode, stored in `instance/users.db`)
-- **Frontend**: Vanilla JavaScript, HTML, CSS (no framework)
+- **Database**: SQLite (WAL mode, stored in `instance/users.db`; override with `DATABASE_URL`)
+- **Frontend**: Vanilla JavaScript (ES modules), HTML, CSS (no framework)
 - **Auth**: Flask-Login with password hashing
 
 ## Running Locally
@@ -20,79 +22,108 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Runs on `http://localhost:5000`. Database and logs created automatically.
+Runs on `http://localhost:5000` (`debug=False`, so restart after editing `app.py` or a template — Jinja caches templates when debug is off; static files are served from disk). Database and logs created automatically; `app.log` collects WARNING and above and is gitignored.
 
 Set `SECRET_KEY` environment variable for production (sessions won't work without it).
 
 ## Database Schema
 
-**User** — username + password hash
+**User** — username + password hash + `created_at`
 
-**UserConfig** — per-user config:
+**UserConfig** — per-user config (one row per user):
 - `subranges`: hand groups (dict of dicts: subrange_name → position → list of hands)
-- `subrange_order`: list to maintain subrange creation order
+- `subrange_order`: list to maintain subrange creation order (also decides which subrange wins if a hand appears in several)
 - `modes`: training modes (dict: mode_name → list of positions)
 - `subrange_colors`: color labels for subranges
-- `situations`: table situation per position (dict: position → `{num_players, hero_position, seats}`); a missing entry renders the client-side default (6 players, hero BTN). Included in config backups; old backups without it load fine
+- `situations`: table situation per position (dict: position → `{num_players, hero_position, seats}`); a missing entry renders the client-side default (6 players, hero BTN) and the training page then shows an empty "no table" view. Included in config backups; old backups without it load fine
+- `deck_style`: card artwork on the training table (`default`, `minimal`, `minimal4`; legacy `classic`/`fourcolor` are mapped by `get_deck_style()`)
+- `show_timer`: answer timer bar on the training page (`None` = never chosen yet)
+- `seen_tables_notice`: the "ranges can have tables" card on the home page was dismissed
+- These four display/UI fields (`deck_style`, `show_timer`, `seen_tables_notice`, `updated_at`) are NOT part of config backups (`CONFIG_FIELDS` is only the five range fields above)
 
-**HandStats** — per-hand tracking:
+**HandStats** — per-hand tracking (unique per `user_id, position, hand`):
 - `attempts`, `errors`, `total_time_ms` — cumulative stats
 - `last_results`: last 3 pass/fail outcomes (list of 0s and 1s)
 - `last_times`: last 3 response times (ms) for rolling average
 - `review_interval_days`: spaced repetition interval
   - 0 = not learned
   - >0 = learned, waiting for review
-- `penalty_active`: true if hand needs penalty bonus (flagged after mistake on learned hand)
-- `updated_at`: timestamp of last answer submission
+- `penalty_active`: true if hand needs penalty bonus (flagged after failing the learned condition on a learned hand)
+- `updated_at`: timestamp of last answer submission (also the reference point for "review due")
+
+**Adding a column**: `db.create_all()` never alters existing tables. New columns on `UserConfig` must also be added to the idempotent `PRAGMA table_info` / `ALTER TABLE` block next to `db.create_all()` in `app.py`, otherwise existing databases break. For other tables write a script in `different_scripts/` (see `migrate_*.py`).
 
 ## Learning System (Core Logic)
 
-**Learned Condition** (either qualifies):
+All of it lives in `app.py`: `update_hand_stats()`, `calculate_weight()`, `get_avg_hand_time()`, `get_avg_time_for_position()`, `select_weighted_hand()`.
+
+**Learned Condition** (either qualifies, evaluated after every answer):
 1. **Strict**: ≥3 attempts AND all last 3 results correct AND avg time ≤ 3000ms
 2. **Weight-based**: weight_for_learning ≤ 0.25 AND current answer is correct
 
+**Average time of a hand**: mean of `last_times` once it holds 3 values, otherwise `total_time_ms / attempts`, 1000ms for untouched hands. Position average = mean of hand averages over hands with ≥1 attempt.
+
 Weight calculation in `calculate_weight()`:
-- Error rate: `errors / attempts` (0–1)
-- Speed score: ratio of hand avg time vs position avg time (0–1, clamped)
-- Base weight = error_rate + speed_score (0.1–2.0 after clamping)
-- If penalty_active: add 1.2 (up to 2.0 max)
-- If review due: set to 2.0
+- Error score: `errors / attempts` (0.5 for a hand never shown)
+- Speed score: hand avg time / position avg time; ratio ≤0.5 → 0, ≥2.0 → 1, linear in between
+- Base weight = error score + speed score, clamped to 0.1–2.0
+- If penalty_active: add 1.2 (capped at 2.0)
+- If review due (`review_interval_days > 0` and days since `updated_at` ≥ interval): set to 2.0. Skipped with `for_learning=True`, so a due hand can still count as learned
+- `select_weighted_hand()` picks a random hand of the position proportionally to weight
 
-**On Correct Answer**:
-- If hand now meets learned condition and not in interval: set interval = 1, clear penalty
-- If in interval and review due: bump to next Fibonacci number, clear penalty
-- If in interval and answer early: do nothing (keep interval, clear penalty)
+**After every answer** (`update_hand_stats()`), using the learned condition above:
+- Hand in interval but NOT learned now: `penalty_active = True`, interval reset to 0. This is triggered by any answer that fails the condition, not only by a wrong answer — a correct answer can demote a hand too (e.g. an earlier error still sits in `last_results`)
+- Hand learned and not in interval: interval = 1, clear penalty
+- Hand learned and in interval, review due: bump to next Fibonacci number, clear penalty
+- Hand learned and in interval, answered early: keep interval, clear penalty
+- Not learned and not in interval: nothing changes except the counters
 
-**On Wrong Answer**:
-- Increment error count
-- If hand was in interval (learned): set penalty_active = True, reset interval to 0
-- Otherwise: no change to interval
-
-**Position Learned**: ALL hands in position have `review_interval_days > 0`
+**Position Learned**: ALL 169 hands in position have `review_interval_days > 0`
 
 **Fibonacci Sequence**: [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377] days
 
 ## Training Flow
 
 1. **GET /training/<mode>** — Load training session
+   - Query flags: `?start=1` passes the start screen, `?reset_start=1` shows it again (used by other pages), `?show_result=1` shows the stored result
    - First visit shows start screen (with session stats)
-   - Selecting "Start" generates first question
-   - Question stored in session; response time measured client-side
+   - Without flags a new question is generated: random position of the mode, hand picked by weight; the question is stored in the session
+   - Response time is measured client-side (`response_time_ms` form field); a server-side timer is only a fallback
 2. **POST /training/<mode>** — Submit answer
-   - Update HandStats (attempts, errors, times, learning status)
-   - Redirect to result display
-3. Result shows: correct/wrong, hand history, interval status, weight
+   - Grades the answer, updates session counter and HandStats
+   - Builds `session['last_result']` (every key is read by `training.html`/`training.js`, keep names stable) and redirects to `?show_result=1`
+3. Result shows: correct/wrong, hand history, interval status, weight, plus the table with the situation, hero cards (dealt client-side by `cards.js`, sent back in hidden fields) and opponent nicknames (other users' names or fillers, kept in `session['seat_names']` so the result matches the question)
 4. Clicking "Next" generates new question via GET
+
+**Draw training** (`/draw_training/<mode>`): user draws the whole range of a position on a hand matrix; the POST (JSON) compares it to the stored range and returns missing/extra hands. Uses its own session counters (`draw_stats`, `draw_queue_<mode>`, `draw_expected`, `draw_position`). No HandStats are updated.
+
+**Session keys** (Flask session, cookie-based): `stats`, `training_started`, `pos`, `hand`, `status`, `correct_text`, `question_start_time`, `last_result`, `seat_names`, `draw_*`, and the range editor draft `temp_subranges` / `editing_position`.
 
 ## Main Routes
 
-- `/training/<mode>` — training UI (GET load question, POST submit answer)
-- `/create` — range editor (subrange CRUD, position mapping)
-- `/create_mode` — mode management (position grouping)
-- `/heatmap` — visual hand difficulty (color-coded by weight)
-- `/all_stats` — aggregate stats across positions
+All routes except register/login require login.
+
+- `/` — home page: tiles and mode picker dialog
+- `/register`, `/login`, `/logout`
+- `/training/<mode>` — training UI (GET load question, POST submit answer); `/reset` resets session counters
+- `/draw_training/<mode>` — draw-the-range training; `/reset_draw_stats`
+- `/create` — range editor; `/create/*` (add/update/remove subrange, save/load/delete range, temp draft, positions)
+- `/create_mode`, `/create_mode/save|update`, `/get_modes`, `/get_mode/<name>`, `/delete_mode/<name>` — mode management (position grouping)
+- `/heatmap/<mode>` — visual hand difficulty for one mode (color-coded by weight); data from `/api/heatmap/<mode>/<position>`
+- `/all_stats` — same heatmap across all positions; data from `/api/all_heatmap/<position>`
+- `/api/delete_position_stats/<position>`, `/api/delete_all_stats` — wipe HandStats
 - `/api/range/<position>` — JSON endpoint for hand data
-- `/config_management` — backup/restore
+- `/api/deck_style`, `/api/show_timer`, `/api/dismiss_tables_notice` — per-user UI settings (JSON POST)
+- `/config_management` and `/config_management/save|load/<file>|delete/<file>|clear` — backup/restore
+
+`/api/heatmap` and `/api/all_heatmap` build the same payload with duplicated code; change both when you touch one.
+
+## Config Backups
+
+- Stored as Python files in `saved_configs/`, written by `config_to_python_string()` and loaded with `exec()`
+- `user_<id>_<name>.py` — private, owner only; gitignored (`saved_configs/user_*.py`)
+- `<name>.py` — public, loadable by everyone, read-only (committed)
+- Loading replaces the live config but never touches statistics; loaded `situations` are validated and filtered to existing positions
 
 ## Frontend
 
@@ -101,6 +132,14 @@ Weight calculation in `calculate_weight()`:
 - Session-based stats tracking (`session['stats']`)
 - Mobile-responsive with breakpoints at 400px, 800px
 - Training result cards collapse by default
+- `base.html` loads `style.css` and the shared design system `cr_design.css` (tokens, `.cr-shell` wrapper, cards, buttons, inputs, `.cr-toast*`), and renders Flask flashes as toasts via `toast.js`
+
+**Pages on the new design (`.cr-shell`)**: home (`index`), login/register (`auth.*`), `training`, `create_range`, `config_management`.
+**Legacy-styled pages** (not yet redesigned): `create_mode`, `draw_training`, `heatmap`, `all_stats`. The last three reuse `create_range.css`.
+
+Static file ↔ page map:
+- `index.css/js`, `auth.css/js`, `training.css/js`, `config_management.css/js`, `create_mode.css/js`, `draw_training.js`, `create_range.css/js`
+- Shared: `toast.js` (toast), `cards.js` (deck artwork and hero card dealing), `situation_table.js` (table/seat renderer used by the range editor and training page; its defaults are mirrored server-side in `get_default_situation()` — keep both in sync)
 
 ## Conventions
 
@@ -116,22 +155,25 @@ Weight calculation in `calculate_weight()`:
 
 ## Redesign Notes
 
-- **Toasts over alert()**: When redesigning a page's UI, replace one-way informational `alert()` calls (errors, success messages, validation nudges) with a small auto-dismissing toast instead of the blocking native dialog. A working implementation exists in `static/create_range.js` (`showToast(message, type)`, types `'success'`/`'error'`) and `static/create_range.css` (`.cr-toast*` classes) — adapt the same pattern rather than reinventing it.
-- **Keep confirm() native**: Do not try to replace `confirm()` (yes/no decisions) with a toast — a toast can't pause and wait for an answer. Destructive/blocking confirmations stay as native `confirm()`.
+- **Toasts over alert()**: When redesigning a page's UI, replace one-way informational `alert()` calls (errors, success messages, validation nudges) with a small auto-dismissing toast instead of the blocking native dialog. The shared implementation is `showToast(container, message, type)` in `static/toast.js` (types `'success'`/`'error'`, flashes also use `'info'`), styled by the `.cr-toast*` classes in `static/cr_design.css`. `static/create_range.js` and `static/config_management.js` wrap it with their own container — follow that pattern. `alert()` is still used in `create_mode.js`, `draw_training.js`, `all_stats.html` and `heatmap.html`, to be replaced when those pages are redesigned
+- **Keep confirm() native**: Do not try to replace `confirm()` (yes/no decisions) with a toast — a toast can't pause and wait for an answer. Destructive/blocking confirmations stay as native `confirm()`
+- **New design**: build redesigned pages inside the `.cr-shell` wrapper and reuse the `cr_design.css` building blocks instead of adding page-local copies
 
 ## File Organization
 
-- `app.py` — All routes, models, business logic (single file, ~1500 lines)
+- `app.py` — All routes, models, business logic (single file, ~1900 lines)
 - `templates/` — Jinja2 HTML templates
 - `static/` — CSS and vanilla JS
-- `instance/` — SQLite database and runtime files
-- `saved_configs/` — User backup files (JSON)
-- `different_scripts/` — Utility/maintenance scripts (not core)
+- `instance/` — SQLite database and runtime files (gitignored)
+- `saved_configs/` — Config backups (Python files, see "Config Backups")
+- `different_scripts/` — Utility/maintenance scripts (migrations, one-off fixes; not core)
+- `console_version/` — Legacy standalone console trainer, unrelated to the web app
 
 ## Quick Development Tips
 
 - Response times measured client-side to avoid network latency
-- Config stored as JSON in database + JSON backups
+- Config stored as JSON in database + Python-file backups
 - Hand matrix verification in draw training compares user-selected range vs correct range
 - Position weights roll up from hand weights for heatmap display
 - Static cache busting via `static_version()` filter using file mtime
+- There is no test suite; verify UI changes in a real browser, and re-check the table geometry on `/create` after touching the situation builder
