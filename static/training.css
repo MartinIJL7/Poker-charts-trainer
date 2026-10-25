@@ -474,10 +474,6 @@
 }
 
 /* ---- Session stats ---- */
-.tr-stats-card p {
-    margin: 6px 0;
-}
-
 /* Link under the table of a range that has no table saved yet */
 .tr-no-table-hint {
     margin: 0;
@@ -487,13 +483,6 @@
 
 .tr-no-table-hint a {
     color: var(--cr-color-primary);
-}
-
-/* The browser's default h2 top margin stacks on the card padding and leaves
-   a blank band above the title. */
-.tr-stats-card h2,
-.tr-deck-card h2 {
-    margin-top: 0;
 }
 
 /* Deck picker: native radio kept in the DOM (visually hidden) for keyboard

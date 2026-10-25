@@ -27,15 +27,14 @@
         </details>
         {% endif %}
 
-        <div class="cr-card tr-stats-card">
-            <h2>Статистика</h2>
-            <p>Счетчик ответов в сессии браузера: <strong>{{ stats.total }}</strong></p>
-            <p>✅ <strong>{{ stats.correct }}</strong>
-                (<span id="stats-correct-pct">{{ "%.1f"|format(stats.correct / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
-            </p>
-            <p>❌ <strong>{{ stats.wrong }}</strong>
-                (<span id="stats-wrong-pct">{{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}</span>%)
-            </p>
+        <div class="cr-card cr-stats tr-stats-card">
+            <h3 class="cr-card-title">Статистика</h3>
+            <p class="cr-stats-note">Счетчик ответов в сессии браузера</p>
+            <div class="cr-stats-row">
+                <span class="cr-stat">Всего <strong>{{ stats.total }}</strong></span>
+                <span class="cr-stat cr-stat--ok">Верно <strong>{{ stats.correct }}</strong> ({{ "%.1f"|format(stats.correct / stats.total * 100 if stats.total > 0 else 0) }}%)</span>
+                <span class="cr-stat cr-stat--bad">Ошибок <strong>{{ stats.wrong }}</strong> ({{ "%.1f"|format(stats.wrong / stats.total * 100 if stats.total > 0 else 0) }}%)</span>
+            </div>
             <div class="tr-stats-actions">
                 <a href="{{ url_for('reset_stats', next=request.url) }}" class="cr-btn cr-btn--ghost">Сбросить счетчик сессии браузера</a>
                 <a href="{{ url_for('heatmap', mode=mode) }}" class="cr-btn cr-btn--ghost">Тепловая карта</a>
@@ -43,7 +42,7 @@
         </div>
 
         <div class="cr-card tr-deck-card">
-            <h2>Колода</h2>
+            <h3 class="cr-card-title">Колода</h3>
             <div class="tr-deck-options" role="radiogroup" aria-label="Колода">
                 {% for value, label in [('default', 'По умолчанию'), ('minimal', 'Классическая двухцветная'), ('minimal4', 'Четырехцветная')] %}
                 <label class="tr-deck-option">

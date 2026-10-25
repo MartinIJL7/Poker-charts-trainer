@@ -95,9 +95,13 @@ Weight calculation in `calculate_weight()`:
 3. Result shows: correct/wrong, hand history, interval status, weight, plus the table with the situation, hero cards (dealt client-side by `cards.js`, sent back in hidden fields) and opponent nicknames (other users' names or fillers, kept in `session['seat_names']` so the result matches the question)
 4. Clicking "Next" generates new question via GET
 
-**Draw training** (`/draw_training/<mode>`): user draws the whole range of a position on a hand matrix; the POST (JSON) compares it to the stored range and returns missing/extra hands. Uses its own session counters (`draw_stats`, `draw_queue_<mode>`, `draw_expected`, `draw_position`). No HandStats are updated.
+**Draw training** (`/draw_training/<mode>`): user paints the hands of each subrange of a position on a hand matrix, then sees a verdict and can toggle a visual comparison with the correct range (no text list of mistakes). No HandStats are updated.
+- GET picks the next position and gives the question an id; the session keeps only `draw_questions` (newest-last list of `{id, mode, position}`, last 5), so several tabs can be graded independently. The expected range is rebuilt from the live config via `get_position_subranges()` when the answer arrives, never stored in the cookie
+- POST (JSON `{question_id, subranges: [{name, hands}]}`) is graded by the pure `grade_drawn_range()`; response fields `missing`, `extra_hands`, `wrong_names`, `expected_hands`, `position`, `mode`, `stats`. Every check counts in `draw_stats`, including a retry of the same question; the front end blocks only a second click while the request is pending. Malformed payloads and unknown ids return 400 with a Russian message
+- `draw_queue_<mode>` is the shuffled list of positions not shown yet; positions that left the mode or lost their subranges are skipped on the next GET
+- Layout: the result panel replaces the "Проверить" button inside the subrange card, and the stats card sits under that card; `placeStats()` in `draw_training.js` moves it under the matrix when the right column would end up taller than the left (stacked narrow layout keeps it at the end of the right column)
 
-**Session keys** (Flask session, cookie-based): `stats`, `training_started`, `pos`, `hand`, `status`, `correct_text`, `question_start_time`, `last_result`, `seat_names`, `draw_*`, and the range editor draft `temp_subranges` / `editing_position`.
+**Session keys** (Flask session, cookie-based): `stats`, `training_started`, `pos`, `hand`, `status`, `correct_text`, `question_start_time`, `last_result`, `seat_names`, `draw_stats`, `draw_questions`, `draw_queue_<mode>`, and the range editor draft `temp_subranges` / `editing_position`.
 
 ## Main Routes
 
@@ -105,7 +109,7 @@ All routes except register/login require login.
 
 - `/` — home page: tiles and mode picker dialog
 - `/register`, `/login`, `/logout`
-- `/training/<mode>` — training UI (GET load question, POST submit answer); `/reset` resets session counters
+- `/training/<mode>` — training UI (GET load question, POST submit answer); `/reset` resets session counters (`?next=` is reduced to a local path by `safe_next_url()`)
 - `/draw_training/<mode>` — draw-the-range training; `/reset_draw_stats`
 - `/create` — range editor; `/create/*` (add/update/remove subrange, save/load/delete range, temp draft, positions)
 - `/create_mode`, `/create_mode/save|update`, `/get_modes`, `/get_mode/<name>`, `/delete_mode/<name>` — mode management (position grouping)
@@ -132,14 +136,14 @@ All routes except register/login require login.
 - Session-based stats tracking (`session['stats']`)
 - Mobile-responsive with breakpoints at 400px, 800px
 - Training result cards collapse by default
-- `base.html` loads `style.css` and the shared design system `cr_design.css` (tokens, `.cr-shell` wrapper, cards, buttons, inputs, `.cr-toast*`), and renders Flask flashes as toasts via `toast.js`
+- `base.html` loads `style.css` and the shared design system `cr_design.css` (tokens, `.cr-shell` wrapper, cards, buttons, inputs, `.cr-toast*`, the session stats card `.cr-stats*` used by both training pages), and renders Flask flashes as toasts via `toast.js`
 
-**Pages on the new design (`.cr-shell`)**: home (`index`), login/register (`auth.*`), `training`, `create_range`, `config_management`.
-**Legacy-styled pages** (not yet redesigned): `create_mode`, `draw_training`, `heatmap`, `all_stats`. The last three reuse `create_range.css`.
+**Pages on the new design (`.cr-shell`)**: home (`index`), login/register (`auth.*`), `training`, `draw_training`, `create_range`, `config_management`.
+**Legacy-styled pages** (not yet redesigned): `create_mode`, `heatmap`, `all_stats`. The last two reuse the legacy block (top of) `create_range.css`; don't edit it without checking them. `draw_training` and `create_range` use the `.cr-shell` part of the same file for the matrix and subrange list.
 
 Static file ↔ page map:
-- `index.css/js`, `auth.css/js`, `training.css/js`, `config_management.css/js`, `create_mode.css/js`, `draw_training.js`, `create_range.css/js`
-- Shared: `toast.js` (toast), `cards.js` (deck artwork and hero card dealing), `situation_table.js` (table/seat renderer used by the range editor and training page; its defaults are mirrored server-side in `get_default_situation()` — keep both in sync)
+- `index.css/js`, `auth.css/js`, `training.css/js`, `config_management.css/js`, `create_mode.css/js`, `draw_training.css/js`, `create_range.css/js`
+- Shared: `hand_matrix.js` (13x13 matrix builder, drag-select, cell colouring and quick-select groups; used by `create_range.js` and `draw_training.js`, each keeps its own selection state), `toast.js` (toast), `cards.js` (deck artwork and hero card dealing), `situation_table.js` (table/seat renderer used by the range editor and training page; its defaults are mirrored server-side in `get_default_situation()` — keep both in sync)
 
 ## Conventions
 
@@ -155,13 +159,13 @@ Static file ↔ page map:
 
 ## Redesign Notes
 
-- **Toasts over alert()**: When redesigning a page's UI, replace one-way informational `alert()` calls (errors, success messages, validation nudges) with a small auto-dismissing toast instead of the blocking native dialog. The shared implementation is `showToast(container, message, type)` in `static/toast.js` (types `'success'`/`'error'`, flashes also use `'info'`), styled by the `.cr-toast*` classes in `static/cr_design.css`. `static/create_range.js` and `static/config_management.js` wrap it with their own container — follow that pattern. `alert()` is still used in `create_mode.js`, `draw_training.js`, `all_stats.html` and `heatmap.html`, to be replaced when those pages are redesigned
+- **Toasts over alert()**: When redesigning a page's UI, replace one-way informational `alert()` calls (errors, success messages, validation nudges) with a small auto-dismissing toast instead of the blocking native dialog. The shared implementation is `showToast(container, message, type)` in `static/toast.js` (types `'success'`/`'error'`, flashes also use `'info'`), styled by the `.cr-toast*` classes in `static/cr_design.css`. `static/create_range.js` and `static/config_management.js` wrap it with their own container — follow that pattern. `draw_training.js` uses `showToast` with the base template's `#flash-toast-container`. `alert()` is still used in `create_mode.js`, `all_stats.html` and `heatmap.html`, to be replaced when those pages are redesigned
 - **Keep confirm() native**: Do not try to replace `confirm()` (yes/no decisions) with a toast — a toast can't pause and wait for an answer. Destructive/blocking confirmations stay as native `confirm()`
 - **New design**: build redesigned pages inside the `.cr-shell` wrapper and reuse the `cr_design.css` building blocks instead of adding page-local copies
 
 ## File Organization
 
-- `app.py` — All routes, models, business logic (single file, ~1900 lines)
+- `app.py` — All routes, models, business logic (single file, ~2000 lines)
 - `templates/` — Jinja2 HTML templates
 - `static/` — CSS and vanilla JS
 - `instance/` — SQLite database and runtime files (gitignored)
@@ -173,7 +177,7 @@ Static file ↔ page map:
 
 - Response times measured client-side to avoid network latency
 - Config stored as JSON in database + Python-file backups
-- Hand matrix verification in draw training compares user-selected range vs correct range
+- Draw training grading is `grade_drawn_range()` in `app.py` (pure function, easy to test); the matrix code is shared via `static/hand_matrix.js`
 - Position weights roll up from hand weights for heatmap display
 - Static cache busting via `static_version()` filter using file mtime
 - There is no test suite; verify UI changes in a real browser, and re-check the table geometry on `/create` after touching the situation builder

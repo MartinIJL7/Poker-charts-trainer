@@ -11,10 +11,15 @@ import {
 } from './situation_table.js';
 import { showToast as renderToast } from './toast.js';
 
-const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
-const DRAG_THRESHOLD = 10;
+import {
+    DEFAULT_COLOR,
+    buildMatrix,
+    enableDragSelect,
+    resolveCellColor,
+    setCellColor
+} from './hand_matrix.js';
 
-let currentColor = '#3498db';
+let currentColor = DEFAULT_COLOR;
 let currentHands = [];
 let tempSubranges = [];
 let editingId = null;
@@ -81,28 +86,6 @@ function showNetworkError(err) {
 
 function showToast(message, type) {
     renderToast(dom.toastContainer, message, type);
-}
-
-// Pick black or white text so hand labels stay readable against any
-// user-chosen subrange color, from pale pastels to dark saturated hues.
-function getContrastingTextColor(hexColor) {
-    let hex = hexColor.replace('#', '');
-    if (hex.length === 3) {
-        hex = hex.split('').map(c => c + c).join('');
-    }
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.6 ? '#24313f' : '#ffffff';
-}
-
-// Set a matrix cell's background and an automatically-contrasting text
-// color together. Passing an empty color clears both, so the cell falls
-// back to its default (unselected) styling from CSS.
-function setCellColor(cell, color) {
-    cell.style.backgroundColor = color;
-    cell.style.color = color ? getContrastingTextColor(color) : '';
 }
 
 // Content-based (not id-based, since ids are regenerated UUIDs on every
@@ -211,7 +194,7 @@ function establishSavedBaseline(position) {
             if (data.status === 'ok') {
                 const subs = Object.keys(data.subranges).map(name => ({
                     name: name,
-                    color: data.colors[name] || '#3498db',
+                    color: data.colors[name] || DEFAULT_COLOR,
                     hands: data.subranges[name]
                 }));
                 savedSnapshot = snapshotSubranges(subs);
@@ -568,178 +551,46 @@ function resetSituation() {
 
 function generateHandMatrix() {
     const container = document.getElementById('hand-matrix');
-    container.innerHTML = '';
-    matrixCells = [];
-
-    ranks.forEach((rowRank, i) => {
-        ranks.forEach((colRank, j) => {
-            const cell = document.createElement('div');
-            cell.className = 'matrix-cell';
-            let hand = '';
-            if (i === j) {
-                hand = rowRank + colRank;
-            } else if (i < j) {
-                hand = rowRank + colRank + 's';
-            } else {
-                hand = colRank + rowRank + 'o';
-            }
-            cell.textContent = hand;
-            cell.dataset.hand = hand;
-            cell.dataset.selected = 'false';
-            container.appendChild(cell);
-            matrixCells.push(cell);
-        });
+    matrixCells = buildMatrix(container);
+    enableDragSelect(container, matrixCells, {
+        onTap: cell => setHandSelected(cell, cell.dataset.selected !== 'true'),
+        onDrag: (cell, mode) => setHandSelected(cell, mode === 'select')
     });
-
-    let dragData = null;
-
-    function getCellAtPoint(clientX, clientY) {
-        const elem = document.elementFromPoint(clientX, clientY);
-        if (elem && elem.classList && elem.classList.contains('matrix-cell')) {
-            return elem;
-        }
-        return null;
-    }
-
-    function handlePointerDown(e) {
-        const cell = e.currentTarget;
-        e.preventDefault();
-        dragData = {
-            cell: cell,
-            startX: e.clientX,
-            startY: e.clientY,
-            started: false,
-            dragMode: null,
-            initialSelected: cell.dataset.selected === 'true'
-        };
-        cell.setPointerCapture(e.pointerId);
-        dragData.pointerId = e.pointerId;
-        document.addEventListener('pointermove', handlePointerMove);
-        document.addEventListener('pointerup', handlePointerUp);
-    }
-
-    function handlePointerMove(e) {
-        if (!dragData) return;
-        const cell = dragData.cell;
-        const dx = e.clientX - dragData.startX;
-        const dy = e.clientY - dragData.startY;
-        const distance = Math.sqrt(dx*dx + dy*dy);
-
-        if (!dragData.started && distance > DRAG_THRESHOLD) {
-            dragData.started = true;
-            dragData.dragMode = dragData.initialSelected ? 'deselect' : 'select';
-            container.classList.add('cr-matrix--dragging');
-            applyAction(cell);
-        }
-
-        if (dragData.started) {
-            const target = getCellAtPoint(e.clientX, e.clientY);
-            if (target && target !== cell) {
-                applyAction(target);
-            }
-        }
-        e.preventDefault();
-    }
-
-    function applyAction(cell) {
-        if (!dragData) return;
-        const hand = cell.dataset.hand;
-        if (dragData.dragMode === 'select') {
-            if (cell.dataset.selected !== 'true') {
-                cell.dataset.selected = 'true';
-                setCellColor(cell, currentColor);
-                if (!currentHands.includes(hand)) currentHands.push(hand);
-                if (editingId && !editingHands.includes(hand)) editingHands.push(hand);
-            }
-        } else if (dragData.dragMode === 'deselect') {
-            if (cell.dataset.selected === 'true') {
-                cell.dataset.selected = 'false';
-                setCellColor(cell, '');
-                const idx = currentHands.indexOf(hand);
-                if (idx > -1) currentHands.splice(idx, 1);
-                if (editingId) {
-                    const idx2 = editingHands.indexOf(hand);
-                    if (idx2 > -1) editingHands.splice(idx2, 1);
-                }
-                renderCell(cell);
-            }
-        }
-        updateClearSelectionVisibility();
-    }
-
-    function handlePointerUp(e) {
-        if (!dragData) return;
-        const cell = dragData.cell;
-        if (!dragData.started) {
-            toggleCell(cell);
-        }
-        container.classList.remove('cr-matrix--dragging');
-        cell.releasePointerCapture(e.pointerId);
-        document.removeEventListener('pointermove', handlePointerMove);
-        document.removeEventListener('pointerup', handlePointerUp);
-        dragData = null;
-        e.preventDefault();
-    }
-
-    matrixCells.forEach(cell => {
-        cell.addEventListener('pointerdown', handlePointerDown);
-    });
-
     renderAllSubranges();
 }
 
-function toggleCell(cell) {
+// Select or deselect one matrix cell, keeping the working selection
+// (currentHands) and the edited subrange's hands (editingHands) in step.
+// Idempotent: a cell that already has the requested state is left alone.
+function setHandSelected(cell, selected) {
     const hand = cell.dataset.hand;
-    const isSelected = cell.dataset.selected === 'true';
-    if (isSelected) {
-        cell.dataset.selected = 'false';
-        const index = currentHands.indexOf(hand);
-        if (index > -1) currentHands.splice(index, 1);
-        if (editingId) {
-            const idx = editingHands.indexOf(hand);
-            if (idx > -1) editingHands.splice(idx, 1);
+    if ((cell.dataset.selected === 'true') !== selected) {
+        cell.dataset.selected = String(selected);
+        if (selected) {
+            if (!currentHands.includes(hand)) currentHands.push(hand);
+            if (editingId && !editingHands.includes(hand)) editingHands.push(hand);
+            setCellColor(cell, currentColor);
+        } else {
+            const index = currentHands.indexOf(hand);
+            if (index > -1) currentHands.splice(index, 1);
+            if (editingId) {
+                const editIndex = editingHands.indexOf(hand);
+                if (editIndex > -1) editingHands.splice(editIndex, 1);
+            }
+            renderCell(cell);
         }
-        renderCell(cell);
-    } else {
-        cell.dataset.selected = 'true';
-        if (!currentHands.includes(hand)) currentHands.push(hand);
-        if (editingId) {
-            if (!editingHands.includes(hand)) editingHands.push(hand);
-        }
-        setCellColor(cell, currentColor);
     }
     updateClearSelectionVisibility();
 }
 
 function renderCell(cell) {
-    const hand = cell.dataset.hand;
-    let foundColor = null;
-    if (editingId) {
-        if (editingHands.includes(hand) && cell.dataset.selected === 'true') {
-            foundColor = currentColor;
-        } else {
-            for (let sub of tempSubranges) {
-                if (sub.id !== editingId && sub.hands.includes(hand)) {
-                    foundColor = sub.color;
-                    break;
-                }
-            }
-        }
-    } else {
-        for (let sub of tempSubranges) {
-            if (sub.hands.includes(hand)) {
-                foundColor = sub.color;
-                break;
-            }
-        }
-    }
-    if (cell.dataset.selected === 'true' && editingId && editingHands.includes(hand)) {
-        setCellColor(cell, currentColor);
-    } else if (foundColor) {
-        setCellColor(cell, foundColor);
-    } else {
-        setCellColor(cell, '');
-    }
+    setCellColor(cell, resolveCellColor(cell.dataset.hand, {
+        subranges: tempSubranges,
+        editingId,
+        editingHands,
+        selected: cell.dataset.selected === 'true',
+        currentColor
+    }));
 }
 
 function renderAllSubranges() {
@@ -772,7 +623,7 @@ function loadTempSubranges() {
                 tempSubranges = data.subranges.map(sub => ({
                     id: sub.id,
                     name: sub.name,
-                    color: sub.color || '#3498db',
+                    color: sub.color || DEFAULT_COLOR,
                     hands: sub.hands || []
                 }));
                 if (editingId) {
@@ -892,8 +743,8 @@ function cancelEditing() {
     editingHands = [];
     currentHands = [];
     dom.subnameInput.value = '';
-    dom.colorPicker.value = '#3498db';
-    currentColor = '#3498db';
+    dom.colorPicker.value = DEFAULT_COLOR;
+    currentColor = DEFAULT_COLOR;
     dom.cancelEditBtn.style.display = 'none';
     dom.saveSubrangeBtn.textContent = 'Добавить поддиапазон';
     matrixCells.forEach(cell => {

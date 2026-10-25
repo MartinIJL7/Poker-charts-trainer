@@ -262,6 +262,32 @@ body.narrow-page .cr-main {
     color: var(--cr-color-text);
 }
 
+/* ---- Session stats card (training and draw training) ---- */
+.cr-shell .cr-stats .cr-card-title {
+    margin-bottom: var(--cr-space-xs);
+}
+
+.cr-shell .cr-stats-note {
+    margin: 0 0 var(--cr-space-md);
+    color: var(--cr-color-text-muted);
+    font-size: 0.9em;
+}
+
+.cr-shell .cr-stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cr-space-sm) var(--cr-space-lg);
+    margin-bottom: var(--cr-space-md);
+}
+
+.cr-shell .cr-stat--ok strong {
+    color: var(--cr-color-success-hover);
+}
+
+.cr-shell .cr-stat--bad strong {
+    color: var(--cr-color-danger-hover);
+}
+
 /* ---- Inputs / select ---- */
 .cr-shell .cr-input {
     height: 44px;

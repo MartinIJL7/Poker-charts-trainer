@@ -1,0 +1,135 @@
+/* ==========================================================================
+   Draw training page (.cr-shell .dt-shell)
+   --------------------------------------------------------------------------
+   The hand matrix, subrange list, cards and buttons come from cr_design.css
+   and the .cr-shell part of create_range.css; this file only adds what is
+   specific to drawing: edit tools, the result panel and the stats card.
+   ========================================================================== */
+
+.cr-shell .dt-hint {
+    margin: 0 0 var(--cr-space-md);
+    color: var(--cr-color-text-muted);
+    font-size: 0.9em;
+}
+
+/* Subrange rows are the only way to switch what is being drawn */
+.cr-shell #subrange-list-ul li.dt-clickable {
+    cursor: pointer;
+}
+
+/* After checking, the matrix stays fully visible but can't be edited */
+.cr-shell #hand-matrix.dt-matrix--locked {
+    pointer-events: none;
+}
+
+.cr-shell .dt-edit-tools {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-sm);
+    margin-bottom: var(--cr-space-md);
+}
+
+.cr-shell .dt-edit-tools[hidden],
+.cr-shell .dt-result[hidden] {
+    display: none;
+}
+
+/* Quick-select groups: one under another, all the same size */
+.cr-shell .dt-quick-select {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-sm);
+}
+
+.cr-shell .dt-quick-btn {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 0.9em;
+}
+
+.cr-shell .dt-quick-btn.active {
+    background: var(--cr-color-primary-soft);
+    border-color: var(--cr-color-primary);
+    color: var(--cr-color-primary);
+}
+
+.cr-shell .dt-check-btn {
+    margin-top: var(--cr-space-xs);
+}
+
+/* ---- Result: replaces the check button inside the subrange card ---- */
+.cr-shell .dt-result {
+    padding: var(--cr-space-md);
+    border-left: 4px solid var(--cr-color-success);
+    border-radius: var(--cr-radius-md);
+    background: var(--cr-color-bg);
+}
+
+.cr-shell .dt-result--wrong {
+    border-left-color: var(--cr-color-danger);
+}
+
+.cr-shell .dt-verdict {
+    display: flex;
+    align-items: center;
+    gap: var(--cr-space-md);
+}
+
+.cr-shell .dt-verdict-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--cr-color-success);
+    color: white;
+}
+
+.cr-shell .dt-result--wrong .dt-verdict-icon {
+    background: var(--cr-color-danger);
+}
+
+.cr-shell .dt-verdict-icon .cr-icon {
+    width: 22px;
+    height: 22px;
+}
+
+.cr-shell .dt-verdict-title {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--cr-color-success-hover);
+}
+
+.cr-shell .dt-result--wrong .dt-verdict-title {
+    color: var(--cr-color-danger-hover);
+}
+
+.cr-shell .dt-verdict-text {
+    color: var(--cr-color-text-muted);
+    font-size: 0.95em;
+}
+
+.cr-shell .dt-result-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-sm);
+    margin-top: var(--cr-space-md);
+}
+
+/* ---- Stats: under the subrange card, or under the matrix (see placeStats) ---- */
+.cr-shell .dt-stats {
+    margin-top: var(--cr-space-lg);
+}
+
+/* The column is narrow, so the long label wraps instead of overflowing */
+.cr-shell .dt-reset-btn {
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    padding: 8px 16px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.3;
+}

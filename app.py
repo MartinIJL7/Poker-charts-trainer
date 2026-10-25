@@ -6,6 +6,7 @@ import uuid
 import glob
 import re
 from datetime import datetime
+from urllib.parse import urlsplit, urlunsplit
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -379,6 +380,9 @@ DEFAULT_SITUATION_POSITIONS = ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB']
 # doesn't visually claim any range's identity.
 FOLD_ANSWER_COLOR = '#8a99a8'
 
+# Fallback color of a subrange that has no color saved
+DEFAULT_SUBRANGE_COLOR = '#3498db'
+
 VALID_HAND_RANKS = set('AKQJT98765432')
 VALID_CARD_SUITS = set('shdc')
 
@@ -503,7 +507,7 @@ def get_answer_options(pos, config):
     neutral color instead of a subrange color."""
     options = []
     for name in get_possible_answers(pos, config):
-        color = FOLD_ANSWER_COLOR if name == 'fold' else config.subrange_colors.get(name, '#3498db')
+        color = FOLD_ANSWER_COLOR if name == 'fold' else config.subrange_colors.get(name, DEFAULT_SUBRANGE_COLOR)
         options.append({'name': name, 'color': color})
     return options
 
@@ -690,13 +694,46 @@ def dismiss_tables_notice():
     return jsonify({'status': 'ok'})
 
 
+def new_session_stats():
+    """A fresh answer counter for the browser session."""
+    return {'total': 0, 'correct': 0, 'wrong': 0}
+
+
+def count_answer(key, is_correct):
+    """Add one answer to the session counter stored under `key` and return it."""
+    stats = session.get(key) or new_session_stats()
+    stats['total'] += 1
+    stats['correct' if is_correct else 'wrong'] += 1
+    session[key] = stats
+    return stats
+
+
+def safe_next_url(raw):
+    """Reduce a ?next= value to a local path (plus query), or None.
+
+    The pages pass request.url, so a full URL on this host is accepted;
+    anything pointing elsewhere is dropped so the redirect can't leave the site.
+    """
+    if not raw or '\\' in raw:
+        return None
+    parts = urlsplit(raw)
+    if parts.scheme not in ('', 'http', 'https') or (parts.netloc and parts.netloc != request.host):
+        return None
+    return urlunsplit(('', '', parts.path or '/', parts.query, ''))
+
+
+def reset_session_counter(key, also_pop=()):
+    """Zero the session counter `key`, drop `also_pop` keys and go back to ?next= (or home)."""
+    session[key] = new_session_stats()
+    for extra_key in also_pop:
+        session.pop(extra_key, None)
+    return redirect(safe_next_url(request.args.get('next')) or url_for('index'))
+
+
 @app.route('/reset')
 @login_required
 def reset_stats():
-    session['stats'] = {'total': 0, 'correct': 0, 'wrong': 0}
-    session.pop('last_result', None)
-    next_url = request.args.get('next')
-    return redirect(next_url or url_for('index'))
+    return reset_session_counter('stats', also_pop=('last_result',))
 
 
 # -------------------------------------------------------------------
@@ -715,7 +752,7 @@ def training(mode):
         return "Mode not found", 404
 
     if 'stats' not in session:
-        session['stats'] = {'total': 0, 'correct': 0, 'wrong': 0}
+        session['stats'] = new_session_stats()
 
     if request.method == 'POST':
         return handle_training_answer(mode)
@@ -756,14 +793,8 @@ def read_response_time_ms():
 
 def count_session_answer(answer, correct_text):
     """Check the answer and add it to the browser-session counter. Returns is_correct."""
-    stats = session['stats']
-    stats['total'] += 1
     is_correct = (answer == correct_text.lower())
-    if is_correct:
-        stats['correct'] += 1
-    else:
-        stats['wrong'] += 1
-    session['stats'] = stats
+    count_answer('stats', is_correct)
     return is_correct
 
 
@@ -943,7 +974,7 @@ def api_get_range(position):
     for subname, sub_dict in config.subranges.items():
         if position in sub_dict:
             subranges[subname] = list(sub_dict[position])
-            colors[subname] = config.subrange_colors.get(subname, '#3498db')
+            colors[subname] = config.subrange_colors.get(subname, DEFAULT_SUBRANGE_COLOR)
 
     return jsonify({
         'status': 'ok',
@@ -979,7 +1010,7 @@ def add_subrange():
     data = request.get_json()
     name = data.get('name', '').strip()
     hands = data.get('hands', [])
-    color = data.get('color', '#3498db')
+    color = data.get('color', DEFAULT_SUBRANGE_COLOR)
     overwrite = data.get('overwrite', False)
 
     if not name or not hands:
@@ -1136,7 +1167,7 @@ def save_range():
         config.subranges[name][position] = hands
         if name not in config.subrange_order:
             config.subrange_order.append(name)
-        config.subrange_colors[name] = sub.get('color', '#3498db')
+        config.subrange_colors[name] = sub.get('color', DEFAULT_SUBRANGE_COLOR)
 
     if validated_situation is not None:
         config.situations[position] = validated_situation
@@ -1196,7 +1227,7 @@ def load_range():
     for subname, sub_dict in config.subranges.items():
         if position in sub_dict:
             hands = list(sub_dict[position])
-            color = config.subrange_colors.get(subname, '#3498db')
+            color = config.subrange_colors.get(subname, DEFAULT_SUBRANGE_COLOR)
             loaded.append({
                 'name': subname,
                 'hands': hands,
@@ -1250,7 +1281,7 @@ def update_subrange():
     sub_id = data.get('id')
     name = data.get('name', '').strip()
     hands = data.get('hands', [])
-    color = data.get('color', '#3498db')
+    color = data.get('color', DEFAULT_SUBRANGE_COLOR)
     overwrite = data.get('overwrite', False)
 
     if not sub_id:
@@ -1575,7 +1606,114 @@ def clear_config():
 
 # -------------------------------------------------------------------
 # Drawing mode
+#
+# The user draws the whole range of one position on the hand matrix and the
+# server grades it against the saved subranges. Nothing about the expected
+# range is kept in the session: each question gets an id, the session only
+# remembers (id, mode, position) of the last few questions, and the expected
+# range is rebuilt from the live config when the answer arrives. Session keys:
+#   draw_stats        - answer counter {total, correct, wrong}
+#   draw_questions    - newest-last list of {id, mode, position}, capped
+#   draw_queue_<mode> - shuffled positions of the mode not shown yet
 # -------------------------------------------------------------------
+DRAW_QUESTIONS_KEPT = 5   # open questions remembered, so several tabs can be graded
+HAND_ORDER = {hand: index for index, hand in enumerate(ALL_HANDS)}
+
+
+def sort_hands(hands):
+    """Hands in matrix order (pairs, then AKs, AKo, AQs ...) instead of set order."""
+    return sorted(hands, key=lambda hand: HAND_ORDER.get(hand, len(HAND_ORDER)))
+
+
+def get_position_subranges(config, position):
+    """Subranges that have hands at `position`, in creation order, as [{name, hands, color}]."""
+    names = list(config.subrange_order)
+    names += [name for name in config.subranges if name not in names]
+    result = []
+    for name in names:
+        hands = config.subranges.get(name, {}).get(position)
+        if hands:
+            result.append({
+                'name': name,
+                'hands': list(hands),
+                'color': config.subrange_colors.get(name, DEFAULT_SUBRANGE_COLOR),
+            })
+    return result
+
+
+def parse_drawn_subranges(raw):
+    """Validate the subranges sent by the client; returns [{name, hands}] or None if malformed."""
+    if not isinstance(raw, list):
+        return None
+    parsed = []
+    for sub in raw:
+        if not isinstance(sub, dict) or not isinstance(sub.get('name'), str) or not isinstance(sub.get('hands'), list):
+            return None
+        parsed.append({
+            'name': sub['name'],
+            'hands': [hand for hand in sub['hands'] if isinstance(hand, str) and hand in HAND_ORDER],
+        })
+    return parsed
+
+
+def grade_drawn_range(expected, user_subranges):
+    """Compare a drawn range with the expected one.
+
+    Both are lists of {name, hands}. Names are stripped and same-name entries
+    merged; entries with no name or no hands count as not drawn. Returns
+      missing      - expected hands the user did not put in that subrange
+      extra_hands  - hands the user put in a subrange that don't belong there
+      wrong_names  - subrange names the user drew that the range doesn't have
+    The drawing is correct when all three are empty.
+    """
+    expected_by_name = {sub['name']: set(sub['hands']) for sub in expected}
+    user_by_name = {}
+    for sub in user_subranges:
+        name = sub['name'].strip()
+        hands = set(sub['hands'])
+        if name and hands:
+            user_by_name.setdefault(name, set()).update(hands)
+
+    missing = []
+    extra_hands = []
+    for name, expected_hands in expected_by_name.items():
+        user_hands = user_by_name.get(name, set())
+        if expected_hands - user_hands:
+            missing.append({'name': name, 'hands': sort_hands(expected_hands - user_hands)})
+        if user_hands - expected_hands:
+            extra_hands.append({'name': name, 'hands': sort_hands(user_hands - expected_hands)})
+    wrong_names = [name for name in user_by_name if name not in expected_by_name]
+    return {'missing': missing, 'extra_hands': extra_hands, 'wrong_names': wrong_names}
+
+
+def next_draw_position(mode, config):
+    """Pop the next position to draw, or None if the mode has nothing drawable.
+
+    Positions that were removed from the mode or lost their subranges since the
+    queue was shuffled are skipped. A refill never starts with the position that
+    was asked last, unless it is the only one.
+    """
+    positions = [pos for pos in config.modes[mode] if get_position_subranges(config, pos)]
+    if not positions:
+        return None
+
+    queue_key = f'draw_queue_{mode}'
+    queue = [pos for pos in session.get(queue_key, []) if pos in positions]
+    if not queue:
+        queue = positions[:]
+        random.shuffle(queue)
+        questions = session.get('draw_questions', [])
+        if len(queue) > 1 and questions and queue[0] == questions[-1]['position']:
+            queue.append(queue.pop(0))
+
+    position = queue.pop(0)
+    if queue:
+        session[queue_key] = queue
+    else:
+        session.pop(queue_key, None)
+    return position
+
+
 @app.route('/draw_training/<mode>', methods=['GET', 'POST'])
 @login_required
 def draw_training(mode):
@@ -1584,117 +1722,74 @@ def draw_training(mode):
         return "Mode not found", 404
 
     if 'draw_stats' not in session:
-        session['draw_stats'] = {'total': 0, 'correct': 0, 'wrong': 0}
+        session['draw_stats'] = new_session_stats()
 
     if request.method == 'POST':
-        data = request.get_json()
-        user_subranges = data.get('subranges', [])
-        expected_serialized = session.get('draw_expected')
-        position = session.get('draw_position')
-        if not expected_serialized or not position:
-            return jsonify({'status': 'error', 'message': 'Сессия истекла, начните заново'}), 400
+        return handle_draw_answer(mode, config)
+    return render_draw_question(mode, config)
 
-        expected = {name: set(hands) for name, hands in expected_serialized.items()}
 
-        user_dict = {}
-        for sub in user_subranges:
-            name = sub.get('name', '').strip()
-            hands = set(sub.get('hands', []))
-            if name and hands:
-                if name in user_dict:
-                    user_dict[name].update(hands)
-                else:
-                    user_dict[name] = hands
+def handle_draw_answer(mode, config):
+    """POST (JSON {question_id, subranges}): grade the drawing and count the answer."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'status': 'error', 'message': 'Некорректный запрос'}), 400
+    user_subranges = parse_drawn_subranges(data.get('subranges'))
+    if user_subranges is None:
+        return jsonify({'status': 'error', 'message': 'Некорректные данные диапазона'}), 400
 
-        missing = []
-        extra_hands = []
-        wrong_names = []
+    question_id = data.get('question_id')
+    question = next((q for q in session.get('draw_questions', [])
+                     if q['id'] == question_id and q['mode'] == mode), None)
+    expected = get_position_subranges(config, question['position']) if question else []
+    if not expected:
+        return jsonify({'status': 'error', 'message': 'Вопрос устарел, начните заново'}), 400
 
-        for exp_name, exp_hands in expected.items():
-            if exp_name not in user_dict:
-                missing.append({'name': exp_name, 'hands': list(exp_hands)})
-            else:
-                user_hands = user_dict[exp_name]
-                miss = exp_hands - user_hands
-                if miss:
-                    missing.append({'name': exp_name, 'hands': list(miss)})
-                extra = user_hands - exp_hands
-                if extra:
-                    extra_hands.append({'name': exp_name, 'hands': list(extra)})
+    result = grade_drawn_range(expected, user_subranges)
+    stats = count_answer('draw_stats', not any(result.values()))
+    return jsonify({
+        'status': 'ok',
+        **result,
+        'position': question['position'],
+        'mode': mode,
+        'stats': stats,
+        'expected_hands': [{'name': sub['name'], 'hands': sub['hands']} for sub in expected],
+    })
 
-        for user_name in user_dict.keys():
-            if user_name not in expected:
-                wrong_names.append(user_name)
 
-        stats = session['draw_stats']
-        stats['total'] += 1
-        if not missing and not extra_hands and not wrong_names:
-            stats['correct'] += 1
-        else:
-            stats['wrong'] += 1
-        session['draw_stats'] = stats
-
-        expected_hands = [{'name': name, 'hands': list(hands)} for name, hands in expected.items()]
-        return jsonify({
-            'status': 'ok',
-            'missing': missing,
-            'extra_hands': extra_hands,
-            'wrong_names': wrong_names,
-            'position': position,
-            'mode': mode,
-            'stats': stats,
-            'expected_hands': expected_hands
-        })
-
-    # ---- GET ----
-    positions = config.modes[mode]
-    if not positions:
+def render_draw_question(mode, config):
+    """GET: pick the next position, remember the question and render the drawing page."""
+    if not config.modes[mode]:
+        return "No positions in this mode", 400
+    position = next_draw_position(mode, config)
+    if position is None:
         return "No positions in this mode", 400
 
-    queue_key = f'draw_queue_{mode}'
-    if queue_key not in session or not session[queue_key]:
-        shuffled = positions[:]
-        random.shuffle(shuffled)
-        session[queue_key] = shuffled
+    # Keys of the previous implementation, still sitting in older session cookies
+    session.pop('draw_position', None)
+    session.pop('draw_expected', None)
 
-    pos = session[queue_key].pop(0)
-    if not session[queue_key]:
-        del session[queue_key]
-
-    session['draw_position'] = pos
-
-    expected = {}
-    for subname, sub_dict in config.subranges.items():
-        if pos in sub_dict:
-            expected[subname] = list(sub_dict[pos])
-
-    session['draw_expected'] = expected
-
-    initial_subranges = []
-    for subname in expected.keys():
-        color = config.subrange_colors.get(subname, '#3498db')
-        initial_subranges.append({
-            'id': str(uuid.uuid4()),
-            'name': subname,
-            'hands': [],
-            'color': color
-        })
+    question_id = uuid.uuid4().hex
+    questions = session.get('draw_questions', [])
+    session['draw_questions'] = (questions + [{'id': question_id, 'mode': mode, 'position': position}])[-DRAW_QUESTIONS_KEPT:]
 
     return render_template(
         'draw_training.html',
         mode=mode,
-        position=pos,
-        stats=session['draw_stats'],
-        initial_subranges=initial_subranges
+        position=position,
+        draw_data={
+            'questionId': question_id,
+            'subranges': [{'name': sub['name'], 'color': sub['color']}
+                          for sub in get_position_subranges(config, position)],
+            'stats': session['draw_stats'],
+        }
     )
 
 
 @app.route('/reset_draw_stats')
 @login_required
 def reset_draw_stats():
-    session['draw_stats'] = {'total': 0, 'correct': 0, 'wrong': 0}
-    next_url = request.args.get('next')
-    return redirect(next_url or url_for('index'))
+    return reset_session_counter('draw_stats')
 
 
 # -------------------------------------------------------------------
