@@ -1,6 +1,7 @@
 // hand_matrix.js
 // Shared helpers for the 13x13 hand matrix used by the range editor
-// (create_range.js) and the draw training page (draw_training.js). Only the
+// (create_range.js) and the draw training page (draw_training.js); the heatmap
+// page (heatmap.js) only reuses RANKS. Only the
 // DOM building, pointer handling and colour logic live here; each page keeps
 // its own selection state and decides what a selected cell means.
 

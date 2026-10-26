@@ -1,0 +1,334 @@
+/* heatmap.css – styles for the heatmap pages (/heatmap/<mode> and /all_stats)
+   Built on the shared design system (cr_design.css); the hand matrix and its
+   responsive rules come from create_range.css (.cr-shell #hand-matrix). */
+
+.cr-shell {
+    --hmap-due: #e8a93a;
+    --hmap-unlearned: #95a5a6;
+}
+
+/* ---- Layout: one centered column of cards ---- */
+.cr-shell .hmap-column {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-md);
+}
+
+.cr-shell .hmap-back {
+    display: flex;
+    justify-content: center;
+}
+
+.cr-shell .hmap-picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cr-space-sm) var(--cr-space-md);
+}
+
+.cr-shell .hmap-label {
+    color: var(--cr-color-text);
+    font-weight: 500;
+}
+
+.cr-shell .hmap-picker .cr-select {
+    flex: 0 1 280px;
+}
+
+.cr-shell .hmap-delete-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--cr-space-sm);
+    margin-top: var(--cr-space-md);
+}
+
+/* ---- Legend ---- */
+.cr-shell .hmap-legend-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 40px;
+}
+
+.cr-shell .hmap-legend {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 0.9em;
+    color: var(--cr-color-text-muted);
+    white-space: nowrap;
+}
+
+.cr-shell .hmap-legend-bar {
+    flex: 0 1 200px;
+    min-width: 60px;
+    height: 20px;
+    background: linear-gradient(to right, #27ae60, #f1c40f, #e74c3c);
+    border-radius: 4px;
+}
+
+/* Overlays the weight legend; shown instead of it in subrange-colour mode */
+.cr-shell .hmap-subrange-legend {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--cr-space-sm) var(--cr-space-md);
+    font-size: 0.9em;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.cr-shell .hmap-subrange-legend.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.cr-shell .hmap-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cr-shell .hmap-chip-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+}
+
+.cr-shell .subrange-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.cr-shell .hmap-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cr-space-sm);
+    margin: var(--cr-space-md) 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.cr-shell .hmap-toggle input {
+    accent-color: var(--cr-color-primary);
+}
+
+/* The shared focus ring is a boxy outline that looks heavy on a checkbox clicked with a mouse */
+.cr-shell .hmap-toggle input:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.cr-shell .hmap-times {
+    justify-content: center;
+    margin-bottom: var(--cr-space-sm);
+}
+
+.cr-shell .hmap-hint {
+    text-align: center;
+}
+
+.cr-shell .hmap-hint--bottom {
+    margin: var(--cr-space-md) 0 0;
+}
+
+.cr-shell #hand-matrix .hmap-error {
+    grid-column: 1 / -1;
+    margin: var(--cr-space-lg) 0 0;
+    text-align: center;
+    color: var(--cr-color-danger);
+}
+
+.cr-shell .matrix-cell.highlighted-category {
+    outline: 3px solid var(--cr-color-text);
+    outline-offset: -2px;
+    z-index: 1;
+    position: relative;
+}
+
+/* ---- Learned status and category counters ---- */
+.cr-shell .hmap-learned {
+    margin-bottom: var(--cr-space-sm);
+    text-align: center;
+    font-weight: 600;
+}
+
+.cr-shell .hmap-learned--yes {
+    color: var(--cr-color-success);
+}
+
+.cr-shell .hmap-learned--no {
+    color: var(--hmap-due);
+}
+
+.cr-shell .hmap-categories {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--cr-space-sm);
+}
+
+.cr-shell .hmap-category {
+    display: flex;
+    align-items: center;
+    gap: var(--cr-space-sm);
+    padding: 10px 14px;
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-md);
+    background: var(--cr-color-bg);
+    color: var(--cr-color-text);
+    font-size: 0.9em;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--cr-transition-fast), border-color var(--cr-transition-fast);
+}
+
+.cr-shell .hmap-category:hover {
+    background: var(--cr-color-primary-soft);
+    border-color: var(--cr-color-primary);
+}
+
+.cr-shell .hmap-dot {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.cr-shell .hmap-dot--learned { background: var(--cr-color-success); }
+.cr-shell .hmap-dot--due { background: var(--hmap-due); }
+.cr-shell .hmap-dot--forgotten { background: var(--cr-color-danger); }
+.cr-shell .hmap-dot--unlearned { background: var(--hmap-unlearned); }
+
+/* ---- Hover tooltip and click panel (same content) ---- */
+.cr-shell .hmap-popup {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    box-sizing: border-box;
+    background: var(--cr-color-surface);
+    border: 1px solid var(--cr-color-border);
+    border-radius: var(--cr-radius-md);
+    box-shadow: var(--cr-shadow-medium);
+    color: var(--cr-color-text);
+    line-height: 1.4;
+}
+
+.cr-shell .hmap-tooltip {
+    min-width: 180px;
+    padding: 10px 14px;
+    font-size: 0.85em;
+    pointer-events: none;
+}
+
+.cr-shell .hmap-panel {
+    top: 50%;
+    right: var(--cr-space-md);
+    transform: translateY(-50%);
+    min-width: 200px;
+    max-width: 260px;
+    padding: var(--cr-space-md);
+    font-size: 0.9em;
+}
+
+.cr-shell .hmap-panel-close {
+    float: right;
+    padding: 0 4px;
+    border: none;
+    background: none;
+    color: var(--cr-color-text-muted);
+    font-size: 1.2em;
+    cursor: pointer;
+}
+
+.cr-shell .hmap-panel-close:hover {
+    color: var(--cr-color-text);
+}
+
+.cr-shell .hmap-popup hr {
+    margin: 8px 0;
+    border: 0;
+    border-top: 1px solid var(--cr-color-border);
+}
+
+.cr-shell .hmap-status {
+    font-weight: 600;
+}
+
+.cr-shell .hmap-status--forgotten { color: var(--cr-color-danger); }
+.cr-shell .hmap-status--due { color: var(--hmap-due); }
+.cr-shell .hmap-status--learned { color: var(--cr-color-success); }
+.cr-shell .hmap-status--unlearned { color: var(--hmap-unlearned); }
+
+.cr-shell .hmap-note,
+.cr-shell .hmap-meta,
+.cr-shell .hmap-checklist {
+    margin-top: 4px;
+    color: var(--cr-color-text-muted);
+    font-size: 0.85em;
+}
+
+.cr-shell .hmap-meta {
+    font-size: 0.8em;
+    color: var(--cr-color-text);
+}
+
+.cr-shell .hmap-checklist {
+    margin-top: 6px;
+    font-size: 0.8em;
+    color: var(--cr-color-text);
+}
+
+.cr-shell .hmap-checklist hr {
+    margin: 4px 0;
+}
+
+.cr-shell .hmap-or {
+    margin: 2px 0;
+    font-weight: 600;
+    color: var(--cr-color-text-muted);
+}
+
+/* ---- Responsive ---- */
+@media screen and (max-width: 600px) {
+    .cr-shell .hmap-picker .cr-select {
+        flex: 1 1 100%;
+    }
+    .cr-shell .hmap-delete-row .cr-btn {
+        flex: 1 1 100%;
+        white-space: normal;
+        height: auto;
+        min-height: 44px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+    .cr-shell .hmap-categories {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Touch screens have no hover: show the panel at the bottom, skip the tooltip */
+@media (pointer: coarse) {
+    .cr-shell .hmap-panel {
+        top: auto;
+        bottom: 70px;
+        right: 50%;
+        transform: translateX(50%);
+        min-width: 280px;
+        max-width: 90%;
+    }
+    .cr-shell .hmap-tooltip {
+        display: none !important;
+    }
+}

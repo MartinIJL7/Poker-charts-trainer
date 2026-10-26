@@ -1,671 +1,111 @@
 {% extends "base.html" %}
-{% block title %}Тепловая карта – {{ mode }}{% endblock %}
-{% block header %}Тепловая карта: {{ mode }}{% endblock %}
-{% block body_class %}create-page{% endblock %}
+{% block title %}{% if mode %}Тепловая карта – {{ mode }}{% else %}Вся статистика по диапазонам{% endif %}{% endblock %}
+{% block header %}{% if mode %}Тепловая карта: {{ mode }}{% else %}Вся статистика по диапазонам{% endif %}{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='create_range.css') }}?v={{ static_version('create_range.css') }}">
-<style>
-    #position-select {
-        padding: 8px 12px;
-        font-size: 1em;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-        margin: 10px 0 20px;
-        min-width: 200px;
-    }
-    #hand-matrix {
-        touch-action: none;
-        user-select: none;
-        display: grid;
-        grid-template-columns: repeat(13, 1fr);
-        gap: 2px;
-        max-width: 650px;
-        margin: 0 auto;
-    }
-    .matrix-cell {
-        background: #d5d8dc;
-        text-align: center;
-        font-size: 0.7em;
-        border: 1px solid #ddd;
-        aspect-ratio: 1 / 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        transition: background 0.2s;
-    }
-    .matrix-cell.no-data {
-        background: #e9ecef;
-        color: #999;
-    }
-    .legend {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        margin: 15px 0;
-    }
-    .legend-bar {
-        width: 200px;
-        height: 20px;
-        background: linear-gradient(to right, #27ae60, #f1c40f, #e74c3c);
-        border-radius: 4px;
-    }
-    .legend span {
-        font-size: 0.9em;
-    }
-    .matrix-cell.highlighted-category {
-        outline: 3px solid #2c3e50;
-        outline-offset: -2px;
-        z-index: 1;
-        position: relative;
-        transition: outline 0.1s;
-    }
-    .subrange-hidden {
-        opacity: 0 !important;
-        pointer-events: none !important;
-        transition: opacity 0.15s ease;
-    }
-    #subrange-legend {
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.15s ease;
-    }
-    #subrange-legend.visible {
-        opacity: 1;
-        pointer-events: auto;
-    }
-    .legend-wrapper {
-        position: relative;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        min-height: 40px;
-    }
-    #subrange-legend {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-    @media screen and (max-width: 600px) {
-        #hand-matrix {
-            gap: 1px;
-            max-width: 100%;
-        }
-        .matrix-cell {
-            font-size: 0.6rem;
-            min-height: 26px;
-            min-width: 26px;
-            border-width: 1px;
-        }
-    }
-    @media screen and (max-width: 400px) {
-        #hand-matrix {
-            gap: 0;
-            max-width: 100%;
-            width: 100%;
-        }
-        .matrix-cell {
-            font-size: 0.5rem;
-            border: none;
-            aspect-ratio: 1 / 1;
-            line-height: 1;
-            padding: 0;
-        }
-        .legend-bar {
-            width: 120px;
-        }
-    }
-    @media (pointer: coarse) {
-        #info-panel {
-            top: auto !important;
-            bottom: 70px !important;
-            right: 50% !important;
-            transform: translateX(50%) !important;
-            min-width: 280px !important;
-            max-width: 90% !important;
-        }
-        #tooltip {
-            display: none !important;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='heatmap.css') }}?v={{ static_version('heatmap.css') }}">
 {% endblock %}
 {% block content %}
-<div class="create-container">
-    <div id="tooltip" style="display:none; position:fixed; background:#fff; border:1px solid #ccc; padding:10px 14px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); font-size:0.85em; pointer-events:none; z-index:1000; min-width:180px;">
+<div class="cr-shell hmap-shell" data-api-url="{{ api_url }}">
+    <div class="hmap-column">
+        {% if mode %}
+        <div class="hmap-back">
+            <a href="{{ url_for('training', mode=mode, reset_start=1) }}" class="cr-btn cr-btn--ghost">
+                <svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l-6 6 6 6"/></svg>
+                Назад в тренировку
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="cr-card">
+            <div class="hmap-picker">
+                <label for="position-select" class="hmap-label">Выберите диапазон:</label>
+                <select id="position-select" class="cr-select">
+                    {% for pos in positions %}
+                        <option value="{{ pos }}">{{ pos }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if not mode %}
+            <div class="hmap-delete-row">
+                <button type="button" id="delete-position-btn" class="cr-btn cr-btn--danger-ghost">
+                    <svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
+                    Удалить статистику по диапазону
+                </button>
+                <button type="button" id="delete-all-btn" class="cr-btn cr-btn--danger-ghost">
+                    <svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
+                    Удалить всю мою статистику
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="cr-card">
+            <div class="hmap-legend-wrapper">
+                <div class="hmap-legend" id="main-legend">
+                    <span>Лёгкая (0.1)</span>
+                    <div class="hmap-legend-bar"></div>
+                    <span>Сложная (2.0)</span>
+                </div>
+                <div id="subrange-legend" class="hmap-subrange-legend"></div>
+            </div>
+
+            <label class="hmap-toggle">
+                <input type="checkbox" id="toggle-subrange-colors"> Раскрасить по поддиапазонам
+            </label>
+
+            <div class="cr-stats-row hmap-times">
+                <span class="cr-stat">Среднее время по диапазону: <strong id="avg-position-time">—</strong> с</span>
+                <span class="cr-stat">Общее время: <strong id="total-position-time">—</strong></span>
+            </div>
+
+            <p id="color-hint" class="cr-stats-note hmap-hint">
+                Цвета отражают вашу индивидуальную сложность рук, основанную на ошибках и времени ответа
+            </p>
+
+            <div id="hand-matrix" class="cr-matrix"></div>
+
+            <p id="gray-hint" class="cr-stats-note hmap-hint hmap-hint--bottom">
+                Серый цвет – рука ещё не встречалась
+            </p>
+        </div>
+
+        <div class="cr-card">
+            <h3 class="cr-card-title">Статус заучивания диапазона</h3>
+            <div id="learned-status" class="hmap-learned"></div>
+            <p class="cr-stats-note hmap-hint">
+                Диапазон считается выученным, если все руки выучены или находятся на повторении
+            </p>
+        </div>
+
+        <div id="category-stats" class="cr-card">
+            <h3 class="cr-card-title">Распределение рук по статусам</h3>
+            <p class="cr-stats-note">Можно нажать, чтобы подсветить</p>
+            <div class="hmap-categories">
+                <button type="button" class="hmap-category" data-category="learned">
+                    <span class="hmap-dot hmap-dot--learned"></span>Выучено: <strong id="stat-learned">0</strong>
+                </button>
+                <button type="button" class="hmap-category" data-category="due">
+                    <span class="hmap-dot hmap-dot--due"></span>Пора повторять: <strong id="stat-due">0</strong>
+                </button>
+                <button type="button" class="hmap-category" data-category="forgotten">
+                    <span class="hmap-dot hmap-dot--forgotten"></span>Забыто: <strong id="stat-forgotten">0</strong>
+                </button>
+                <button type="button" class="hmap-category" data-category="not-learned">
+                    <span class="hmap-dot hmap-dot--unlearned"></span>Не выучено: <strong id="stat-not-learned">0</strong>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tooltip" class="hmap-popup hmap-tooltip">
         <div id="tooltip-content"></div>
     </div>
-    <div style="text-align: center; margin: 10px 0;">
-        <a href="{{ url_for('training', mode=mode, reset_start=1) }}" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">← Назад в тренировку</a>
-    </div>
-    <div style="text-align: center;">
-        <label for="position-select">Выберите диапазон:</label>
-        <select id="position-select">
-            {% for pos in positions %}
-                <option value="{{ pos }}">{{ pos }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div class="legend-wrapper">
-        <div class="legend" id="main-legend">
-            <span>Лёгкая (0.1)</span>
-            <div class="legend-bar"></div>
-            <span>Сложная (2.0)</span>
-        </div>
-        <div id="subrange-legend"></div>
-    </div>
-
-    <div style="text-align: center; margin: 12px 0;">
-        <label style="cursor: pointer; user-select: none; font-size: 0.95em; display: inline-flex; align-items: center; gap: 8px;">
-            <input type="checkbox" id="toggle-subrange-colors"> Раскрасить по поддиапазонам
-        </label>
-    </div>
-
-    <div style="text-align: center; margin-top: 8px;">
-        <span style="font-size: 0.9em; color: #555;">Среднее время по диапазону: <span id="avg-position-time">—</span> с</span>
-        <span style="font-size: 0.9em; color: #555; margin-left: 20px;">Общее время: <span id="total-position-time">—</span></span>
-    </div>
-
-    <p id="color-hint" style="text-align: center; margin-top: 8px; font-size: 0.85em; color: #666;">
-        Цвета отражают вашу индивидуальную сложность рук, основанную на ошибках и времени ответа
-    </p>
-
-    <div id="hand-matrix"></div>
-
-    <p id="gray-hint" style="text-align: center; margin-top: 15px; color: #888; font-size: 0.9em;">
-        Серый цвет – рука ещё не встречалась
-    </p>
-
-    <div id="learned-panel" style="margin-top: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; max-width: 415px; margin-left: auto; margin-right: auto;">
-        <div style="font-weight: bold; margin-bottom: 10px; text-align: center;">📊 Статус заучивания диапазона</div>
-        <div id="learned-status" style="font-weight: bold; margin-bottom: 8px; text-align: center;"></div>
-        <div style="font-size: 0.85em; color: #555; text-align: center;">
-            Диапазон считается выученным, если все руки выучены или находятся на повторении
-        </div>
-    </div>
-
-    <div id="category-stats" style="margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; max-width: 415px; margin-left: auto; margin-right: auto;">
-        <div style="font-weight: bold; margin-bottom: 10px; text-align: center;">📈 Распределение рук по статусам (можно нажать, чтобы подсветить)</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; font-size: 0.9em;">
-            <div class="category-item" data-category="learned" style="cursor:pointer;">
-                <span style="color: #27ae60;"></span> Выучено: <span id="stat-learned">0</span>
-            </div>
-            <div class="category-item" data-category="due" style="cursor:pointer;">
-                <span style="color: #e67e22;"></span> Пора повторять: <span id="stat-due">0</span>
-            </div>
-            <div class="category-item" data-category="forgotten" style="cursor:pointer;">
-                <span style="color: #e74c3c;"></span> Забыто: <span id="stat-forgotten">0</span>
-            </div>
-            <div class="category-item" data-category="not-learned" style="cursor:pointer;">
-                <span style="color: #95a5a6;"></span> Не выучено: <span id="stat-not-learned">0</span>
-            </div>
-        </div>
-    </div>
-
-    <div id="info-panel" style="display:none; position:fixed; top:50%; right:20px; transform:translateY(-50%); background:white; border:1px solid #ccc; border-radius:8px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,0.15); min-width:200px; max-width:260px; z-index:1000; font-size:0.9em; pointer-events:auto;">
-        <button id="close-panel" style="float:right; background:none; border:none; font-size:1.2em; cursor:pointer; padding:0 4px;">✕</button>
+    <div id="info-panel" class="hmap-popup hmap-panel">
+        <button type="button" id="close-panel" class="hmap-panel-close" aria-label="Закрыть">✕</button>
         <div id="panel-content"></div>
     </div>
 </div>
 
-<script>
-    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
-    const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
-    const mode = '{{ mode }}';
-    let currentPosition = document.getElementById('position-select').value;
-    let useSubrangeColors = false;
-    let currentWeights = null;
-
-    // Track currently highlighted category (null = none)
-    let currentHighlightedCategory = null;
-
-    function updateGrayHint() {
-        const grayHint = document.getElementById('gray-hint');
-        if (!grayHint) return;
-        if (useSubrangeColors) {
-            grayHint.classList.add('subrange-hidden');
-        } else {
-            const hasNoData = document.querySelector('#hand-matrix .no-data');
-            if (hasNoData) {
-                grayHint.classList.remove('subrange-hidden');
-            } else {
-                grayHint.classList.add('subrange-hidden');
-            }
-        }
-    }
-
-    function updateLegend(useSubrange, weights) {
-        const mainLegend = document.getElementById('main-legend');
-        const colorHint = document.getElementById('color-hint');
-        const subrangeLegend = document.getElementById('subrange-legend');
-
-        if (useSubrange) {
-            if (mainLegend) mainLegend.classList.add('subrange-hidden');
-            if (colorHint) colorHint.classList.add('subrange-hidden');
-            subrangeLegend.classList.add('visible');
-
-            const subrangeMap = {};
-            for (const hand in weights) {
-                const data = weights[hand];
-                if (data.subrange && data.subrange !== 'not in a range') {
-                    subrangeMap[data.subrange] = data.subrange_color;
-                }
-            }
-            let html = '';
-            for (const [name, color] of Object.entries(subrangeMap)) {
-                html += `<span style="display:inline-block; margin:0 10px;">
-                            <span style="display:inline-block; width:16px; height:16px; background:${color}; border-radius:3px; vertical-align:middle;"></span>
-                            ${name}
-                        </span>`;
-            }
-            subrangeLegend.innerHTML = html || 'Нет поддиапазонов для отображения';
-        } else {
-            if (mainLegend) mainLegend.classList.remove('subrange-hidden');
-            if (colorHint) colorHint.classList.remove('subrange-hidden');
-            subrangeLegend.classList.remove('visible');
-            subrangeLegend.innerHTML = '';
-        }
-    }
-
-    function highlightCategory(category) {
-        const cells = document.querySelectorAll('#hand-matrix .matrix-cell');
-        // If clicking the same category, toggle off
-        if (currentHighlightedCategory === category) {
-            cells.forEach(cell => cell.classList.remove('highlighted-category'));
-            currentHighlightedCategory = null;
-            return;
-        }
-        // Otherwise clear previous highlight and highlight new category
-        cells.forEach(cell => {
-            cell.classList.remove('highlighted-category');
-            if (cell.dataset.category === category) {
-                cell.classList.add('highlighted-category');
-            }
-        });
-        currentHighlightedCategory = category;
-    }
-
-    function categoryClickHandler(e) {
-        const item = e.target.closest('.category-item');
-        if (!item) return;
-        const category = item.dataset.category;
-        highlightCategory(category);
-    }
-
-    function buildStatusHTML(data) {
-        const attempts = data.attempts || 0;
-        const avgTime = data.avg_time_sec !== null && data.avg_time_sec !== undefined ? data.avg_time_sec : 0;
-        const errorsLast3 = data.errors_last_3 !== undefined ? data.errors_last_3 : 0;
-        const reviewInterval = data.review_interval_days || 0;
-        const penaltyActive = data.penalty_active || false;
-        const daysSince = data.days_since_last_shown || 0;
-        const isDue = data.is_due_for_review || false;
-
-        let html = '';
-
-        if (penaltyActive) {
-            html += `<div style="color: #e74c3c; font-weight: bold;">🔴 Забыта</div>`;
-            html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Рука была выучена, но затем была допущена ошибка, или среднее время руки за последние 3 попытки превысило 3 секунды, или вес стал более 0.25</div>`;
-            html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Поэтому к весу добавлен бонус 1.2</div>`;
-            html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
-            html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
-            html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки &nbsp; (${data.last_results_display})<br>`;
-            html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки за последние 3 попытки <= 3 с`;
-            html += `<hr style="margin: 4px 0; border: 0; border-top: 1px solid #ddd;">`;
-            html += `<div style="font-weight: bold; color: #555; margin: 2px 0;">ИЛИ</div>`;
-            html += `<span style="color: ${data.weight <= 0.25 ? '#27ae60' : '#95a5a6'};">${data.weight <= 0.25 ? '✅' : '❌'}</span> вес индивидуальной сложности ≤ 0.25<br>`;
-            html += `</div>`;
-        } else if (reviewInterval > 0 && isDue) {
-            html += `<div style="color: #e67e22; font-weight: bold;">🟠 Выучена, пора повторять!</div>`;
-            html += `<div style="font-size: 0.85em; margin-top: 4px; color: #555;">Вес повышен до максимума для планового повторения</div>`;
-            html += `<div style="font-size: 0.8em; margin-top: 4px;">Интервал повторения: ${reviewInterval} дн. &nbsp;|&nbsp; Прошло с последней попытки: ${daysSince} дн.</div>`;
-        } else if (reviewInterval > 0) {
-            html += `<div style="color: #27ae60; font-weight: bold;">🟢 Выучена</div>`;
-            html += `<div style="font-size: 0.8em; margin-top: 4px;">Интервал повторения: ${reviewInterval} дн. &nbsp;|&nbsp; Прошло с последней попытки: ${daysSince} дн.</div>`;
-        } else {
-            html += `<div style="color: #95a5a6; font-weight: bold;">⚪ Не выучена</div>`;
-            html += `<div style="font-size: 0.8em; margin-top: 6px;">`;
-            html += `<span style="color: ${attempts >= 3 ? '#27ae60' : '#95a5a6'};">${attempts >= 3 ? '✅' : '❌'}</span> Попыток >= 3<br>`;
-            html += `<span style="color: ${errorsLast3 === 0 ? '#27ae60' : '#95a5a6'};">${errorsLast3 === 0 ? '✅' : '❌'}</span> Ноль ошибок за последние 3 попытки &nbsp; (${data.last_results_display})<br>`;
-            html += `<span style="color: ${avgTime <= 3 ? '#27ae60' : '#95a5a6'};">${avgTime <= 3 ? '✅' : '❌'}</span> Среднее время руки за последние 3 попытки <= 3 с`;
-            html += `<hr style="margin: 4px 0; border: 0; border-top: 1px solid #ddd;">`;
-            html += `<div style="font-weight: bold; color: #555; margin: 2px 0;">ИЛИ</div>`;
-            html += `<span style="color: ${data.weight <= 0.25 ? '#27ae60' : '#95a5a6'};">${data.weight <= 0.25 ? '✅' : '❌'}</span> вес индивидуальной сложности ≤ 0.25<br>`;
-            html += `</div>`;
-        }
-
-        return html;
-    }
-
-    function buildMatrix(weights) {
-        const container = document.getElementById('hand-matrix');
-        container.innerHTML = '';
-        let minWeight = 2.0, maxWeight = 0.1;
-        for (const hand in weights) {
-            const w = weights[hand].weight;
-            if (weights[hand].attempts > 0) {
-                if (w < minWeight) minWeight = w;
-                if (w > maxWeight) maxWeight = w;
-            }
-        }
-        if (minWeight > maxWeight) { minWeight = 0.1; maxWeight = 2.0; }
-
-        const tooltip = document.getElementById('tooltip');
-        const tooltipContent = document.getElementById('tooltip-content');
-
-        ranks.forEach(rowRank => {
-            ranks.forEach(colRank => {
-                const cell = document.createElement('div');
-                cell.className = 'matrix-cell';
-                const i = ranks.indexOf(rowRank);
-                const j = ranks.indexOf(colRank);
-                let hand = '';
-                if (i === j) hand = rowRank + colRank;
-                else if (i < j) hand = rowRank + colRank + 's';
-                else hand = colRank + rowRank + 'o';
-                cell.textContent = hand;
-
-                const data = weights[hand];
-
-                // ----- Determine color -----
-                let color;
-                let textColor = '#000000';
-
-                if (useSubrangeColors) {
-                    // Mode: color by subrange (all hands, including unplayed)
-                    color = (data && data.subrange_color) ? data.subrange_color : '#d5d8dc';
-                    // For subrange mode, keep text black for readability (can be improved later)
-                    textColor = '#000000';
-                    // Remove any no-data class (we want color, not gray)
-                    cell.classList.remove('no-data');
-                } else {
-                    // Mode: color by weight (only played hands)
-                    if (!data || data.attempts === 0) {
-                        cell.classList.add('no-data');
-                        // Background will be set by CSS for .no-data, so we don't set here
-                        color = null; // not used
-                    } else {
-                        const w = data.weight;
-                        const clamped = Math.min(2.0, Math.max(0.1, w));
-                        const t = (clamped - 0.1) / 1.9;
-                        let r, g, b;
-                        if (t < 0.5) {
-                            const p = t / 0.5;
-                            r = Math.round(0 + p * 255);
-                            g = 200;
-                            b = Math.round(0 + (1 - p) * 0);
-                        } else {
-                            const p = (t - 0.5) / 0.5;
-                            r = 255;
-                            g = Math.round(200 - p * 200);
-                            b = 0;
-                        }
-                        color = `rgb(${r}, ${g}, ${b})`;
-                        textColor = (t > 0.6) ? 'white' : 'black';
-                    }
-                }
-
-                // Apply background color (if color is set)
-                if (color) {
-                    cell.style.backgroundColor = color;
-                    cell.style.color = textColor;
-                }
-
-                // ----- Set dataset for all cells (for tooltips and click events) -----
-                if (data) {
-                    cell.dataset.attempts = data.attempts || 0;
-                    cell.dataset.errors = data.errors || 0;
-                    cell.dataset.correct = data.correct || 0;
-                    cell.dataset.avgTime = data.avg_time_sec !== null ? data.avg_time_sec.toFixed(2) : '—';
-                    cell.dataset.weight = data.weight ? data.weight.toFixed(3) : '—';
-                    cell.dataset.hand = hand;
-                    cell.dataset.reviewInterval = data.review_interval_days || 0;
-                    cell.dataset.penaltyActive = data.penalty_active ? 'true' : 'false';
-                    cell.dataset.daysSince = data.days_since_last_shown || 0;
-                    cell.dataset.isDue = data.is_due_for_review ? 'true' : 'false';
-                    cell.dataset.errorsLast3 = data.errors_last_3 !== undefined ? data.errors_last_3 : 0;
-                    cell.dataset.lastResultsDisplay = data.last_results_display || '';
-                    cell.dataset.lastTimesDisplay = data.last_times_display || '';
-                    cell.dataset.subrange = data.subrange || '';
-                    // Determine category
-                    let category = '';
-                    if (data.penalty_active) {
-                        category = 'forgotten';
-                    } else if (data.review_interval_days > 0 && data.is_due_for_review) {
-                        category = 'due';
-                    } else if (data.review_interval_days > 0) {
-                        category = 'learned';
-                    } else {
-                        category = 'not-learned';
-                    }
-                    cell.dataset.category = category;
-                } else {
-                    // Fallback (should not happen, but just in case)
-                    cell.dataset.attempts = 0;
-                    cell.dataset.errors = 0;
-                    cell.dataset.correct = 0;
-                    cell.dataset.avgTime = '—';
-                    cell.dataset.weight = '—';
-                    cell.dataset.hand = hand;
-                    cell.dataset.reviewInterval = 0;
-                    cell.dataset.penaltyActive = 'false';
-                    cell.dataset.daysSince = 0;
-                    cell.dataset.isDue = 'false';
-                    cell.dataset.errorsLast3 = 0;
-                    cell.dataset.lastResultsDisplay = '';
-                    cell.dataset.lastTimesDisplay = '';
-                    cell.dataset.subrange = '';
-                    cell.dataset.category = 'not-learned';
-                }
-
-                // ----- Tooltip events (for all cells) -----
-                if (!isTouchDevice) {
-                    cell.addEventListener('mouseenter', function(e) {
-                        const data = {
-                            weight: parseFloat(this.dataset.weight) || 0,
-                            attempts: parseInt(this.dataset.attempts) || 0,
-                            avg_time_sec: parseFloat(this.dataset.avgTime) || 0,
-                            errors_last_3: parseInt(this.dataset.errorsLast3) || 0,
-                            review_interval_days: parseInt(this.dataset.reviewInterval) || 0,
-                            penalty_active: this.dataset.penaltyActive === 'true',
-                            days_since_last_shown: parseInt(this.dataset.daysSince) || 0,
-                            is_due_for_review: this.dataset.isDue === 'true',
-                            last_results_display: this.dataset.lastResultsDisplay || '',
-                            last_times_display: this.dataset.lastTimesDisplay || '',
-                            subrange: this.dataset.subrange || '',
-                        };
-                        const statsHtml = buildStatusHTML(data);
-
-                        const attempts = parseInt(this.dataset.attempts) || 0;
-                        const correct = parseInt(this.dataset.correct) || 0;
-                        const pct = attempts > 0 ? (correct / attempts * 100).toFixed(1) : 0;
-
-                        const subrangeText = data.subrange === 'not in a range' ? 'fold' : data.subrange;
-                        const oldStats = `
-                            <strong>${this.dataset.hand} : ${subrangeText}</strong><br>
-                            Попыток: ${this.dataset.attempts}<br>
-                            Правильно: ${correct} (${pct}%)<br>
-                            Ошибок: ${this.dataset.errors}<br>
-                            Среднее время ответа за последние 3 попытки: ${this.dataset.avgTime} с
-                            ${data.last_times_display ? ' (' + data.last_times_display + ' с)' : ''}<br>
-                            Вес индивидуальной сложности: ${this.dataset.weight}
-                        `;
-                        tooltipContent.innerHTML = oldStats + '<hr>' + statsHtml;
-                        tooltip.style.display = 'block';
-                        const x = e.clientX + 15;
-                        const y = e.clientY - 10;
-                        const tw = tooltip.offsetWidth || 200;
-                        const th = tooltip.offsetHeight || 120;
-                        const left = Math.min(x, window.innerWidth - tw - 10);
-                        const top = Math.min(y, window.innerHeight - th - 10);
-                        tooltip.style.left = left + 'px';
-                        tooltip.style.top = top + 'px';
-                    });
-                    cell.addEventListener('mouseleave', function() {
-                        tooltip.style.display = 'none';
-                    });
-                }
-
-                // ----- Click event (for all cells) -----
-                cell.addEventListener('click', function(e) {
-                    e.stopPropagation();
-
-                    const attempts = parseInt(this.dataset.attempts) || 0;
-                    const correct = parseInt(this.dataset.correct) || 0;
-                    const pct = attempts > 0 ? (correct / attempts * 100).toFixed(1) : 0;
-
-                    const subrangeText = this.dataset.subrange === 'not in a range' ? 'fold' : this.dataset.subrange;
-                    const oldStats = `
-                        <strong>${this.dataset.hand} : ${subrangeText}</strong><br>
-                        Попыток: ${this.dataset.attempts}<br>
-                        Правильно: ${correct} (${pct}%)<br>
-                        Ошибок: ${this.dataset.errors}<br>
-                        Среднее время ответа за последние 3 попытки: ${this.dataset.avgTime} с
-                        ${this.dataset.lastTimesDisplay ? ' (' + this.dataset.lastTimesDisplay + ' с)' : ''}<br>
-                        Вес индивидуальной сложности: ${this.dataset.weight}
-                    `;
-
-                    const statusData = {
-                        weight: parseFloat(this.dataset.weight) || 0,
-                        attempts: parseInt(this.dataset.attempts) || 0,
-                        avg_time_sec: parseFloat(this.dataset.avgTime) || 0,
-                        errors_last_3: parseInt(this.dataset.errorsLast3) || 0,
-                        review_interval_days: parseInt(this.dataset.reviewInterval) || 0,
-                        penalty_active: this.dataset.penaltyActive === 'true',
-                        days_since_last_shown: parseInt(this.dataset.daysSince) || 0,
-                        is_due_for_review: this.dataset.isDue === 'true',
-                        last_results_display: this.dataset.lastResultsDisplay || '',
-                        last_times_display: this.dataset.lastTimesDisplay || ''
-                    };
-                    const statusHtml = buildStatusHTML(statusData);
-                    document.getElementById('panel-content').innerHTML = oldStats + '<hr style="margin: 8px 0;">' + statusHtml;
-                    document.getElementById('info-panel').style.display = 'block';
-                });
-
-                container.appendChild(cell);
-            });
-        });
-    }
-
-    function updateCategoryStats(weights) {
-        let learned = 0, due = 0, forgotten = 0, notLearned = 0;
-        for (const hand in weights) {
-            const data = weights[hand];
-            if (data.penalty_active) {
-                forgotten++;
-            } else if (data.review_interval_days > 0 && data.is_due_for_review) {
-                due++;
-            } else if (data.review_interval_days > 0) {
-                learned++;
-            } else {
-                notLearned++;
-            }
-        }
-        document.getElementById('stat-learned').textContent = learned;
-        document.getElementById('stat-due').textContent = due;
-        document.getElementById('stat-forgotten').textContent = forgotten;
-        document.getElementById('stat-not-learned').textContent = notLearned;
-
-        // Attach click handler (remove old to avoid duplicates)
-        const container = document.getElementById('category-stats');
-        container.removeEventListener('click', categoryClickHandler);
-        container.addEventListener('click', categoryClickHandler);
-    }
-
-    function loadPosition(position) {
-        fetch(`/api/heatmap/${mode}/${encodeURIComponent(position)}`)
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to load');
-                return response.json();
-            })
-            .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                    return;
-                }
-                currentWeights = data.weights;
-                buildMatrix(currentWeights);
-                updateCategoryStats(currentWeights);
-                updateLegend(useSubrangeColors, currentWeights);
-
-                updateGrayHint();
-
-                const avgSpan = document.getElementById('avg-position-time');
-                if (data.avg_time !== null && data.avg_time !== undefined) {
-                    avgSpan.textContent = (data.avg_time / 1000).toFixed(2);
-                } else {
-                    avgSpan.textContent = '—';
-                }
-
-                const totalSpan = document.getElementById('total-position-time');
-                if (data.total_time_sec !== undefined && data.total_time_sec !== null) {
-                    const totalSec = data.total_time_sec;
-                    const hours = Math.floor(totalSec / 3600);
-                    const minutes = Math.floor((totalSec % 3600) / 60);
-                    const seconds = Math.floor(totalSec % 60);
-                    let display = '';
-                    if (hours > 0) display += `${hours} ч `;
-                    if (minutes > 0) display += `${minutes} мин `;
-                    display += `${seconds} с`;
-                    totalSpan.textContent = display;
-                } else {
-                    totalSpan.textContent = '—';
-                }
-
-                const learnedSpan = document.getElementById('learned-status');
-                if (data.learned) {
-                    learnedSpan.innerHTML = '✅ Диапазон выучен!';
-                    learnedSpan.style.color = '#27ae60';
-                } else {
-                    learnedSpan.innerHTML = '🔄 Диапазон ещё не выучен';
-                    learnedSpan.style.color = '#e67e22';
-                }
-
-            })
-            .catch(err => {
-                alert('Ошибка загрузки: ' + err.message);
-            });
-    }
-
-    document.getElementById('toggle-subrange-colors').addEventListener('change', function() {
-        useSubrangeColors = this.checked;
-        if (currentWeights) {
-            buildMatrix(currentWeights);
-            updateLegend(useSubrangeColors, currentWeights);
-            updateGrayHint();
-        }
-    });
-
-    document.getElementById('position-select').addEventListener('change', function() {
-        currentPosition = this.value;
-        loadPosition(currentPosition);
-    });
-
-    document.getElementById('close-panel').addEventListener('click', function(e) {
-        e.stopPropagation();
-        document.getElementById('info-panel').style.display = 'none';
-    });
-
-    document.addEventListener('click', function(e) {
-        const panel = document.getElementById('info-panel');
-        if (panel.style.display === 'block') {
-            const target = e.target;
-            if (!target.closest('.matrix-cell') && !target.closest('#info-panel')) {
-                panel.style.display = 'none';
-            }
-        }
-    });    
-    // initial load
-    loadPosition(currentPosition);
-</script>
+<script type="module" src="{{ url_for('static', filename='heatmap.js') }}?v={{ static_version('heatmap.js') }}"></script>
 {% endblock %}

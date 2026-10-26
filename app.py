@@ -1795,6 +1795,56 @@ def reset_draw_stats():
 # -------------------------------------------------------------------
 # Heatmap
 # -------------------------------------------------------------------
+def build_heatmap_payload(config, position):
+    """Per-hand stats of one range, shared by both heatmap API endpoints."""
+    avg_pos_time = get_avg_time_for_position(current_user.id, position)
+    weights = {}
+    for hand in ALL_HANDS:
+        stats = get_or_create_hand_stats(current_user.id, position, hand)
+        subrange = get_hand_status(hand, position, config)
+        w = calculate_weight(stats, avg_pos_time)
+        avg_time = round(get_avg_hand_time(stats) / 1000, 2) if stats.attempts > 0 else None
+        errors_last_3 = sum(1 for res in stats.last_results if res == 0)
+        last_results_display = ' '.join('✔' if res == 1 else '✘' for res in stats.last_results)
+        last_times_display = ', '.join(f'{t/1000:.2f}' for t in stats.last_times) if stats.last_times else ''
+        subrange_color = config.subrange_colors.get(subrange, '#d5d8dc')
+        if stats.updated_at:
+            updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
+            days_since = (datetime.utcnow() - updated_naive).days
+        else:
+            days_since = 0
+        is_due = (stats.review_interval_days > 0 and not stats.penalty_active and days_since >= stats.review_interval_days)
+
+        weights[hand] = {
+            'weight': w,
+            'attempts': stats.attempts,
+            'errors': stats.errors,
+            'correct': stats.attempts - stats.errors,
+            'avg_time_sec': avg_time,
+            'review_interval_days': stats.review_interval_days,
+            'penalty_active': stats.penalty_active,
+            'days_since_last_shown': days_since,
+            'is_due_for_review': is_due,
+            'errors_last_3': errors_last_3,
+            'last_results_display': last_results_display,
+            'last_times_display': last_times_display,
+            'subrange': subrange,
+            'subrange_color': subrange_color,
+        }
+    status = get_position_learning_status(current_user.id, position)
+
+    # Calculate total time spent on this position (all hands)
+    total_time_ms = db.session.query(db.func.sum(HandStats.total_time_ms))        .filter(HandStats.user_id == current_user.id, HandStats.position == position)        .scalar() or 0
+
+    return {
+        'position': position,
+        'weights': weights,
+        'avg_time': avg_pos_time,
+        'learned': status['learned'],
+        'total_time_sec': round(total_time_ms / 1000, 0)
+    }
+
+
 @app.route('/heatmap/<mode>')
 @login_required
 def heatmap(mode):
@@ -1804,7 +1854,8 @@ def heatmap(mode):
     positions = config.modes[mode]
     if not positions:
         return "No positions in this mode", 400
-    return render_template('heatmap.html', mode=mode, positions=positions)
+    return render_template('heatmap.html', mode=mode, positions=positions,
+                           api_url=url_for('api_heatmap', mode=mode, position='__POSITION__'))
 
 
 @app.route('/api/heatmap/<mode>/<position>')
@@ -1813,57 +1864,7 @@ def api_heatmap(mode, position):
     config = get_user_config(current_user.id)
     if mode not in config.modes or position not in config.modes[mode]:
         return jsonify({'error': 'Invalid mode or position'}), 400
-
-    avg_pos_time = get_avg_time_for_position(current_user.id, position)
-    weights = {}
-    for hand in ALL_HANDS:
-        stats = get_or_create_hand_stats(current_user.id, position, hand)
-        subrange = get_hand_status(hand, position, config)
-        w = calculate_weight(stats, avg_pos_time)
-        avg_time = round(get_avg_hand_time(stats) / 1000, 2) if stats.attempts > 0 else None
-        errors_last_3 = sum(1 for res in stats.last_results if res == 0)
-        last_results_display = ' '.join('✔' if res == 1 else '✘' for res in stats.last_results)
-        last_times_display = ', '.join(f'{t/1000:.2f}' for t in stats.last_times) if stats.last_times else ''
-        subrange = get_hand_status(hand, position, config)
-        subrange_color = config.subrange_colors.get(subrange, '#d5d8dc')
-        if stats.updated_at:
-            updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
-            days_since = (datetime.utcnow() - updated_naive).days
-        else:
-            days_since = 0
-        is_due = (stats.review_interval_days > 0 and not stats.penalty_active and days_since >= stats.review_interval_days)
-
-        weights[hand] = {
-            'weight': w,
-            'attempts': stats.attempts,
-            'errors': stats.errors,
-            'correct': stats.attempts - stats.errors,
-            'avg_time_sec': avg_time,
-            'review_interval_days': stats.review_interval_days,
-            'penalty_active': stats.penalty_active,
-            'days_since_last_shown': days_since,
-            'is_due_for_review': is_due,
-            'errors_last_3': errors_last_3,
-            'last_results_display': last_results_display,
-            'last_times_display': last_times_display,
-            'subrange': subrange,
-            'subrange_color': subrange_color,
-        }
-    status = get_position_learning_status(current_user.id, position)
-
-    # Calculate total time spent on this position (all hands)
-    total_time_ms = db.session.query(db.func.sum(HandStats.total_time_ms))\
-        .filter(HandStats.user_id == current_user.id, HandStats.position == position)\
-        .scalar() or 0
-    total_time_sec = total_time_ms / 1000
-
-    return jsonify({
-        'position': position,
-        'weights': weights,
-        'avg_time': avg_pos_time,
-        'learned': status['learned'],
-        'total_time_sec': round(total_time_sec, 0)
-    })
+    return jsonify(build_heatmap_payload(config, position))
 
 
 # -------------------------------------------------------------------
@@ -1872,10 +1873,11 @@ def api_heatmap(mode, position):
 @app.route('/all_stats')
 @login_required
 def all_stats():
-    """Page showing heatmap for all positions (no mode)."""
+    """Heatmap of every range (no mode), with the statistics deletion buttons."""
     config = get_user_config(current_user.id)
     positions = get_all_positions(config)
-    return render_template('all_stats.html', positions=positions)
+    return render_template('heatmap.html', mode=None, positions=positions,
+                           api_url=url_for('api_all_heatmap', position='__POSITION__'))
 
 
 @app.route('/api/all_heatmap/<position>')
@@ -1885,57 +1887,7 @@ def api_all_heatmap(position):
     config = get_user_config(current_user.id)
     if position not in get_all_positions(config):
         return jsonify({'error': 'Position not found'}), 400
-
-    avg_pos_time = get_avg_time_for_position(current_user.id, position)
-    weights = {}
-    for hand in ALL_HANDS:
-        stats = get_or_create_hand_stats(current_user.id, position, hand)
-        subrange = get_hand_status(hand, position, config)
-        w = calculate_weight(stats, avg_pos_time)
-        avg_time = round(get_avg_hand_time(stats) / 1000, 2) if stats.attempts > 0 else None
-        errors_last_3 = sum(1 for res in stats.last_results if res == 0)
-        last_results_display = ' '.join('✔' if res == 1 else '✘' for res in stats.last_results)
-        last_times_display = ', '.join(f'{t/1000:.2f}' for t in stats.last_times) if stats.last_times else ''
-        subrange = get_hand_status(hand, position, config)
-        subrange_color = config.subrange_colors.get(subrange, '#d5d8dc')
-        if stats.updated_at:
-            updated_naive = stats.updated_at.replace(tzinfo=None) if stats.updated_at.tzinfo else stats.updated_at
-            days_since = (datetime.utcnow() - updated_naive).days
-        else:
-            days_since = 0
-        is_due = (stats.review_interval_days > 0 and not stats.penalty_active and days_since >= stats.review_interval_days)
-
-        weights[hand] = {
-            'weight': w,
-            'attempts': stats.attempts,
-            'errors': stats.errors,
-            'correct': stats.attempts - stats.errors,
-            'avg_time_sec': avg_time,
-            'review_interval_days': stats.review_interval_days,
-            'penalty_active': stats.penalty_active,
-            'days_since_last_shown': days_since,
-            'is_due_for_review': is_due,
-            'errors_last_3': errors_last_3,
-            'last_results_display': last_results_display,
-            'last_times_display': last_times_display,
-            'subrange': subrange,
-            'subrange_color': subrange_color,
-        }
-    status = get_position_learning_status(current_user.id, position)
-
-    # Calculate total time spent on this position (all hands)
-    total_time_ms = db.session.query(db.func.sum(HandStats.total_time_ms))\
-        .filter(HandStats.user_id == current_user.id, HandStats.position == position)\
-        .scalar() or 0
-    total_time_sec = total_time_ms / 1000
-
-    return jsonify({
-        'position': position,
-        'weights': weights,
-        'avg_time': avg_pos_time,
-        'learned': status['learned'],
-        'total_time_sec': round(total_time_sec, 0)
-    })
+    return jsonify(build_heatmap_payload(config, position))
 
 
 @app.route('/api/delete_position_stats/<position>', methods=['POST'])

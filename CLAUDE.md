@@ -114,13 +114,13 @@ All routes except register/login require login.
 - `/create` — range editor; `/create/*` (add/update/remove subrange, save/load/delete range, temp draft, positions)
 - `/create_mode`, `/create_mode/save|update`, `/get_modes`, `/get_mode/<name>`, `/delete_mode/<name>` — mode management (position grouping)
 - `/heatmap/<mode>` — visual hand difficulty for one mode (color-coded by weight); data from `/api/heatmap/<mode>/<position>`
-- `/all_stats` — same heatmap across all positions; data from `/api/all_heatmap/<position>`
+- `/all_stats` — same heatmap across all positions, plus the statistics deletion buttons; data from `/api/all_heatmap/<position>`
 - `/api/delete_position_stats/<position>`, `/api/delete_all_stats` — wipe HandStats
 - `/api/range/<position>` — JSON endpoint for hand data
 - `/api/deck_style`, `/api/show_timer`, `/api/dismiss_tables_notice` — per-user UI settings (JSON POST)
 - `/config_management` and `/config_management/save|load/<file>|delete/<file>|clear` — backup/restore
 
-`/api/heatmap` and `/api/all_heatmap` build the same payload with duplicated code; change both when you touch one.
+Both heatmap pages render the one `templates/heatmap.html` (`mode` is `None` on `/all_stats`, which also shows the delete buttons), and both API endpoints return `build_heatmap_payload()`; only their validation differs.
 
 ## Config Backups
 
@@ -138,12 +138,13 @@ All routes except register/login require login.
 - Training result cards collapse by default
 - `base.html` loads `style.css` and the shared design system `cr_design.css` (tokens, `.cr-shell` wrapper, cards, buttons, inputs, `.cr-toast*`, the session stats card `.cr-stats*` used by both training pages), and renders Flask flashes as toasts via `toast.js`
 
-**Pages on the new design (`.cr-shell`)**: home (`index`), login/register (`auth.*`), `training`, `draw_training`, `create_range`, `config_management`.
-**Legacy-styled pages** (not yet redesigned): `create_mode`, `heatmap`, `all_stats`. The last two reuse the legacy block (top of) `create_range.css`; don't edit it without checking them. `draw_training` and `create_range` use the `.cr-shell` part of the same file for the matrix and subrange list.
+**Pages on the new design (`.cr-shell`)**: home (`index`), login/register (`auth.*`), `training`, `draw_training`, `create_range`, `config_management`, `heatmap` (also serves `/all_stats`).
+**Legacy-styled pages** (not yet redesigned): `create_mode`.
+`create_range.css` holds the range editor styles and the matrix rules (`.cr-shell #hand-matrix`, `.matrix-cell` and their responsive tiers) that `draw_training` and `heatmap` reuse, so check all three pages after editing it.
 
 Static file ↔ page map:
-- `index.css/js`, `auth.css/js`, `training.css/js`, `config_management.css/js`, `create_mode.css/js`, `draw_training.css/js`, `create_range.css/js`
-- Shared: `hand_matrix.js` (13x13 matrix builder, drag-select, cell colouring and quick-select groups; used by `create_range.js` and `draw_training.js`, each keeps its own selection state), `toast.js` (toast), `cards.js` (deck artwork and hero card dealing), `situation_table.js` (table/seat renderer used by the range editor and training page; its defaults are mirrored server-side in `get_default_situation()` — keep both in sync)
+- `index.css/js`, `auth.css/js`, `training.css/js`, `config_management.css/js`, `create_mode.css/js`, `draw_training.css/js`, `create_range.css/js`, `heatmap.css/js`
+- Shared: `hand_matrix.js` (13x13 matrix builder, drag-select, cell colouring and quick-select groups; used by `create_range.js` and `draw_training.js`, each keeps its own selection state; `heatmap.js` only takes `RANKS` and fills the matrix with its own cell code), `toast.js` (toast), `cards.js` (deck artwork and hero card dealing), `situation_table.js` (table/seat renderer used by the range editor and training page; its defaults are mirrored server-side in `get_default_situation()` — keep both in sync)
 
 ## Conventions
 
@@ -159,7 +160,7 @@ Static file ↔ page map:
 
 ## Redesign Notes
 
-- **Toasts over alert()**: When redesigning a page's UI, replace one-way informational `alert()` calls (errors, success messages, validation nudges) with a small auto-dismissing toast instead of the blocking native dialog. The shared implementation is `showToast(container, message, type)` in `static/toast.js` (types `'success'`/`'error'`, flashes also use `'info'`), styled by the `.cr-toast*` classes in `static/cr_design.css`. `static/create_range.js` and `static/config_management.js` wrap it with their own container — follow that pattern. `draw_training.js` uses `showToast` with the base template's `#flash-toast-container`. `alert()` is still used in `create_mode.js`, `all_stats.html` and `heatmap.html`, to be replaced when those pages are redesigned
+- **Toasts over alert()**: When redesigning a page's UI, replace one-way informational `alert()` calls (errors, success messages, validation nudges) with a small auto-dismissing toast instead of the blocking native dialog. The shared implementation is `showToast(container, message, type)` in `static/toast.js` (types `'success'`/`'error'`, flashes also use `'info'`), styled by the `.cr-toast*` classes in `static/cr_design.css`. `static/create_range.js` and `static/config_management.js` wrap it with their own container — follow that pattern. `draw_training.js` and `heatmap.js` use `showToast` with the base template's `#flash-toast-container`. `alert()` is still used in `create_mode.js`, to be replaced when that page is redesigned
 - **Keep confirm() native**: Do not try to replace `confirm()` (yes/no decisions) with a toast — a toast can't pause and wait for an answer. Destructive/blocking confirmations stay as native `confirm()`
 - **New design**: build redesigned pages inside the `.cr-shell` wrapper and reuse the `cr_design.css` building blocks instead of adding page-local copies
 
