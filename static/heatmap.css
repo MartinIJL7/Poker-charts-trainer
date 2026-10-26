@@ -7,13 +7,39 @@
     --hmap-unlearned: #95a5a6;
 }
 
-/* ---- Layout: one centered column of cards ---- */
+/* ---- Layout: matrix on the left, picker and status cards on the right ---- */
 .cr-shell .hmap-column {
-    max-width: 720px;
+    max-width: 1100px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: var(--cr-space-md);
+}
+
+/* The stacked order is the DOM order: picker, matrix, learned, counters */
+.cr-shell .hmap-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cr-space-md);
+}
+
+@media screen and (min-width: 900px) {
+    .cr-shell .hmap-main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        grid-template-rows: auto auto 1fr;
+        align-items: start;
+    }
+    .cr-shell .hmap-card-matrix {
+        grid-column: 1;
+        grid-row: 1 / span 3;
+    }
+    .cr-shell .hmap-card-picker { grid-column: 2; grid-row: 1; }
+    .cr-shell .hmap-card-learned { grid-column: 2; grid-row: 2; }
+    .cr-shell .hmap-card-stats { grid-column: 2; grid-row: 3; }
+    .cr-shell .hmap-card-picker .hmap-picker .cr-select { flex: 1 1 100%; }
+    .cr-shell .hmap-card-stats .hmap-categories { grid-template-columns: 1fr; }
+    .cr-shell .hmap-delete-row .cr-btn { flex: 1 1 100%; white-space: normal; }
 }
 
 .cr-shell .hmap-back {
@@ -52,11 +78,13 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-wrap: wrap;
+    gap: var(--cr-space-xs, 4px) var(--cr-space-md);
     min-height: 40px;
 }
 
 .cr-shell .hmap-legend {
-    width: 100%;
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -67,8 +95,7 @@
 }
 
 .cr-shell .hmap-legend-bar {
-    flex: 0 1 200px;
-    min-width: 60px;
+    flex: 0 0 200px;
     height: 20px;
     background: linear-gradient(to right, #27ae60, #f1c40f, #e74c3c);
     border-radius: 4px;
@@ -122,15 +149,18 @@
 
 .cr-shell .hmap-times {
     justify-content: center;
-    margin-bottom: var(--cr-space-sm);
+    margin-top: var(--cr-space-sm);
+    font-size: 0.85em;
 }
 
 .cr-shell .hmap-hint {
     text-align: center;
 }
 
-.cr-shell .hmap-hint--bottom {
-    margin: var(--cr-space-md) 0 0;
+.cr-shell .hmap-gray-hint {
+    margin: 0;
+    font-size: 0.85em;
+    color: var(--cr-color-text-muted);
 }
 
 .cr-shell #hand-matrix .hmap-error {
@@ -291,6 +321,13 @@
 
 /* ---- Responsive ---- */
 @media screen and (max-width: 600px) {
+    .cr-shell .hmap-legend {
+        flex: 1 1 100%;
+    }
+    .cr-shell .hmap-legend-bar {
+        flex: 0 1 200px;
+        min-width: 60px;
+    }
     .cr-shell .hmap-picker .cr-select {
         flex: 1 1 100%;
     }

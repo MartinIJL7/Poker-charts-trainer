@@ -17,85 +17,83 @@
         </div>
         {% endif %}
 
-        <div class="cr-card">
-            <div class="hmap-picker">
-                <label for="position-select" class="hmap-label">Выберите диапазон:</label>
-                <select id="position-select" class="cr-select">
-                    {% for pos in positions %}
-                        <option value="{{ pos }}">{{ pos }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            {% if not mode %}
-            <div class="hmap-delete-row">
-                <button type="button" id="delete-position-btn" class="cr-btn cr-btn--danger-ghost">
-                    <svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
-                    Удалить статистику по диапазону
-                </button>
-                <button type="button" id="delete-all-btn" class="cr-btn cr-btn--danger-ghost">
-                    <svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
-                    Удалить всю мою статистику
-                </button>
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="cr-card">
-            <div class="hmap-legend-wrapper">
-                <div class="hmap-legend" id="main-legend">
-                    <span>Лёгкая (0.1)</span>
-                    <div class="hmap-legend-bar"></div>
-                    <span>Сложная (2.0)</span>
+        <div class="hmap-main">
+            <div class="cr-card hmap-card-picker">
+                <div class="hmap-picker">
+                    <label for="position-select" class="hmap-label">Выберите диапазон:</label>
+                    <select id="position-select" class="cr-select">
+                        {% for pos in positions %}
+                            <option value="{{ pos }}">{{ pos }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div id="subrange-legend" class="hmap-subrange-legend"></div>
+                {% if not mode %}
+                <div class="hmap-delete-row">
+                    <button type="button" id="delete-position-btn" class="cr-btn cr-btn--danger-ghost">
+                        <svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
+                        Удалить статистику по диапазону
+                    </button>
+                    <button type="button" id="delete-all-btn" class="cr-btn cr-btn--danger-ghost">
+                        <svg class="cr-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
+                        Удалить всю мою статистику
+                    </button>
+                </div>
+                {% endif %}
             </div>
 
-            <label class="cr-switch hmap-toggle">
-                <input type="checkbox" id="toggle-subrange-colors" class="cr-switch-input">
-                <span class="cr-switch-track" aria-hidden="true"></span>
-                <span class="cr-switch-text">Раскрасить по поддиапазонам</span>
-            </label>
+            <div class="cr-card hmap-card-matrix">
+                <div class="hmap-legend-wrapper">
+                    <div class="hmap-legend" id="main-legend">
+                        <span>Лёгкая (0.1)</span>
+                        <div class="hmap-legend-bar"></div>
+                        <span>Сложная (2.0)</span>
+                    </div>
+                    <p id="gray-hint" class="hmap-gray-hint">Серый цвет – рука ещё не встречалась</p>
+                    <div id="subrange-legend" class="hmap-subrange-legend"></div>
+                </div>
 
-            <div class="cr-stats-row hmap-times">
-                <span class="cr-stat">Среднее время по диапазону: <strong id="avg-position-time">—</strong> с</span>
-                <span class="cr-stat">Общее время: <strong id="total-position-time">—</strong></span>
+                <label class="cr-switch hmap-toggle">
+                    <input type="checkbox" id="toggle-subrange-colors" class="cr-switch-input">
+                    <span class="cr-switch-track" aria-hidden="true"></span>
+                    <span class="cr-switch-text">Раскрасить по поддиапазонам</span>
+                </label>
+
+                <p id="color-hint" class="cr-stats-note hmap-hint">
+                    Цвета отражают вашу индивидуальную сложность рук, основанную на ошибках и времени ответа
+                </p>
+
+                <div id="hand-matrix" class="cr-matrix"></div>
             </div>
 
-            <p id="color-hint" class="cr-stats-note hmap-hint">
-                Цвета отражают вашу индивидуальную сложность рук, основанную на ошибках и времени ответа
-            </p>
+            <div class="cr-card hmap-card-learned">
+                <h3 class="cr-card-title">Статус заучивания диапазона</h3>
+                <div id="learned-status" class="hmap-learned"></div>
+                <p class="cr-stats-note hmap-hint">
+                    Диапазон считается выученным, если все руки выучены или находятся на повторении
+                </p>
+                <div class="cr-stats-row hmap-times">
+                    <span class="cr-stat">Среднее время: <strong id="avg-position-time">—</strong> с</span>
+                    <span class="cr-stat">Общее время: <strong id="total-position-time">—</strong></span>
+                </div>
+            </div>
 
-            <div id="hand-matrix" class="cr-matrix"></div>
-
-            <p id="gray-hint" class="cr-stats-note hmap-hint hmap-hint--bottom">
-                Серый цвет – рука ещё не встречалась
-            </p>
-        </div>
-
-        <div class="cr-card">
-            <h3 class="cr-card-title">Статус заучивания диапазона</h3>
-            <div id="learned-status" class="hmap-learned"></div>
-            <p class="cr-stats-note hmap-hint">
-                Диапазон считается выученным, если все руки выучены или находятся на повторении
-            </p>
-        </div>
-
-        <div id="category-stats" class="cr-card">
-            <h3 class="cr-card-title">Распределение рук по статусам</h3>
-            <p class="cr-stats-note">Можно нажать, чтобы подсветить</p>
-            <div class="hmap-categories">
-                <button type="button" class="hmap-category" data-category="learned">
-                    <span class="hmap-dot hmap-dot--learned"></span>Выучено: <strong id="stat-learned">0</strong>
-                </button>
-                <button type="button" class="hmap-category" data-category="due">
-                    <span class="hmap-dot hmap-dot--due"></span>Пора повторять: <strong id="stat-due">0</strong>
-                </button>
-                <button type="button" class="hmap-category" data-category="forgotten">
-                    <span class="hmap-dot hmap-dot--forgotten"></span>Забыто: <strong id="stat-forgotten">0</strong>
-                </button>
-                <button type="button" class="hmap-category" data-category="not-learned">
-                    <span class="hmap-dot hmap-dot--unlearned"></span>Не выучено: <strong id="stat-not-learned">0</strong>
-                </button>
+            <div id="category-stats" class="cr-card hmap-card-stats">
+                <h3 class="cr-card-title">Распределение рук по статусам</h3>
+                <p class="cr-stats-note">Можно нажать, чтобы подсветить</p>
+                <div class="hmap-categories">
+                    <button type="button" class="hmap-category" data-category="learned">
+                        <span class="hmap-dot hmap-dot--learned"></span>Выучено: <strong id="stat-learned">0</strong>
+                    </button>
+                    <button type="button" class="hmap-category" data-category="due">
+                        <span class="hmap-dot hmap-dot--due"></span>Пора повторять: <strong id="stat-due">0</strong>
+                    </button>
+                    <button type="button" class="hmap-category" data-category="forgotten">
+                        <span class="hmap-dot hmap-dot--forgotten"></span>Забыто: <strong id="stat-forgotten">0</strong>
+                    </button>
+                    <button type="button" class="hmap-category" data-category="not-learned">
+                        <span class="hmap-dot hmap-dot--unlearned"></span>Не выучено: <strong id="stat-not-learned">0</strong>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
