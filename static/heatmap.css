@@ -114,21 +114,10 @@
 
 .cr-shell .hmap-toggle {
     display: flex;
-    align-items: center;
     justify-content: center;
-    gap: var(--cr-space-sm);
     margin: var(--cr-space-md) 0;
-    cursor: pointer;
-    user-select: none;
-}
-
-.cr-shell .hmap-toggle input {
-    accent-color: var(--cr-color-primary);
-}
-
-/* The shared focus ring is a boxy outline that looks heavy on a checkbox clicked with a mouse */
-.cr-shell .hmap-toggle input:focus:not(:focus-visible) {
-    outline: none;
+    font-size: 1em;
+    color: var(--cr-color-text);
 }
 
 .cr-shell .hmap-times {

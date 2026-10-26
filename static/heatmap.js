@@ -1,7 +1,7 @@
 // Heatmap page logic, shared by /heatmap/<mode> and /all_stats.
 // The API URL comes from data-api-url on .hmap-shell (with a __POSITION__ placeholder).
 // The delete-statistics buttons exist only on the all-ranges page.
-import { RANKS } from './hand_matrix.js';
+import { RANKS, setCellColor } from './hand_matrix.js';
 import { showToast } from './toast.js';
 
 const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
@@ -217,9 +217,8 @@ function buildMatrix(weights) {
 
             // ----- Determine color -----
             if (useSubrangeColors) {
-                // Mode: color by subrange (all hands, including unplayed)
-                cell.style.backgroundColor = data.subrange_color || '#d5d8dc';
-                cell.style.color = '#000000';
+                // Mode: color by subrange, same as the range editor; folded hands keep the default cell look
+                if (data.subrange && data.subrange !== 'not in a range') setCellColor(cell, data.subrange_color);
             } else if (data.attempts === 0) {
                 // Mode: color by weight (only played hands); unplayed hands keep the default cell look
                 cell.classList.add('no-data');

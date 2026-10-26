@@ -745,3 +745,61 @@ body.narrow-page .cr-main {
 .cr-shell .cr-dialog-actions .cr-btn {
     width: 100%;
 }
+
+/* Compact on/off switch replacing the native checkbox. The
+   real input stays in the DOM (visually hidden) for keyboard and a11y. */
+.cr-shell .cr-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.85em;
+    color: var(--cr-color-text-muted);
+}
+
+.cr-shell .cr-switch-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    outline: none;
+}
+
+.cr-switch-track {
+    position: relative;
+    width: 34px;
+    height: 20px;
+    border-radius: 999px;
+    background: var(--cr-color-border);
+    transition: background var(--cr-transition-fast);
+}
+
+.cr-switch-track::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--cr-color-surface);
+    box-shadow: var(--cr-shadow-soft);
+    transition: transform var(--cr-transition-fast);
+}
+
+.cr-switch-input:checked + .cr-switch-track {
+    background: var(--cr-color-primary);
+}
+
+.cr-switch-input:checked + .cr-switch-track::after {
+    transform: translateX(14px);
+}
+
+.cr-switch-input:focus-visible + .cr-switch-track {
+    outline: 2px solid var(--cr-color-primary);
+    outline-offset: 2px;
+}
